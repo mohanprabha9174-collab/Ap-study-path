@@ -1,0 +1,14 @@
+AP Study Path Website - Windows Beginner Instructions
+
+1. Extract the ZIP first. Do not run from inside the compressed ZIP view.
+2. Open the extracted ap-csp-study folder.
+3. Double-click RUN-WEBSITE-WINDOWS.bat.
+4. Wait for it to install and start.
+5. Open Chrome and go to: http://localhost:5173
+
+If Windows warns you about the BAT file:
+- Click More info
+- Click Run anyway
+
+You do NOT need an OpenAI API key in this version.
+This version uses free built-in FRQ rubrics instead of AI grading.

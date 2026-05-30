@@ -1,0 +1,19 @@
+{
+  "name": "ap-study-path",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {},
+  "description": "Free AP Study Path website with AP CSP practice tests, PPR-style FRQs, rubrics, and deep dives."
+}
