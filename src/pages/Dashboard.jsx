@@ -77,7 +77,6 @@ function CourseSummary({ course, attempts, frqs }) {
 
   return (
     <article className={`card dash-card accent-${course.accent}`}>
-      <p className="eyebrow">{course.short}</p>
       <h2>{course.name}</h2>
       <div className="dash-stats">
         <div><strong>{attempts.length}</strong><span>tests taken</span></div>

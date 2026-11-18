@@ -87,7 +87,6 @@ export function FrqTab({ course }) {
       {course.id === "csp" && (
         <div className="card ppr-panel">
           <div>
-            <p className="eyebrow">Your Create Task</p>
             <h2>Paste your PPR code</h2>
             <p>The AP CSP written response asks about your own program. Paste the code from your Personalized Project Reference here (procedure, where it's called, list creation, and list use) so your answers can be graded against it. Remove names or personal info first.</p>
           </div>
@@ -123,7 +122,7 @@ export function FrqTab({ course }) {
                   <button key={f.id} className={f.id === frq.id ? "frq-tab active" : "frq-tab"} onClick={() => setSelectedId(f.id)}>
                     <div>
                       <strong>{f.title}</strong>
-                      <small>{rubricTotal(f)} pts{best >= 0 ? ` • best ${Math.round(best * 100)}%` : ""}</small>
+                      <small>{rubricTotal(f)} points{best >= 0 ? `, best ${Math.round(best * 100)}%` : ""}</small>
                     </div>
                   </button>
                 );
@@ -133,7 +132,7 @@ export function FrqTab({ course }) {
         </aside>
 
         <div className="card frq-workspace">
-          <p className="eyebrow">{frq.category} • {rubricTotal(frq)} points</p>
+          <p className="eyebrow">{frq.category}, {rubricTotal(frq)} points</p>
           <h2>{frq.title}</h2>
           <p className="prompt-box">{frq.prompt}</p>
           {frq.code && <pre className="code-block">{frq.code}</pre>}
@@ -193,7 +192,7 @@ export function FrqTab({ course }) {
             }
             spellCheck={course.id !== "csa"}
           />
-          <div className="response-meta">{response.trim() ? response.trim().split(/\s+/).length : 0} words • saved as a draft on this device</div>
+          <div className="response-meta">{response.trim() ? response.trim().split(/\s+/).length : 0} words, saved as a draft on this device</div>
 
           {error && <div className="error-box">{error}</div>}
           <div className="button-row">

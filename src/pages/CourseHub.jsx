@@ -17,7 +17,6 @@ export default function CourseHub({ course, tab }) {
     <section className="page course-hub">
       <div className={`card course-banner accent-${course.accent}`}>
         <div>
-          <p className="eyebrow">{course.short}</p>
           <h1>{course.name}</h1>
           <p>{course.tagline}</p>
         </div>
@@ -57,7 +56,7 @@ function NotesTab({ course }) {
             <span className="unit-badge">Unit {u.id}</span>
             <h2>{u.name}</h2>
             <p>{u.overview}</p>
-            <strong>{u.topics.length} topics →</strong>
+            <strong>{u.topics.length} topics</strong>
           </button>
         ))}
       </div>
@@ -71,7 +70,7 @@ function NotesTab({ course }) {
         <span className="unit-badge">Unit {unit.id}</span>
         <h1>{unit.name}</h1>
         <p>{unit.overview}</p>
-        <button className="secondary-btn" onClick={() => navigate(`/${course.id}/quiz`)}>Quiz yourself on this course →</button>
+        <button className="secondary-btn" onClick={() => navigate(`/${course.id}/quiz`)}>Build a quiz</button>
       </div>
       <div className="accordion-list">
         {unit.topics.map((topic) => {
@@ -96,7 +95,7 @@ function TipsTab({ course }) {
     <div className="tips-grid">
       {course.tips.map((section) => (
         <article className="card tips-section" key={section.title}>
-          <h2><span>{section.icon}</span> {section.title}</h2>
+          <h2>{section.title}</h2>
           {section.tips.map((tip) => (
             <div className="tip" key={tip.title}>
               <h3>{tip.title}</h3>

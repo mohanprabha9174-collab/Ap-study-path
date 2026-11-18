@@ -60,7 +60,6 @@ export default function AuthPage() {
     <main className="auth-page">
       <section className="card auth-card">
         <div className="auth-copy">
-          <p className="eyebrow">Free student account</p>
           <h1>{mode === "register" ? "Create your account" : "Welcome back"}</h1>
           <p>An account saves your exam progress and scores on any device and unlocks AI grading for free-response questions.</p>
           <div className="auth-highlights">

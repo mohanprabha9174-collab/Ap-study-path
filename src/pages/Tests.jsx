@@ -86,12 +86,12 @@ export function TestsTab({ course }) {
         const total = test.questions.length;
         return (
           <article className="card test-card" key={test.id}>
-            <p className="eyebrow">{total} questions • {test.minutes || 90} min</p>
+            <p className="eyebrow">{total} questions, {test.minutes || 90} minutes</p>
             <h2>{test.title}</h2>
             <p>{test.description}</p>
             {saved && (
               <div className="mini-progress">
-                <span>{saved.status === "done" ? "Completed — view results" : `${answered} / ${total} answered • ${saved.mode === "exam" ? "Exam mode" : "Practice mode"}`}</span>
+                <span>{saved.status === "done" ? "Completed — view results" : `${answered} / ${total} answered in ${saved.mode === "exam" ? "exam mode" : "practice mode"}`}</span>
                 <div className="mini-progress-track"><div style={{ width: `${(answered / total) * 100}%` }} /></div>
               </div>
             )}
@@ -112,7 +112,6 @@ export function TestsTab({ course }) {
         );
       })}
       <article className="card test-card mode-help">
-        <p className="eyebrow">Which mode?</p>
         <h2>Exam vs practice</h2>
         <p><strong>Exam mode</strong> is timed like the real test. You can skip, flag, and change answers, and you only see your score at the end.</p>
         <p><strong>Practice mode</strong> shows the answer and explanation right after each question.</p>
@@ -162,7 +161,6 @@ export function QuizTab({ course }) {
   return (
     <div className="quiz-builder-layout">
       <div className="card quiz-builder">
-        <p className="eyebrow">Custom quiz builder</p>
         <h2>Build a quiz from {pool.length} questions</h2>
         <p className="muted">Every quiz is a new random mix, so you can take as many as you want. Focus on your weakest units.</p>
 
@@ -289,7 +287,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
     }
     return (
       <div className="card results-card">
-        <p className="eyebrow">{course.short} • {title}</p>
+        <p className="eyebrow">{title}</p>
         <h1>Score: {result.correct} / {result.total}</h1>
         <div className="score-circle">{result.percentage}%</div>
         <h2>{result.band}</h2>
@@ -331,7 +329,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
       </div>
 
       <div className="card quiz-card">
-        <div className="progress-label">Question {state.currentIndex + 1} of {questions.length} • {answeredCount} answered</div>
+        <div className="progress-label">Question {state.currentIndex + 1} of {questions.length}, {answeredCount} answered</div>
         <div className="progress-track"><div style={{ width: `${((state.currentIndex + 1) / questions.length) * 100}%` }} /></div>
         <h2>{question.question.replace(/^Practice Test \d+, Question \d+:\s*/, "")}</h2>
         {question.code && <pre className="code-block">{question.code}</pre>}
@@ -345,7 +343,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
             if (looksLikeCode(choice)) classes.push("mono");
             return (
               <button key={index} className={classes.join(" ")} onClick={() => choose(index)} disabled={revealed}>
-                <strong>{String.fromCharCode(65 + index)}.</strong> <span>{choice}</span>
+                <strong>{String.fromCharCode(65 + index)}</strong> <span>{choice}</span>
               </button>
             );
           })}
@@ -389,7 +387,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
               </button>
             ))}
           </div>
-          <p className="muted small">Filled = answered • Gold = flagged</p>
+          <p className="muted small">Dark = answered, highlighted = flagged</p>
         </div>
       )}
     </section>
@@ -414,13 +412,13 @@ function Review({ course, questions, answers, onBack }) {
       {items.length === 0 && <div className="card results-card"><h2>No missed questions 🎉</h2></div>}
       {items.map(({ q, i, selected }) => (
         <div className="card quiz-card review-item" key={q.id || i}>
-          <p className="eyebrow">Question {i + 1} • Unit {q.unit}: {course.unitMeta.find((u) => u.id === q.unit)?.name}</p>
+          <p className="eyebrow">Question {i + 1}, Unit {q.unit}: {course.unitMeta.find((u) => u.id === q.unit)?.name}</p>
           <h3>{q.question.replace(/^Practice Test \d+, Question \d+:\s*/, "")}</h3>
           {q.code && <pre className="code-block">{q.code}</pre>}
           <div className="choices">
             {q.choices.map((choice, ci) => (
               <div key={ci} className={`choice-review ${ci === q.correctAnswer ? "correct" : ""} ${selected === ci && ci !== q.correctAnswer ? "wrong" : ""} ${looksLikeCode(choice) ? "mono" : ""}`}>
-                <strong>{String.fromCharCode(65 + ci)}.</strong> {choice}
+                <strong>{String.fromCharCode(65 + ci)}</strong> {choice}
                 {selected === ci && <em className="your-pick"> (your answer)</em>}
               </div>
             ))}

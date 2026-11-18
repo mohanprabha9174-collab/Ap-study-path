@@ -97,7 +97,7 @@ export default function App() {
         <Navbar route={route} />
         <main>{content}</main>
         <footer className="site-footer">
-          <p>AP Study Path • Free practice for AP CSP, AP CSA, and AP Cybersecurity. AP® is a trademark registered by the College Board, which is not affiliated with and does not endorse this site.</p>
+          <p>AP Study Path: free practice for AP CSP, AP CSA, and AP Cybersecurity. AP® is a trademark registered by the College Board, which is not affiliated with and does not endorse this site.</p>
         </footer>
       </div>
     </AppContext.Provider>
