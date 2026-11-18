@@ -436,3 +436,5 @@ th { font-size: 0.85rem; color: var(--pencil); }
   .course-row-facts { gap: 1rem; }
   .code-block { font-size: 0.8rem; }
 }
+.confirm-card { margin-top: 0.9rem; padding: 1rem 1.3rem; background: var(--highlight-soft); border-color: #d9b800; }
+.confirm-card p { margin: 0 0 0.7rem; }

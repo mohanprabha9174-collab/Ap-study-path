@@ -213,6 +213,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
   const stateRef = useRef(state);
   stateRef.current = state;
   const skipSave = useRef(false);
+  const [confirming, setConfirming] = useState(false);
 
   const exam = state.mode === "exam";
   const question = questions[state.currentIndex];
@@ -261,9 +262,13 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
     update({ flagged: flagged.includes(state.currentIndex) ? flagged.filter((i) => i !== state.currentIndex) : [...flagged, state.currentIndex] });
   }
 
-  async function finish(timeUp = false) {
+  async function finish(force = false) {
     const unanswered = stateRef.current.answers.filter((a) => a === null).length;
-    if (!timeUp && unanswered > 0 && !window.confirm(`You have ${unanswered} unanswered question(s). Submit anyway?`)) return;
+    if (!force && unanswered > 0) {
+      setConfirming(true);
+      return;
+    }
+    setConfirming(false);
     const done = update({ status: "done" });
     const result = scoreAttempt(course, questions, done.answers);
     await store.addAttempt({ course: course.id, testId, title, score: result.correct, total: result.total, unitBreakdown: result.unitBreakdown });
@@ -365,6 +370,16 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
           </div>
         </div>
       </div>
+
+      {confirming && (
+        <div className="card confirm-card" role="alertdialog" aria-label="Submit with unanswered questions">
+          <p><strong>{state.answers.filter((a) => a === null).length} question(s) are unanswered.</strong> Blank answers count as wrong. Submit anyway?</p>
+          <div className="button-row">
+            <button className="primary-btn" onClick={() => finish(true)}>Submit anyway</button>
+            <button className="ghost-btn" onClick={() => setConfirming(false)}>Keep working</button>
+          </div>
+        </div>
+      )}
 
       {exam && (
         <div className="card palette-card">
