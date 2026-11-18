@@ -1,10 +1,10 @@
 @echo off
 setlocal
-title AP CSP Study Website
+title AP Study Path
 cd /d "%~dp0"
 
 echo ======================================
-echo AP CSP Study Website Launcher
+echo AP Study Path Launcher
 echo ======================================
 echo.
 echo Current folder:
@@ -39,7 +39,7 @@ if not exist node_modules (
   call npm install
   if errorlevel 1 (
     echo.
-    echo npm install failed. Copy the red error text and send it to ChatGPT.
+    echo npm install failed. Copy the red error text and ask for help.
     pause
     exit /b 1
   )
@@ -49,7 +49,7 @@ if not exist node_modules (
 
 echo.
 echo Starting website...
-echo When you see Local: http://localhost:5173, open that link in Chrome.
+echo When you see Local: http://localhost:5173, open that link in Chrome. The API runs on port 3001.
 echo Keep this window open while using the website.
 echo.
 call npm run dev

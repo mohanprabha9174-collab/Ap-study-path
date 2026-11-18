@@ -1,14 +1,12 @@
-AP Study Path Website - Windows Beginner Instructions
+AP Study Path - Windows Instructions
 
-1. Extract the ZIP first. Do not run from inside the compressed ZIP view.
-2. Open the extracted ap-csp-study folder.
-3. Double-click RUN-WEBSITE-WINDOWS.bat.
-4. Wait for it to install and start.
-5. Open Chrome and go to: http://localhost:5173
+1. Install Node.js 22 LTS or newer from https://nodejs.org
+2. Double-click RUN-WEBSITE-WINDOWS.bat
+3. Wait for it to install and start, then open http://localhost:5173 in Chrome.
 
-If Windows warns you about the BAT file:
-- Click More info
-- Click Run anyway
+Optional - turn on AI FRQ grading:
+1. Copy .env.example to a new file named .env
+2. Paste your Anthropic API key after ANTHROPIC_API_KEY=
+3. Close the black window and run RUN-WEBSITE-WINDOWS.bat again.
 
-You do NOT need an OpenAI API key in this version.
-This version uses free built-in FRQ rubrics instead of AI grading.
+Without a key, everything still works and FRQs use the free rubric estimate.
