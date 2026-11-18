@@ -3,6 +3,37 @@ import { navigate, useApp } from "../App.jsx";
 import { api } from "../lib/api.js";
 import { gradeWithRubric, rubricTotal } from "../lib/rubricGrader.js";
 import { loadDraft, saveDraft } from "../lib/store.js";
+import { references } from "../data/references.js";
+import { usePrefs } from "../lib/prefs.js";
+import { ReferenceDrawer, formatTime } from "../components/ExamTools.jsx";
+
+const FRQ_MINUTES = { csp: 30, csa: 22, cyber: 50 };
+
+function FrqToolbar({ course, frqId }) {
+  const [prefs, setPrefs] = usePrefs();
+  const [refOpen, setRefOpen] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [left, setLeft] = useState(FRQ_MINUTES[course.id] * 60);
+  useEffect(() => { setRunning(false); setLeft(FRQ_MINUTES[course.id] * 60); }, [frqId, course.id]);
+  useEffect(() => {
+    if (!running) return undefined;
+    const id = setInterval(() => setLeft((t) => (t <= 1 ? (setRunning(false), 0) : t - 1)), 1000);
+    return () => clearInterval(id);
+  }, [running]);
+  const reference = references[course.id];
+  return (
+    <div className="frq-toolbar">
+      <div className="frq-timer">
+        {prefs.showTimer ? <span className={`exam-timer ${left <= 300 && running ? "low" : ""}`}>{formatTime(left)}</span> : <span className="exam-timer hidden-timer">Timer hidden</span>}
+        <button className="bar-btn" onClick={() => setRunning(!running)}>{running ? "Pause" : left === FRQ_MINUTES[course.id] * 60 ? `Start ${FRQ_MINUTES[course.id]}-minute timer` : "Resume"}</button>
+        {left !== FRQ_MINUTES[course.id] * 60 && <button className="bar-btn" onClick={() => { setRunning(false); setLeft(FRQ_MINUTES[course.id] * 60); }}>Reset</button>}
+        <button className="bar-btn" onClick={() => setPrefs({ showTimer: !prefs.showTimer })}>{prefs.showTimer ? "Hide" : "Show"}</button>
+      </div>
+      {reference && <button className="tool-btn" onClick={() => setRefOpen(true)}>Reference</button>}
+      <ReferenceDrawer reference={reference} open={refOpen} onClose={() => setRefOpen(false)} />
+    </div>
+  );
+}
 
 export function FrqTab({ course }) {
   const { user, backend, store } = useApp();
@@ -132,6 +163,7 @@ export function FrqTab({ course }) {
         </aside>
 
         <div className="card frq-workspace">
+          <FrqToolbar course={course} frqId={frq.id} />
           <p className="eyebrow">{frq.category}, {rubricTotal(frq)} points</p>
           <h2>{frq.title}</h2>
           <p className="prompt-box">{frq.prompt}</p>
