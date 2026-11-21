@@ -2,6 +2,7 @@ import { useState } from "react";
 import { navigate } from "../App.jsx";
 import { QuizTab, TestsTab } from "./Tests.jsx";
 import { FrqTab } from "./Frq.jsx";
+import AiHelper from "../components/AiHelper.jsx";
 
 const TABS = [
   { id: "tests", label: "Practice Exams" },
@@ -11,8 +12,15 @@ const TABS = [
   { id: "tips", label: "Tips & Tricks" }
 ];
 
+const TUTOR_STARTERS = {
+  csp: ["Explain lists in AP pseudocode", "How do I trace a robot question?", "Make me a 2-week study plan"],
+  csa: ["Explain ArrayList vs arrays", "How do I avoid off-by-one errors?", "Make me a 2-week study plan"],
+  cyber: ["Explain the CIA triad with examples", "How do I read firewall rules?", "Make me a 2-week study plan"]
+};
+
 export default function CourseHub({ course, tab }) {
   const current = TABS.some((t) => t.id === tab) ? tab : "tests";
+  const [tutorOpen, setTutorOpen] = useState(false);
   return (
     <section className="page course-hub">
       <div className={`card course-banner accent-${course.accent}`}>
@@ -39,6 +47,17 @@ export default function CourseHub({ course, tab }) {
       {current === "frq" && <FrqTab course={course} />}
       {current === "notes" && <NotesTab course={course} />}
       {current === "tips" && <TipsTab course={course} />}
+
+      {(current === "notes" || current === "tips") && (
+        <button className="ai-fab" onClick={() => setTutorOpen(true)}><span className="ai-badge">AI</span> Ask the tutor</button>
+      )}
+      <AiHelper
+        open={tutorOpen}
+        onClose={() => setTutorOpen(false)}
+        course={course}
+        context={{ key: `general:${course.id}`, label: course.name, kind: "general" }}
+        starters={TUTOR_STARTERS[course.id] || []}
+      />
     </section>
   );
 }

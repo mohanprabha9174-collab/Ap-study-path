@@ -4,6 +4,7 @@ import { api } from "../lib/api.js";
 import { gradeWithRubric, rubricTotal } from "../lib/rubricGrader.js";
 import { loadDraft, saveDraft } from "../lib/store.js";
 import { references } from "../data/references.js";
+import AiHelper from "../components/AiHelper.jsx";
 import { usePrefs } from "../lib/prefs.js";
 import { ReferenceDrawer, formatTime } from "../components/ExamTools.jsx";
 
@@ -47,6 +48,7 @@ export function FrqTab({ course }) {
   const [showSolution, setShowSolution] = useState(false);
   const [showRubric, setShowRubric] = useState(false);
   const [history, setHistory] = useState([]);
+  const [aiOpen, setAiOpen] = useState(false);
 
   const aiAvailable = backend.available && backend.aiGrading;
   const canUseServer = backend.available && Boolean(user);
@@ -231,13 +233,14 @@ export function FrqTab({ course }) {
             <button className="primary-btn" onClick={grade} disabled={busy}>
               {busy ? (canUseServer && aiAvailable ? "AI is grading…" : "Scoring…") : canUseServer && aiAvailable ? "Grade with AI" : "Score with rubric"}
             </button>
+            <button className="secondary-btn ai-btn" onClick={() => setAiOpen(true)}><span className="ai-badge">AI</span> Get help</button>
             <button className="ghost-btn" onClick={() => onResponseChange("")}>Clear</button>
             {frq.solution && (result || myHistory.length > 0) && (
               <button className="secondary-btn" onClick={() => setShowSolution(!showSolution)}>{showSolution ? "Hide" : "Show"} reference solution</button>
             )}
           </div>
 
-          {result && <GradeCard result={result} />}
+          {result && <GradeCard result={result} onAsk={() => setAiOpen(true)} />}
 
           {showSolution && frq.solution && (
             <div className="solution-box">
@@ -259,8 +262,21 @@ export function FrqTab({ course }) {
           )}
         </div>
       </div>
+      <AiHelper
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        course={course}
+        context={{ key: `frq:${frq.id}:${result ? "graded" : "draft"}`, label: frq.title, kind: "frq", frqId: frq.id, draft: response, graded: Boolean(result), ppr: frq.usesPpr ? ppr : "" }}
+        starters={frqStarters(Boolean(result))}
+      />
     </div>
   );
+}
+
+function frqStarters(graded) {
+  return graded
+    ? ["Explain my score", "How do I fix what I missed?", "Which rubric point should I fix first?", "Explain the reference solution"]
+    : ["What is this question asking?", "Give me a hint for the first part", "Check my draft against the rubric (no answers)", "How should I start?"];
 }
 
 function GradingBanner({ aiAvailable, canUseServer, backendAvailable }) {
@@ -282,7 +298,7 @@ function GradingBanner({ aiAvailable, canUseServer, backendAvailable }) {
   );
 }
 
-function GradeCard({ result }) {
+function GradeCard({ result, onAsk }) {
   const pct = result.total ? Math.round((result.score / result.total) * 100) : 0;
   return (
     <div className="grade-card" id="frq-result">
@@ -315,7 +331,21 @@ function GradeCard({ result }) {
           </div>
         )}
       </div>
+      {result.corrections?.length > 0 && (
+        <div className="corrections">
+          <h4>Line-by-line fixes</h4>
+          {result.corrections.map((c, i) => (
+            <div className="correction" key={i}>
+              {c.quote && <pre className="quote">{c.quote}</pre>}
+              <p>{c.fix}</p>
+            </div>
+          ))}
+        </div>
+      )}
       {result.examTip && <div className="info-box"><strong>Exam tip:</strong> {result.examTip}</div>}
+      {result.grader === "ai" && onAsk && (
+        <button className="ai-inline-btn" onClick={onAsk}><span className="ai-badge">AI</span> Ask the AI about this feedback</button>
+      )}
       <p className="muted small">Practice score only — not an official AP score.</p>
     </div>
   );

@@ -2,7 +2,7 @@ import "./env.js";
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
 import path from "node:path";
@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { openDatabase } from "./db.js";
 import { aiEnabled, aiProvider, gradeWithAI, gradeWithRubric } from "./grader.js";
 import { courses } from "../src/data/courses.js";
+import { tutorReply } from "./tutor.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3001);
@@ -76,7 +77,7 @@ const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHea
 const gradeLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   limit: Number(process.env.GRADE_LIMIT_PER_HOUR || 30),
-  keyGenerator: (req) => req.userId || req.ip,
+  keyGenerator: (req) => req.userId || ipKeyGenerator(req.ip),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "You've reached the hourly AI grading limit. Take a break and try again soon." }
@@ -219,6 +220,49 @@ app.post("/api/frq/grade", requireAuth, gradeLimiter, wrap(async (req, res) => {
     [id, req.userId, course, frqId, response, result.score, result.total, result.grader, JSON.stringify(result), now()]
   );
   res.json({ ...result, id, solution: frq.solution || null });
+}));
+
+// ---------- AI study helper ----------
+const helpLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: Number(process.env.HELP_LIMIT_PER_HOUR || 60),
+  keyGenerator: (req) => req.userId || ipKeyGenerator(req.ip),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "You've used the AI helper a lot this hour. Take a short break and try again soon." }
+});
+
+app.post("/api/ai/help", requireAuth, helpLimiter, wrap(async (req, res) => {
+  if (!aiEnabled()) return res.status(503).json({ error: "The AI helper isn't set up on this server yet." });
+  const course = courses[req.body.course];
+  if (!course) return res.status(400).json({ error: "Unknown course" });
+  const kind = ["mcq", "frq", "general"].includes(req.body.kind) ? req.body.kind : "general";
+  const history = (Array.isArray(req.body.history) ? req.body.history : [])
+    .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+    .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }))
+    .slice(-12);
+  if (!history.length || history[history.length - 1].role !== "user") {
+    return res.status(400).json({ error: "Ask a question first." });
+  }
+  try {
+    const reply = await tutorReply({
+      course,
+      kind,
+      questionId: String(req.body.questionId || ""),
+      frqId: String(req.body.frqId || ""),
+      studentChoice: Number.isInteger(req.body.studentChoice) ? req.body.studentChoice : null,
+      answered: Boolean(req.body.answered),
+      draft: String(req.body.draft || "").slice(0, 8000),
+      graded: Boolean(req.body.graded),
+      ppr: String(req.body.ppr || "").slice(0, 8000),
+      history
+    });
+    res.json({ reply });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    console.error(err.message);
+    res.status(502).json({ error: "The AI helper couldn't answer right now. Try again in a minute." });
+  }
 }));
 
 app.get("/api/frq/history", requireAuth, wrap(async (req, res) => {

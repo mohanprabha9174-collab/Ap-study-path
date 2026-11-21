@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../App.jsx";
 import { references } from "../data/references.js";
 import { usePrefs } from "../lib/prefs.js";
+import AiHelper from "../components/AiHelper.jsx";
 import { HIGHLIGHT_COLORS, HighlightText, ReferenceDrawer, Toast, formatTime, useCountUp } from "../components/ExamTools.jsx";
 
 const SECONDS_PER_QUESTION = { csp: 103, csa: 128, cyber: 80 };
@@ -12,6 +13,15 @@ const TIME_OPTIONS = [
   { value: 0, label: "Untimed" }
 ];
 const TEXT_SIZES = [0.9, 1, 1.15, 1.3];
+
+function mcqStarters(answered, correct) {
+  if (!answered) return ["Give me a hint (don't tell me the answer)", "What concept is this testing?", "How do I start tracing this?"];
+  return [
+    correct ? "Why is this the right answer?" : "Why was my answer wrong?",
+    "Walk me through it step by step",
+    "Give me a similar practice question"
+  ];
+}
 
 function looksLikeCode(text) {
   return /\n/.test(text) && /[;{}()←]/.test(text);
@@ -213,6 +223,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const stateRef = useRef(state);
   stateRef.current = state;
   const skipSave = useRef(false);
@@ -380,6 +391,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
           <span className="swatch" style={{ background: HIGHLIGHT_COLORS[prefs.highlightColor] }} /> Highlight
         </button>
         {reference && <button className={`tool-btn ${refOpen ? "on" : ""}`} onClick={() => setRefOpen(true)}>Reference</button>}
+        {!exam && view === "quiz" && <button className={`tool-btn ai-tool ${aiOpen ? "on" : ""}`} onClick={() => setAiOpen(true)}>Ask AI</button>}
         <div className="text-size" role="group" aria-label="Text size">
           <button className="tool-btn" aria-label="Smaller text" disabled={prefs.textScale <= TEXT_SIZES[0]} onClick={() => setPrefs({ textScale: TEXT_SIZES[Math.max(0, TEXT_SIZES.indexOf(prefs.textScale) - 1)] })}>A−</button>
           <button className="tool-btn" aria-label="Larger text" disabled={prefs.textScale >= TEXT_SIZES[TEXT_SIZES.length - 1]} onClick={() => setPrefs({ textScale: TEXT_SIZES[Math.min(TEXT_SIZES.length - 1, TEXT_SIZES.indexOf(prefs.textScale) + 1)] })}>A+</button>
@@ -524,10 +536,24 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
               <strong>{selected === question.correctAnswer ? "Correct." : `Not quite. The answer is ${String.fromCharCode(65 + question.correctAnswer)}.`}</strong> {question.explanation}
             </div>
           )}
+          {!exam && (
+            <button className="ai-inline-btn" onClick={() => setAiOpen(true)}>
+              <span className="ai-badge">AI</span> {revealed ? (selected === question.correctAnswer ? "Ask the AI to go deeper" : "Ask the AI why you missed it") : "Stuck? Get a hint from the AI"}
+            </button>
+          )}
           <p className="shortcut-hint muted small">Keyboard: A–D to answer, ← and → to move between questions.</p>
         </div>
       </div>
       {footer}
+      {!exam && (
+        <AiHelper
+          open={aiOpen}
+          onClose={() => setAiOpen(false)}
+          course={course}
+          context={{ key: `${progressKey}:${state.currentIndex}:${revealed ? "a" : "q"}`, label: `Question ${state.currentIndex + 1}`, kind: "mcq", questionId: question.id, studentChoice: selected, answered: revealed }}
+          starters={mcqStarters(revealed, selected === question.correctAnswer)}
+        />
+      )}
       <ReferenceDrawer reference={reference} open={refOpen} onClose={() => setRefOpen(false)} />
       <Toast message={toast} onDone={() => setToast("")} />
     </section>
@@ -681,6 +707,7 @@ function Results({ course, title, questions, state, onReview, onRestart, onExit 
 
 function Review({ course, questions, answers, onBack }) {
   const [filter, setFilter] = useState("wrong");
+  const [aiItem, setAiItem] = useState(null);
   const items = questions
     .map((q, i) => ({ q, i, selected: answers[i] }))
     .filter((item) => filter === "all" || item.selected !== item.q.correctAnswer);
@@ -710,8 +737,20 @@ function Review({ course, questions, answers, onBack }) {
           </div>
           {selected === null && <p className="muted">You left this one blank.</p>}
           <div className="explanation-box"><strong>Why:</strong> {q.explanation}</div>
+          <button className="ai-inline-btn" onClick={() => setAiItem({ q, i, selected })}>
+            <span className="ai-badge">AI</span> {selected === q.correctAnswer ? "Ask the AI to explain more" : "Ask the AI why you missed it"}
+          </button>
         </div>
       ))}
+      {aiItem && (
+        <AiHelper
+          open={Boolean(aiItem)}
+          onClose={() => setAiItem(null)}
+          course={course}
+          context={{ key: `review:${aiItem.q.id}`, label: `Question ${aiItem.i + 1}`, kind: "mcq", questionId: aiItem.q.id, studentChoice: aiItem.selected, answered: true }}
+          starters={mcqStarters(true, aiItem.selected === aiItem.q.correctAnswer)}
+        />
+      )}
     </section>
   );
 }
