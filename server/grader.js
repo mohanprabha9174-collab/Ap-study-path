@@ -1,10 +1,66 @@
-// FRQ grading: AI grading with Claude when ANTHROPIC_API_KEY is set,
+// FRQ grading: AI grading with Claude (ANTHROPIC_API_KEY) or Gemini (GEMINI_API_KEY),
 // otherwise a free keyword-based rubric estimate so the site still works.
+// If both keys are set, Claude is used unless AI_PROVIDER=gemini.
 
 const API_URL = "https://api.anthropic.com/v1/messages";
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+
+export function aiProvider() {
+  const hasClaude = Boolean(process.env.ANTHROPIC_API_KEY);
+  const hasGemini = Boolean(process.env.GEMINI_API_KEY);
+  if (process.env.AI_PROVIDER === "gemini" && hasGemini) return "gemini";
+  if (hasClaude) return "claude";
+  if (hasGemini) return "gemini";
+  return null;
+}
 
 export function aiEnabled() {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+  return aiProvider() !== null;
+}
+
+async function callClaude(user) {
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": process.env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01"
+    },
+    body: JSON.stringify({
+      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
+      max_tokens: 2000,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: user }]
+    }),
+    signal: AbortSignal.timeout(60000)
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Claude grader error ${res.status}: ${detail.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  return (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
+}
+
+async function callGemini(user) {
+  const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
+  // The key goes in a header, never in the URL, so it can't end up in logs.
+  const res = await fetch(`${GEMINI_URL}/${encodeURIComponent(model)}:generateContent`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [{ role: "user", parts: [{ text: user }] }],
+      generationConfig: { responseMimeType: "application/json", temperature: 0.2, maxOutputTokens: 4000 }
+    }),
+    signal: AbortSignal.timeout(60000)
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Gemini grader error ${res.status}: ${detail.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  return (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
 }
 
 import { rowPoints, rubricTotal } from "../src/lib/rubricGrader.js";
@@ -61,28 +117,7 @@ export async function gradeWithAI({ frq, courseName, response, ppr }) {
     `STUDENT RESPONSE TO GRADE:\n<student_response>\n${response}\n</student_response>`
   ].filter(Boolean).join("\n\n");
 
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01"
-    },
-    body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
-      max_tokens: 2000,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: user }]
-    }),
-    signal: AbortSignal.timeout(60000)
-  });
-
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`AI grader error ${res.status}: ${detail.slice(0, 300)}`);
-  }
-  const data = await res.json();
-  const text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
+  const text = aiProvider() === "gemini" ? await callGemini(user) : await callClaude(user);
   const parsed = extractJson(text);
 
   // Clamp to the rubric so the model can never invent points.

@@ -22,7 +22,7 @@ Free practice for **AP Computer Science Principles**, **AP Computer Science A**,
 - Frontend: React 18 + Vite (`src/`)
 - Backend: Express API (`server/`) with JWT auth, rate limiting, and Helmet
 - Database: SQLite via Node's built-in `node:sqlite` by default; PostgreSQL when `DATABASE_URL` is set
-- AI grading: Anthropic Messages API (`server/grader.js`)
+- AI grading: Claude (Anthropic API) or Gemini (Google AI) in `server/grader.js`
 - All course content lives in `src/data/` and is shared by the frontend and the server
 
 ## Run locally
@@ -71,7 +71,10 @@ The included workflow still publishes the frontend to GitHub Pages on every push
 | Variable | Required | Purpose |
 |---|---|---|
 | `JWT_SECRET` | in production | Signs login tokens |
-| `ANTHROPIC_API_KEY` | for AI grading | Without it, FRQs use the rubric estimate |
+| `ANTHROPIC_API_KEY` | for AI grading (Claude) | Paid per use |
+| `GEMINI_API_KEY` | for AI grading (Gemini) | Has a free tier. Without either key, FRQs use the rubric estimate |
+| `AI_PROVIDER` | no | `gemini` to prefer Gemini when both keys are set |
+| `GEMINI_MODEL` | no | Default `gemini-flash-latest` |
 | `ANTHROPIC_MODEL` | no | Grading model (default `claude-sonnet-5-5`) |
 | `GRADE_LIMIT_PER_HOUR` | no | AI gradings per student per hour (default 30) |
 | `DATABASE_URL` | recommended in production | Postgres; otherwise SQLite at `data/ap-study-path.db` |
