@@ -71,6 +71,31 @@ function requireAuth(req, res, next) {
   }
 }
 
+// ---------- AI spending caps ----------
+// Per-hour limits live in the rate limiters below. These daily caps are a hard ceiling on
+// how many AI calls the whole site (and each student) can make per day, so the API bill
+// can't run away. Defaults: 300 calls/day for the whole site, 40 per student.
+const AI_DAILY_LIMIT = Number(process.env.AI_DAILY_LIMIT || 300);
+const AI_USER_DAILY_LIMIT = Number(process.env.AI_USER_DAILY_LIMIT || 40);
+const today = () => new Date().toISOString().slice(0, 10);
+
+async function reserveAiCall(userId) {
+  const day = today();
+  const site = await db.get("SELECT COALESCE(SUM(calls), 0) AS n FROM ai_usage WHERE day = ?", [day]);
+  if (Number(site?.n || 0) >= AI_DAILY_LIMIT) {
+    return { ok: false, reason: "The site has reached today's AI limit. AI features come back tomorrow; you can still use rubric scoring." };
+  }
+  const mine = await db.get("SELECT calls FROM ai_usage WHERE day = ? AND user_id = ?", [day, userId]);
+  if (Number(mine?.calls || 0) >= AI_USER_DAILY_LIMIT) {
+    return { ok: false, reason: `You've used all ${AI_USER_DAILY_LIMIT} of your AI requests for today. They reset tomorrow.` };
+  }
+  await db.run(
+    "INSERT INTO ai_usage (day, user_id, calls) VALUES (?, ?, 1) ON CONFLICT (day, user_id) DO UPDATE SET calls = ai_usage.calls + 1",
+    [day, userId]
+  );
+  return { ok: true };
+}
+
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
@@ -203,7 +228,10 @@ app.post("/api/frq/grade", requireAuth, gradeLimiter, wrap(async (req, res) => {
   if (response.trim().length < 10) return res.status(400).json({ error: "Write a response before grading." });
 
   let result;
-  if (aiEnabled()) {
+  const reservation = aiEnabled() ? await reserveAiCall(req.userId) : { ok: false };
+  if (aiEnabled() && !reservation.ok) {
+    result = { ...gradeWithRubric({ frq, response }), notice: reservation.reason };
+  } else if (aiEnabled()) {
     try {
       result = await gradeWithAI({ frq, courseName: courses[course].name, response, ppr: frq.usesPpr ? ppr : "" });
     } catch (err) {
@@ -220,6 +248,12 @@ app.post("/api/frq/grade", requireAuth, gradeLimiter, wrap(async (req, res) => {
     [id, req.userId, course, frqId, response, result.score, result.total, result.grader, JSON.stringify(result), now()]
   );
   res.json({ ...result, id, solution: frq.solution || null });
+}));
+
+app.get("/api/ai/usage", requireAuth, wrap(async (req, res) => {
+  const mine = await db.get("SELECT calls FROM ai_usage WHERE day = ? AND user_id = ?", [today(), req.userId]);
+  const used = Number(mine?.calls || 0);
+  res.json({ used, limit: AI_USER_DAILY_LIMIT, remaining: Math.max(0, AI_USER_DAILY_LIMIT - used) });
 }));
 
 // ---------- AI study helper ----------
@@ -244,6 +278,8 @@ app.post("/api/ai/help", requireAuth, helpLimiter, wrap(async (req, res) => {
   if (!history.length || history[history.length - 1].role !== "user") {
     return res.status(400).json({ error: "Ask a question first." });
   }
+  const reservation = await reserveAiCall(req.userId);
+  if (!reservation.ok) return res.status(429).json({ error: reservation.reason });
   try {
     const reply = await tutorReply({
       course,

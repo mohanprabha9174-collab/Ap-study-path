@@ -115,7 +115,7 @@ export function FrqTab({ course }) {
 
   return (
     <div className="frq-page">
-      <GradingBanner course={course} aiAvailable={aiAvailable} canUseServer={canUseServer} backendAvailable={backend.available} />
+      <GradingBanner course={course} aiAvailable={aiAvailable} canUseServer={canUseServer} backendAvailable={backend.available} refreshKey={Object.keys(results).length + history.length} />
 
       {course.id === "csp" && (
         <div className="card ppr-panel">
@@ -279,9 +279,18 @@ function frqStarters(graded) {
     : ["What is this question asking?", "Give me a hint for the first part", "Check my draft against the rubric (no answers)", "How should I start?"];
 }
 
-function GradingBanner({ aiAvailable, canUseServer, backendAvailable }) {
+function GradingBanner({ aiAvailable, canUseServer, backendAvailable, refreshKey }) {
+  const [usage, setUsage] = useState(null);
+  useEffect(() => {
+    if (aiAvailable && canUseServer) api("/ai/usage").then(setUsage).catch(() => {});
+  }, [aiAvailable, canUseServer, refreshKey]);
   if (aiAvailable && canUseServer) {
-    return <div className="card grading-banner ai"><strong>🤖 AI grading on.</strong> Your answer is scored row by row against the rubric like an AP reader would, with specific feedback.</div>;
+    return (
+      <div className="card grading-banner ai">
+        <span><strong>AI grading is on.</strong> Your answer is scored row by row against the rubric, with specific fixes.</span>
+        {usage && <span className="usage-pill">{usage.remaining} of {usage.limit} AI requests left today</span>}
+      </div>
+    );
   }
   if (aiAvailable && !canUseServer) {
     return (

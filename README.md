@@ -50,6 +50,25 @@ Check the content (answer keys, rubrics, IDs) any time with `npm run check:conte
    - `DATABASE_URL` — a Postgres connection string. Render's free disk is wiped on every deploy, so use a free hosted Postgres such as [Neon](https://neon.tech) to keep accounts permanently.
 4. Deploy. Your site is at `https://<service-name>.onrender.com`.
 
+### Free database with Neon (keeps accounts permanently)
+
+1. Sign up at [neon.tech](https://neon.tech) (free plan) and create a project.
+2. On the project dashboard, click **Connect** and copy the connection string (it starts with `postgresql://`).
+3. In Render, open your service → **Environment**, set `DATABASE_URL` to that string, and save. The site creates its tables automatically on the next start.
+
+### Spending caps
+
+AI requests (FRQ gradings plus AI helper messages) are capped so the API bill can't run away:
+
+| Cap | Default | Variable |
+|---|---|---|
+| Whole site, per day | 300 | `AI_DAILY_LIMIT` |
+| Each student, per day | 40 | `AI_USER_DAILY_LIMIT` |
+| Each student, FRQ gradings per hour | 30 | `GRADE_LIMIT_PER_HOUR` |
+| Each student, helper messages per hour | 60 | `HELP_LIMIT_PER_HOUR` |
+
+When a cap is hit, FRQs fall back to the free rubric estimate and the helper says when it resets. Also set a monthly budget limit in your AI provider's billing settings.
+
 ### Option B: any Docker host (Railway, Fly.io, a VPS)
 
 ```bash

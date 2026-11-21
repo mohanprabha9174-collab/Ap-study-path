@@ -44,6 +44,12 @@ const SCHEMA = [
     feedback TEXT NOT NULL,
     created_at TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS ai_usage (
+    day TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    calls INTEGER NOT NULL,
+    PRIMARY KEY (day, user_id)
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_attempts_user ON attempts(user_id, course)`,
   `CREATE INDEX IF NOT EXISTS idx_frq_user ON frq_submissions(user_id, course, frq_id)`
 ];
