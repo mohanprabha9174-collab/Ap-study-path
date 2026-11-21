@@ -1,17 +1,20 @@
-// FRQ grading: AI grading with Claude (ANTHROPIC_API_KEY) or Gemini (GEMINI_API_KEY),
-// otherwise a free keyword-based rubric estimate so the site still works.
-// If both keys are set, Claude is used unless AI_PROVIDER=gemini.
+// FRQ grading: AI grading with Claude (ANTHROPIC_API_KEY), OpenAI (OPENAI_API_KEY),
+// or Gemini (GEMINI_API_KEY); otherwise a free keyword-based rubric estimate.
+// If several keys are set, the order is Claude, OpenAI, Gemini, unless AI_PROVIDER picks one.
 
 const API_URL = "https://api.anthropic.com/v1/messages";
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 
 export function aiProvider() {
-  const hasClaude = Boolean(process.env.ANTHROPIC_API_KEY);
-  const hasGemini = Boolean(process.env.GEMINI_API_KEY);
-  if (process.env.AI_PROVIDER === "gemini" && hasGemini) return "gemini";
-  if (hasClaude) return "claude";
-  if (hasGemini) return "gemini";
-  return null;
+  const available = {
+    claude: Boolean(process.env.ANTHROPIC_API_KEY),
+    openai: Boolean(process.env.OPENAI_API_KEY),
+    gemini: Boolean(process.env.GEMINI_API_KEY)
+  };
+  const wanted = (process.env.AI_PROVIDER || "").toLowerCase();
+  if (available[wanted]) return wanted;
+  return ["claude", "openai", "gemini"].find((p) => available[p]) || null;
 }
 
 export function aiEnabled() {
@@ -40,6 +43,26 @@ async function callClaude(user) {
   }
   const data = await res.json();
   return (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
+}
+
+async function callOpenAI(user) {
+  const res = await fetch(OPENAI_URL, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || "gpt-5-mini",
+      messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: user }],
+      response_format: { type: "json_object" },
+      max_completion_tokens: 6000
+    }),
+    signal: AbortSignal.timeout(90000)
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`OpenAI grader error ${res.status}: ${detail.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || "";
 }
 
 async function callGemini(user) {
@@ -117,7 +140,8 @@ export async function gradeWithAI({ frq, courseName, response, ppr }) {
     `STUDENT RESPONSE TO GRADE:\n<student_response>\n${response}\n</student_response>`
   ].filter(Boolean).join("\n\n");
 
-  const text = aiProvider() === "gemini" ? await callGemini(user) : await callClaude(user);
+  const provider = aiProvider();
+  const text = provider === "gemini" ? await callGemini(user) : provider === "openai" ? await callOpenAI(user) : await callClaude(user);
   const parsed = extractJson(text);
 
   // Clamp to the rubric so the model can never invent points.
