@@ -188,6 +188,12 @@ export function FrqTab({ course }) {
             </ol>
           )}
 
+          <ol className="frq-steps" aria-label="How to practice this FRQ">
+            <li className={response.trim() ? "done" : "now"}>Read the prompt and write your answer below</li>
+            <li className={result ? "done" : response.trim() ? "now" : ""}>Click {canUseServer && aiAvailable ? "Grade with AI" : "Score with rubric"} to see your points</li>
+            <li className={result ? "now" : ""}>Fix what the feedback points out, then grade again</li>
+          </ol>
+
           {frq.tip && <div className="info-box"><strong>Exam tip:</strong> {frq.tip}</div>}
 
           <button className="link-btn" onClick={() => setShowRubric(!showRubric)}>{showRubric ? "Hide" : "Show"} scoring rubric</button>

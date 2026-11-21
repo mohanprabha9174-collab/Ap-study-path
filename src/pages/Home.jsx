@@ -80,19 +80,30 @@ export default function Home() {
         })}
       </section>
 
-      <section className="how-it-works">
-        <div>
-          <h3>Exam mode or practice mode</h3>
-          <p>Time yourself with flags and a question navigator, or see the explanation right after every answer.</p>
-        </div>
-        <div>
-          <h3>Quizzes from your weak units</h3>
-          <p>Your results show which unit is costing you points. Build a quiz from just that unit, as many times as you like.</p>
-        </div>
-        <div>
-          <h3>FRQs scored row by row</h3>
-          <p>{backend.aiGrading ? "An AI grader" : "A rubric checker"} goes through each rubric point, says what earned it and what didn't, then shows a reference solution.</p>
-        </div>
+      <section className="how-to-use" aria-labelledby="how-to-use-title">
+        <h2 id="how-to-use-title">How to use AP Study Path</h2>
+        <p className="muted">New here? Follow these four steps. Each one builds on the last.</p>
+        <ol className="steps">
+          <li>
+            <h3>Pick your course</h3>
+            <p>Choose AP CSP, AP CSA, or AP Cybersecurity above. Everything inside is matched to that exam.</p>
+          </li>
+          <li>
+            <h3>Take a practice exam</h3>
+            <p><strong>Why:</strong> your score shows which units you're weak in, so you know where to spend study time.</p>
+          </li>
+          <li>
+            <h3>Fix your weak units</h3>
+            <p>Read the unit notes, then build a custom quiz from just those units. <strong>Why:</strong> short focused practice raises your score faster than retaking whole exams.</p>
+          </li>
+          <li>
+            <h3>Practice FRQs</h3>
+            <p>Write a free response and get it {backend.aiGrading ? "graded by AI" : "scored"} with specific fixes. <strong>Why:</strong> FRQs are a big part of your score, and feedback shows exactly which rubric points you're missing.</p>
+          </li>
+        </ol>
+        {!user && backend.available && (
+          <p className="muted small">Tip: create a free account so your progress saves on every device{backend.aiGrading ? " and you can use AI grading" : ""}.</p>
+        )}
       </section>
     </section>
   );
