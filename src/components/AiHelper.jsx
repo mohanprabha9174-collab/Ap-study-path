@@ -107,6 +107,7 @@ export default function AiHelper({ open, onClose, course, context, starters = []
           draft: context.draft,
           graded: context.graded,
           ppr: context.ppr,
+          pprFiles: context.pprFiles,
           history
         }
       });

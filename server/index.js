@@ -26,7 +26,11 @@ const db = await openDatabase();
 const app = express();
 app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(express.json({ limit: "200kb" }));
+// Most requests are small; the two AI routes may carry an uploaded project (PDF/images).
+const smallJson = express.json({ limit: "200kb" });
+const bigJson = express.json({ limit: "14mb" });
+const BIG_ROUTES = new Set(["/api/frq/grade", "/api/ai/help"]);
+app.use((req, res, next) => (BIG_ROUTES.has(req.path) ? bigJson : smallJson)(req, res, next));
 
 // Allow a separately hosted frontend (e.g. GitHub Pages) to call this API.
 const allowedOrigins = (process.env.CORS_ORIGIN || "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -215,6 +219,22 @@ app.get("/api/attempts", requireAuth, wrap(async (req, res) => {
 }));
 
 // ---------- FRQ grading ----------
+// Uploaded project files (AP CSP Create Task): images or a PDF, sent as base64.
+const FILE_TYPES = new Set(["application/pdf", "image/png", "image/jpeg", "image/webp", "image/gif"]);
+function cleanFiles(list) {
+  if (!Array.isArray(list)) return [];
+  let total = 0;
+  const out = [];
+  for (const f of list.slice(0, 6)) {
+    if (!f || !FILE_TYPES.has(f.type) || typeof f.data !== "string" || !/^[A-Za-z0-9+/=]+$/.test(f.data)) continue;
+    const bytes = Math.floor((f.data.length * 3) / 4);
+    if (bytes > 8 * 1024 * 1024 || total + bytes > 10 * 1024 * 1024) continue;
+    total += bytes;
+    out.push({ name: String(f.name || "file").slice(0, 120), type: f.type, data: f.data });
+  }
+  return out;
+}
+
 function findFrq(course, frqId) {
   return courses[course]?.frqs.find((f) => f.id === frqId) || null;
 }
@@ -233,7 +253,7 @@ app.post("/api/frq/grade", requireAuth, gradeLimiter, wrap(async (req, res) => {
     result = { ...gradeWithRubric({ frq, response }), notice: reservation.reason };
   } else if (aiEnabled()) {
     try {
-      result = await gradeWithAI({ frq, courseName: courses[course].name, response, ppr: frq.usesPpr ? ppr : "" });
+      result = await gradeWithAI({ frq, courseName: courses[course].name, response, ppr: frq.usesPpr ? ppr : "", pprFiles: frq.usesPpr ? cleanFiles(req.body.pprFiles) : [] });
     } catch (err) {
       console.error(err.message);
       result = { ...gradeWithRubric({ frq, response }), notice: "The AI grader was unavailable, so this is a keyword estimate. Try again in a minute." };
@@ -291,6 +311,7 @@ app.post("/api/ai/help", requireAuth, helpLimiter, wrap(async (req, res) => {
       draft: String(req.body.draft || "").slice(0, 8000),
       graded: Boolean(req.body.graded),
       ppr: String(req.body.ppr || "").slice(0, 8000),
+      pprFiles: cleanFiles(req.body.pprFiles),
       history
     });
     res.json({ reply });

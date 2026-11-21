@@ -37,19 +37,35 @@ async function failed(res, name) {
  * @param {object} opts
  * @param {string} opts.system  system instructions
  * @param {{role:"user"|"assistant", content:string}[]} opts.messages
+ * @param {{name:string, type:string, data:string}[]} [opts.attachments] base64 images/PDFs added to the first user message
  * @param {boolean} [opts.json] ask for a JSON object reply
  * @param {number} [opts.maxTokens]
  * @returns {Promise<string>} the model's reply text
  */
-export async function chat({ system, messages, json = false, maxTokens = 2000 }) {
+export async function chat({ system, messages, attachments = [], json = false, maxTokens = 2000 }) {
   const provider = aiProvider();
   if (!provider) throw new Error("No AI key configured");
+  const firstUser = messages.findIndex((m) => m.role === "user");
+  const withFiles = (i, build) => (attachments.length && i === firstUser ? build() : null);
 
   if (provider === "claude") {
     const res = await fetch(CLAUDE_URL, {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5", max_tokens: maxTokens, system, messages }),
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
+        max_tokens: maxTokens,
+        system,
+        messages: messages.map((m, i) => ({
+          role: m.role,
+          content: withFiles(i, () => [
+            ...attachments.map((f) => f.type === "application/pdf"
+              ? { type: "document", source: { type: "base64", media_type: f.type, data: f.data } }
+              : { type: "image", source: { type: "base64", media_type: f.type, data: f.data } }),
+            { type: "text", text: m.content }
+          ]) || m.content
+        }))
+      }),
       signal: AbortSignal.timeout(90000)
     });
     if (!res.ok) throw await failed(res, "Claude");
@@ -63,7 +79,18 @@ export async function chat({ system, messages, json = false, maxTokens = 2000 })
       headers: { "content-type": "application/json", authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-5-mini",
-        messages: [{ role: "system", content: system }, ...messages],
+        messages: [
+          { role: "system", content: system },
+          ...messages.map((m, i) => ({
+            role: m.role,
+            content: withFiles(i, () => [
+              ...attachments.map((f) => f.type === "application/pdf"
+                ? { type: "file", file: { filename: f.name || "project.pdf", file_data: `data:${f.type};base64,${f.data}` } }
+                : { type: "image_url", image_url: { url: `data:${f.type};base64,${f.data}` } }),
+              { type: "text", text: m.content }
+            ]) || m.content
+          }))
+        ],
         ...(json ? { response_format: { type: "json_object" } } : {}),
         // reasoning models spend part of this budget thinking, so leave room
         max_completion_tokens: maxTokens * 3
@@ -81,7 +108,10 @@ export async function chat({ system, messages, json = false, maxTokens = 2000 })
     headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },
-      contents: messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
+      contents: messages.map((m, i) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: withFiles(i, () => [...attachments.map((f) => ({ inline_data: { mime_type: f.type, data: f.data } })), { text: m.content }]) || [{ text: m.content }]
+      })),
       generationConfig: { ...(json ? { responseMimeType: "application/json" } : {}), temperature: 0.3, maxOutputTokens: maxTokens * 2 }
     }),
     signal: AbortSignal.timeout(90000)

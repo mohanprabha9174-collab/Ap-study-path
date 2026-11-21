@@ -5,6 +5,7 @@ import { gradeWithRubric, rubricTotal } from "../lib/rubricGrader.js";
 import { loadDraft, saveDraft } from "../lib/store.js";
 import { references } from "../data/references.js";
 import AiHelper from "../components/AiHelper.jsx";
+import ProjectUpload, { useProject } from "../components/ProjectUpload.jsx";
 import { usePrefs } from "../lib/prefs.js";
 import { ReferenceDrawer, formatTime } from "../components/ExamTools.jsx";
 
@@ -41,7 +42,10 @@ export function FrqTab({ course }) {
   const [selectedId, setSelectedId] = useState(course.frqs[0]?.id);
   const frq = course.frqs.find((f) => f.id === selectedId) || course.frqs[0];
   const [response, setResponse] = useState(() => loadDraft(`frq:${frq.id}`));
-  const [ppr, setPpr] = useState(() => loadDraft("ppr:csp"));
+  const [project, setProject] = useProject();
+  const [noProjectWarning, setNoProjectWarning] = useState(false);
+  const ppr = project.code || loadDraft("ppr:csp");
+  const hasProject = ppr.trim().length > 20 || project.files.length > 0;
   const [results, setResults] = useState({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -68,34 +72,22 @@ export function FrqTab({ course }) {
     saveDraft(`frq:${frq.id}`, text);
   }
 
-  function onPprChange(text) {
-    setPpr(text);
-    saveDraft("ppr:csp", text);
-  }
-
-  function handlePprFile(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (file.name.toLowerCase().endsWith(".pdf")) {
-      setError("PDFs can't be read in the browser reliably. Open your PPR, copy the code text, and paste it into the box.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => onPprChange(String(reader.result || "").slice(0, 15000));
-    reader.readAsText(file);
-  }
-
-  async function grade() {
+  async function grade(skipProjectCheck = false) {
     setError("");
     if (response.trim().length < 10) {
-      setError("Write your response first.");
+      setError("Write your answer in the box first, then grade it.");
       return;
     }
+    if (frq.usesPpr && !hasProject && !skipProjectCheck && canUseServer) {
+      setNoProjectWarning(true);
+      return;
+    }
+    setNoProjectWarning(false);
     setBusy(true);
     try {
       let result;
       if (canUseServer) {
-        result = await api("/frq/grade", { method: "POST", body: { course: course.id, frqId: frq.id, response, ppr: frq.usesPpr ? ppr : "" } });
+        result = await api("/frq/grade", { method: "POST", body: { course: course.id, frqId: frq.id, response, ppr: frq.usesPpr ? ppr : "", pprFiles: frq.usesPpr ? project.files : [] } });
       } else {
         result = { ...gradeWithRubric({ frq, response }), solution: frq.solution || null };
         await store.addFrqResult({ course: course.id, frqId: frq.id, score: result.score, total: result.total, grader: result.grader });
@@ -117,31 +109,7 @@ export function FrqTab({ course }) {
     <div className="frq-page">
       <GradingBanner course={course} aiAvailable={aiAvailable} canUseServer={canUseServer} backendAvailable={backend.available} refreshKey={Object.keys(results).length + history.length} />
 
-      {course.id === "csp" && (
-        <div className="card ppr-panel">
-          <div>
-            <h2>Paste your PPR code</h2>
-            <p>The AP CSP written response asks about your own program. Paste the code from your Personalized Project Reference here (procedure, where it's called, list creation, and list use) so your answers can be graded against it. Remove names or personal info first.</p>
-          </div>
-          <label className="file-drop" htmlFor="ppr-file">
-            <strong>Attach a code file</strong>
-            <span>.txt, .js, .py, .java, .html, .md</span>
-            <input id="ppr-file" type="file" accept=".txt,.md,.js,.jsx,.py,.java,.html,.css" onChange={handlePprFile} />
-          </label>
-          <textarea className="ppr-textarea mono" value={ppr} onChange={(e) => onPprChange(e.target.value)} placeholder="Paste your PPR code here…" />
-          <details className="ppr-checklist-details">
-            <summary>PPR requirements checklist</summary>
-            <div className="checklist-grid">
-              {course.pprChecklist.map((group) => (
-                <div className="checklist-group" key={group.title}>
-                  <h3>{group.title}</h3>
-                  <ul>{group.items.map((item) => <li key={item}>{item}</li>)}</ul>
-                </div>
-              ))}
-            </div>
-          </details>
-        </div>
-      )}
+      {course.id === "csp" && <ProjectUpload project={{ ...project, code: ppr }} onChange={(next) => { setProject(next); saveDraft("ppr:csp", next.code); }} checklist={course.pprChecklist} />}
 
       <div className="frq-layout">
         <aside className="card frq-sidebar">
@@ -189,6 +157,7 @@ export function FrqTab({ course }) {
           )}
 
           <ol className="frq-steps" aria-label="How to practice this FRQ">
+            {frq.usesPpr && <li className={hasProject ? "done" : "now"}>Upload your Create Task project at the top of this page</li>}
             <li className={response.trim() ? "done" : "now"}>Read the prompt and write your answer below</li>
             <li className={result ? "done" : response.trim() ? "now" : ""}>Click {canUseServer && aiAvailable ? "Grade with AI" : "Score with rubric"} to see your points</li>
             <li className={result ? "now" : ""}>Fix what the feedback points out, then grade again</li>
@@ -235,8 +204,17 @@ export function FrqTab({ course }) {
           <div className="response-meta">{response.trim() ? response.trim().split(/\s+/).length : 0} words, saved as a draft on this device</div>
 
           {error && <div className="error-box">{error}</div>}
+          {noProjectWarning && (
+            <div className="confirm-card pop-in">
+              <p><strong>You haven't uploaded your project yet.</strong> Without it, the AI can't check your answer against your actual code, so your score will be less accurate.</p>
+              <div className="button-row">
+                <button className="primary-btn" onClick={() => { setNoProjectWarning(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Upload my project</button>
+                <button className="ghost-btn" onClick={() => grade(true)}>Grade anyway</button>
+              </div>
+            </div>
+          )}
           <div className="button-row">
-            <button className="primary-btn" onClick={grade} disabled={busy}>
+            <button className="primary-btn" onClick={() => grade()} disabled={busy}>
               {busy ? (canUseServer && aiAvailable ? "AI is grading…" : "Scoring…") : canUseServer && aiAvailable ? "Grade with AI" : "Score with rubric"}
             </button>
             <button className="secondary-btn ai-btn" onClick={() => setAiOpen(true)}><span className="ai-badge">AI</span> Get help</button>
@@ -272,7 +250,7 @@ export function FrqTab({ course }) {
         open={aiOpen}
         onClose={() => setAiOpen(false)}
         course={course}
-        context={{ key: `frq:${frq.id}:${result ? "graded" : "draft"}`, label: frq.title, kind: "frq", frqId: frq.id, draft: response, graded: Boolean(result), ppr: frq.usesPpr ? ppr : "" }}
+        context={{ key: `frq:${frq.id}:${result ? "graded" : "draft"}`, label: frq.title, kind: "frq", frqId: frq.id, draft: response, graded: Boolean(result), ppr: frq.usesPpr ? ppr : "", pprFiles: frq.usesPpr ? project.files : [] }}
         starters={frqStarters(Boolean(result))}
       />
     </div>
