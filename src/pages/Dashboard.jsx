@@ -32,7 +32,14 @@ export default function Dashboard() {
       <div className="card history-card">
         <h2>Recent exams and quizzes</h2>
         {attempts.length === 0 ? (
-          <p className="muted">No completed tests yet. Finish a practice exam or custom quiz and it will show up here.</p>
+          <div className="empty-state">
+            <p>Nothing here yet. Start with a practice exam: when you finish, this page shows your score for each unit and tells you what to study next.</p>
+            <div className="button-row">
+              <button className="primary-btn" onClick={() => navigate("/csp/tests")}>AP CSP exam</button>
+              <button className="secondary-btn" onClick={() => navigate("/csa/tests")}>AP CSA exam</button>
+              <button className="secondary-btn" onClick={() => navigate("/cyber/tests")}>AP Cyber exam</button>
+            </div>
+          </div>
         ) : (
           <div className="table-wrap">
             <table>
@@ -98,7 +105,7 @@ function CourseSummary({ course, attempts, frqs }) {
       {weakest ? (
         <p className="recommend">Focus next: <strong>Unit {weakest.unit} — {weakest.name}</strong> ({Math.round((weakest.correct / weakest.total) * 100)}%). Build a custom quiz on it and review the notes.</p>
       ) : (
-        <p className="muted">Take a practice exam to see your unit-by-unit strengths.</p>
+        <p className="muted">Take a practice exam to see which units you're strong and weak in.</p>
       )}
       <div className="button-row">
         <button className="primary-btn small-btn" onClick={() => navigate(`/${course.id}/${weakest ? "quiz" : "tests"}`)}>{weakest ? "Custom quiz" : "Start an exam"}</button>

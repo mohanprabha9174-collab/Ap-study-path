@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { navigate } from "../App.jsx";
+import { navigate, useApp } from "../App.jsx";
 import { QuizTab, TestsTab } from "./Tests.jsx";
 import { FrqTab } from "./Frq.jsx";
 import AiHelper from "../components/AiHelper.jsx";
@@ -12,6 +12,14 @@ const TABS = [
   { id: "tips", label: "Tips & Tricks" }
 ];
 
+const TAB_INTROS = {
+  tests: { what: "Full-length exams that match the real test.", why: "Take one first: your results show which units to study." },
+  quiz: { what: "Short quizzes built from the units you choose.", why: "Use these on your weak units. A new random mix every time." },
+  frq: { what: "Free-response practice with rubric scoring and feedback.", why: "Write your answer, grade it, then fix what the feedback points out." },
+  notes: { what: "Key ideas for every unit, in plain language.", why: "Read the unit you missed most, then quiz yourself on it." },
+  tips: { what: "Exam strategy and common traps.", why: "Read before test day so easy points don't slip away." }
+};
+
 const TUTOR_STARTERS = {
   csp: ["Explain lists in AP pseudocode", "How do I trace a robot question?", "Make me a 2-week study plan"],
   csa: ["Explain ArrayList vs arrays", "How do I avoid off-by-one errors?", "Make me a 2-week study plan"],
@@ -21,6 +29,7 @@ const TUTOR_STARTERS = {
 export default function CourseHub({ course, tab }) {
   const current = TABS.some((t) => t.id === tab) ? tab : "tests";
   const [tutorOpen, setTutorOpen] = useState(false);
+  const { user, backend } = useApp();
   return (
     <section className="page course-hub">
       <div className={`card course-banner accent-${course.accent}`}>
@@ -41,6 +50,13 @@ export default function CourseHub({ course, tab }) {
           </button>
         ))}
       </nav>
+
+      <div className="tab-intro">
+        <p><strong>{TAB_INTROS[current].what}</strong> {TAB_INTROS[current].why}</p>
+        {!user && backend.available && (
+          <p className="guest-note">You're practicing as a guest, so progress saves only in this browser. <button className="link-btn inline" onClick={() => navigate("/login")}>Sign in</button> to save it everywhere{backend.aiGrading ? " and use AI help" : ""}.</p>
+        )}
+      </div>
 
       {current === "tests" && <TestsTab course={course} />}
       {current === "quiz" && <QuizTab course={course} />}
