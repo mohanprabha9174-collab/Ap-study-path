@@ -52,14 +52,20 @@ function extractJson(text) {
   return JSON.parse(text.slice(start, end + 1));
 }
 
-export async function gradeWithAI({ frq, courseName, response, ppr }) {
+export async function gradeWithAI({ frq, courseName, response, ppr, pprFiles = [] }) {
+  const projectNote = frq.usesPpr
+    ? (ppr || pprFiles.length)
+      ? `THE STUDENT'S CREATE TASK PROJECT is provided${pprFiles.length ? ` as ${pprFiles.length} attached file(s) (${pprFiles.map((f) => f.name).join(", ")})` : ""}${ppr ? " and as pasted code below" : ""}. Grade the response against THIS program: every claim the student makes about their procedure, parameter, list, selection, iteration, or testing must match what the project actually shows. If the response describes code that is not in the project, or contradicts it, that rubric row earns 0, and say so in the reason.`
+      : "The student did not provide their project. Grade only what can be judged from the response itself, and in the summary remind them to upload their project for accurate grading."
+    : "";
   const user = [
     describeFrq(frq, courseName),
+    projectNote,
     ppr ? `STUDENT'S PERSONALIZED PROJECT REFERENCE (their own program code):\n<ppr>\n${ppr}\n</ppr>` : "",
     `STUDENT RESPONSE TO GRADE:\n<student_response>\n${response}\n</student_response>`
   ].filter(Boolean).join("\n\n");
 
-  const text = await chat({ system: SYSTEM_PROMPT, messages: [{ role: "user", content: user }], json: true, maxTokens: 2500 });
+  const text = await chat({ system: SYSTEM_PROMPT, messages: [{ role: "user", content: user }], attachments: frq.usesPpr ? pprFiles : [], json: true, maxTokens: 2500 });
   const parsed = extractJson(text);
 
   // Clamp to the rubric so the model can never invent points.

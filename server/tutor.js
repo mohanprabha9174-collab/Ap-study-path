@@ -40,7 +40,8 @@ export function findQuestion(course, questionId) {
  * For mcq, `answered` says whether the student has already answered; before that the tutor only gives hints.
  * For frq, the tutor never writes the full answer unless `graded` is true and the student asks to see it.
  */
-export async function tutorReply({ course, kind, questionId, frqId, studentChoice, answered, draft, graded, ppr, history }) {
+export async function tutorReply({ course, kind, questionId, frqId, studentChoice, answered, draft, graded, ppr, pprFiles = [], history }) {
+  let attachments = [];
   let context = "";
   let modeRules = "";
 
@@ -63,6 +64,10 @@ export async function tutorReply({ course, kind, questionId, frqId, studentChoic
     if (!frq) throw Object.assign(new Error("FRQ not found."), { status: 404 });
     context = describeFrq(frq, course.name);
     if (ppr) context += `\n\nSTUDENT'S PPR (their own Create Task code):\n<student>\n${ppr.slice(0, 8000)}\n</student>`;
+    if (frq.usesPpr && pprFiles.length) {
+      attachments = pprFiles;
+      context += `\n\nThe student's Create Task project is attached as file(s): ${pprFiles.map((f) => f.name).join(", ")}. Refer to their actual code.`;
+    }
     if (draft) context += `\n\nSTUDENT'S CURRENT DRAFT:\n<student>\n${draft.slice(0, 8000)}\n</student>`;
     modeRules = graded
       ? "The student has submitted this FRQ for grading. You may explain mistakes in their draft, what each rubric row needs, and show corrected snippets for the parts they got wrong. Encourage them to rewrite it themselves."
@@ -76,6 +81,6 @@ export async function tutorReply({ course, kind, questionId, frqId, studentChoic
   const messages = history
     .slice(-12)
     .map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.role === "user" ? `<student>\n${m.content}\n</student>` : m.content }));
-  const reply = await chat({ system, messages, maxTokens: 1200 });
+  const reply = await chat({ system, messages, attachments, maxTokens: 1200 });
   return reply.trim() || "Sorry, I couldn't come up with an answer. Try asking in a different way.";
 }
