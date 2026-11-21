@@ -18,6 +18,10 @@ services:
         sync: false
       - key: DATABASE_URL
         sync: false
+      - key: AI_DAILY_LIMIT
+        value: "300"
+      - key: AI_USER_DAILY_LIMIT
+        value: "40"
       - key: GEMINI_API_KEY
         sync: false
       - key: OPENAI_API_KEY

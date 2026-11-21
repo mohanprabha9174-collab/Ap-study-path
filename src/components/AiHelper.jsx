@@ -65,6 +65,12 @@ export default function AiHelper({ open, onClose, course, context, starters = []
   const listRef = useRef(null);
   const inputRef = useRef(null);
   const messages = threads[context.key] || [];
+  const [usage, setUsage] = useState(null);
+  const canUse = Boolean(user && backend.available && backend.aiGrading);
+
+  useEffect(() => {
+    if (open && canUse) api("/ai/usage").then(setUsage).catch(() => {});
+  }, [open, canUse, messages.length]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -160,7 +166,10 @@ export default function AiHelper({ open, onClose, course, context, starters = []
           />
           <button className="primary-btn" type="submit" disabled={busy || !input.trim()}>Send</button>
         </form>
-        <p className="ai-footnote">AI can make mistakes. Check important answers against your notes.</p>
+        <p className="ai-footnote">
+          {usage && <strong>{usage.remaining} of {usage.limit} AI requests left today. </strong>}
+          AI can make mistakes. Check important answers against your notes.
+        </p>
       </>
     );
   }
