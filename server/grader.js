@@ -1,95 +1,12 @@
-// FRQ grading: AI grading with Claude (ANTHROPIC_API_KEY), OpenAI (OPENAI_API_KEY),
-// or Gemini (GEMINI_API_KEY); otherwise a free keyword-based rubric estimate.
-// If several keys are set, the order is Claude, OpenAI, Gemini, unless AI_PROVIDER picks one.
-
-const API_URL = "https://api.anthropic.com/v1/messages";
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
-const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
-
-export function aiProvider() {
-  const available = {
-    claude: Boolean(process.env.ANTHROPIC_API_KEY),
-    openai: Boolean(process.env.OPENAI_API_KEY),
-    gemini: Boolean(process.env.GEMINI_API_KEY)
-  };
-  const wanted = (process.env.AI_PROVIDER || "").toLowerCase();
-  if (available[wanted]) return wanted;
-  return ["claude", "openai", "gemini"].find((p) => available[p]) || null;
-}
-
-export function aiEnabled() {
-  return aiProvider() !== null;
-}
-
-async function callClaude(user) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01"
-    },
-    body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
-      max_tokens: 2000,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: user }]
-    }),
-    signal: AbortSignal.timeout(60000)
-  });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`Claude grader error ${res.status}: ${detail.slice(0, 300)}`);
-  }
-  const data = await res.json();
-  return (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
-}
-
-async function callOpenAI(user) {
-  const res = await fetch(OPENAI_URL, {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-5-mini",
-      messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: user }],
-      response_format: { type: "json_object" },
-      max_completion_tokens: 6000
-    }),
-    signal: AbortSignal.timeout(90000)
-  });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`OpenAI grader error ${res.status}: ${detail.slice(0, 300)}`);
-  }
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content || "";
-}
-
-async function callGemini(user) {
-  const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
-  // The key goes in a header, never in the URL, so it can't end up in logs.
-  const res = await fetch(`${GEMINI_URL}/${encodeURIComponent(model)}:generateContent`, {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents: [{ role: "user", parts: [{ text: user }] }],
-      generationConfig: { responseMimeType: "application/json", temperature: 0.2, maxOutputTokens: 4000 }
-    }),
-    signal: AbortSignal.timeout(60000)
-  });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`Gemini grader error ${res.status}: ${detail.slice(0, 300)}`);
-  }
-  const data = await res.json();
-  return (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
-}
+// FRQ grading: AI grading with Claude, OpenAI, or Gemini (see ai.js),
+// otherwise a free keyword-based rubric estimate so the site still works.
+import { aiEnabled, aiProvider, chat } from "./ai.js";
+export { aiEnabled, aiProvider };
 
 import { rowPoints, rubricTotal } from "../src/lib/rubricGrader.js";
 export { gradeWithRubric, rubricTotal } from "../src/lib/rubricGrader.js";
 
-function describeFrq(frq, courseName) {
+export function describeFrq(frq, courseName) {
   const lines = [];
   lines.push(`COURSE: ${courseName}`);
   lines.push(`QUESTION TYPE: ${frq.category}`);
@@ -124,7 +41,9 @@ Respond with ONLY a JSON object, no markdown fences, in this exact shape:
  "summary":"<2-3 sentence overall verdict>",
  "strengths":["<short bullet>"],
  "improvements":["<specific, actionable fix>"],
- "examTip":"<one tip for exam day>"}`;
+ "corrections":[{"quote":"<a short exact excerpt from the student's response that lost points>","fix":"<what to change and why; may include a corrected line>"}],
+ "examTip":"<one tip for exam day>"}
+Write feedback directly to the student ("you"), encouraging but honest. Give at most 5 corrections, only for real problems.`;
 
 function extractJson(text) {
   const start = text.indexOf("{");
@@ -140,8 +59,7 @@ export async function gradeWithAI({ frq, courseName, response, ppr }) {
     `STUDENT RESPONSE TO GRADE:\n<student_response>\n${response}\n</student_response>`
   ].filter(Boolean).join("\n\n");
 
-  const provider = aiProvider();
-  const text = provider === "gemini" ? await callGemini(user) : provider === "openai" ? await callOpenAI(user) : await callClaude(user);
+  const text = await chat({ system: SYSTEM_PROMPT, messages: [{ role: "user", content: user }], json: true, maxTokens: 2500 });
   const parsed = extractJson(text);
 
   // Clamp to the rubric so the model can never invent points.
@@ -160,6 +78,10 @@ export async function gradeWithAI({ frq, courseName, response, ppr }) {
     summary: String(parsed.summary || ""),
     strengths: (parsed.strengths || []).map(String).slice(0, 6),
     improvements: (parsed.improvements || []).map(String).slice(0, 6),
+    corrections: (parsed.corrections || [])
+      .filter((c) => c && c.fix)
+      .map((c) => ({ quote: String(c.quote || "").slice(0, 400), fix: String(c.fix).slice(0, 800) }))
+      .slice(0, 5),
     examTip: String(parsed.examTip || frq.tip || "")
   };
 }
