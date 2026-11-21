@@ -9,7 +9,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { openDatabase } from "./db.js";
-import { aiEnabled, gradeWithAI, gradeWithRubric } from "./grader.js";
+import { aiEnabled, aiProvider, gradeWithAI, gradeWithRubric } from "./grader.js";
 import { courses } from "../src/data/courses.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -246,5 +246,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`AP Study Path server on http://localhost:${PORT}  (db: ${db.kind}, AI grading: ${aiEnabled() ? "on" : "off"})`);
+  console.log(`AP Study Path server on http://localhost:${PORT}  (db: ${db.kind}, AI grading: ${aiEnabled() ? aiProvider() : "off"})`);
 });
