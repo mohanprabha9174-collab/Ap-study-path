@@ -10,6 +10,7 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { openDatabase } from "./db.js";
 import { aiEnabled, aiProvider, gradeWithAI, gradeWithRubric } from "./grader.js";
+import { aiSettingsSeen } from "./ai.js";
 import { courses } from "../src/data/courses.js";
 import { tutorReply } from "./tutor.js";
 
@@ -347,5 +348,8 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
+  const seen = aiSettingsSeen();
+  console.log(`AI settings found: ${seen.length ? seen.join(", ") : "none"}`);
+  if (!aiEnabled()) console.log("AI is off: add OPENAI_API_KEY (or ANTHROPIC_API_KEY / GEMINI_API_KEY) in your host's environment settings.");
   console.log(`AP Study Path server on http://localhost:${PORT}  (db: ${db.kind}, AI grading: ${aiEnabled() ? aiProvider() : "off"})`);
 });

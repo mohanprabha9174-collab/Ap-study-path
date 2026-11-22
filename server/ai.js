@@ -5,6 +5,33 @@ const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
+// Accept common mistakes when the key is pasted into a host's settings page:
+// surrounding spaces or quotes, "Bearer " prefixes, and a few alternate names.
+const ALIASES = {
+  OPENAI_API_KEY: ["OPENAI_KEY", "OPEN_AI_API_KEY", "OPENAI_APIKEY", "OPENAI_TOKEN", "CHATGPT_API_KEY"],
+  ANTHROPIC_API_KEY: ["CLAUDE_API_KEY", "ANTHROPIC_KEY"],
+  GEMINI_API_KEY: ["GOOGLE_API_KEY", "GEMINI_KEY"]
+};
+function clean(v) {
+  return String(v || "").trim().replace(/^["']|["']$/g, "").replace(/^Bearer\s+/i, "").trim();
+}
+function normalizeKeys() {
+  // Match variable names case-insensitively and ignoring stray spaces.
+  const byLoose = {};
+  for (const name of Object.keys(process.env)) byLoose[name.trim().toUpperCase()] = name;
+  for (const [canonical, alts] of Object.entries(ALIASES)) {
+    const found = [canonical, ...alts].map((n) => byLoose[n]).find((n) => n && clean(process.env[n]));
+    if (found) process.env[canonical] = clean(process.env[found]);
+  }
+}
+normalizeKeys();
+
+/** Names (never values) of AI-related settings the server can see, for troubleshooting. */
+export function aiSettingsSeen() {
+  return Object.keys(process.env).filter((n) => /(OPENAI|OPEN_AI|CHATGPT|ANTHROPIC_API|CLAUDE_API|GEMINI|GOOGLE_API)|(API_?KEY|_KEY)\s*$/i.test(n))
+    .map((n) => `${n.trim()}${clean(process.env[n]) ? "" : " (empty)"}`);
+}
+
 export function aiProvider() {
   const available = {
     claude: Boolean(process.env.ANTHROPIC_API_KEY),
