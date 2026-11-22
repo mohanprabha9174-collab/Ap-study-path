@@ -8,7 +8,7 @@ const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 // Accept common mistakes when the key is pasted into a host's settings page:
 // surrounding spaces or quotes, "Bearer " prefixes, and a few alternate names.
 const ALIASES = {
-  OPENAI_API_KEY: ["OPENAI_KEY", "OPEN_AI_API_KEY", "OPENAI_APIKEY", "OPENAI_TOKEN", "CHATGPT_API_KEY"],
+  OPENAI_API_KEY: ["OPENAI_KEY", "OPEN_AI_API_KEY", "OPEN_API_KEY", "OPENAPI_KEY", "OPENAI_SECRET_KEY", "OPENAI_APIKEY", "OPENAI_TOKEN", "CHATGPT_API_KEY"],
   ANTHROPIC_API_KEY: ["CLAUDE_API_KEY", "ANTHROPIC_KEY"],
   GEMINI_API_KEY: ["GOOGLE_API_KEY", "GEMINI_KEY"]
 };
