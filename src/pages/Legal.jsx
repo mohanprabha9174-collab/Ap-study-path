@@ -1,10 +1,10 @@
 import { navigate } from "../App.jsx";
 
 const UPDATED = "November 27, 2026";
-const ISSUES = "https://github.com/mohanprabha9174-collab/Ap-study-path/issues";
+const EMAIL = "mohanprabha9174@gmail.com";
 
 function Contact() {
-  return <a href={ISSUES} target="_blank" rel="noopener noreferrer">open an issue on the site's GitHub page</a>;
+  return <>email <a href={`mailto:${EMAIL}`}>{EMAIL}</a></>;
 }
 
 export function PrivacyPage() {

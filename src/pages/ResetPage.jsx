@@ -124,7 +124,7 @@ export default function ResetPage({ token }) {
             {error && <div className="error-box" role="alert">{error}</div>}
             <button className="primary-btn" type="submit" disabled={busy}>{busy ? "Please wait…" : "Reset password"}</button>
             {emailOn && <button type="button" className="link-btn" onClick={() => { setError(""); setMethod("email"); }}>No code? Email me a reset link</button>}
-            {!emailOn && <p className="muted small-note">Lost your code too? Contact the site owner and they can send you a reset link.</p>}
+            {!emailOn && <p className="muted small-note">Lost your code too? Email <a href="mailto:mohanprabha9174@gmail.com">mohanprabha9174@gmail.com</a> from your account's email and you'll get a reset link.</p>}
             <button type="button" className="link-btn" onClick={() => navigate("/login")}>Back to sign in</button>
           </form>
         )}
