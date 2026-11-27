@@ -84,12 +84,22 @@ export function HighlightText({ text, ranges = [], active, color = "yellow", onC
 // ---------------------------------------------------------------- reference drawer
 export function ReferenceDrawer({ reference, open, onClose }) {
   const [query, setQuery] = useState("");
+  const searchRef = useRef(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    // Focus the search box on open and give focus back to the opener on close.
+    const opener = document.activeElement;
+    const onKey = (e) => { if (e.key === "Escape") closeRef.current(); };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+    const t = setTimeout(() => searchRef.current?.focus(), 200);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("keydown", onKey);
+      if (opener && typeof opener.focus === "function") opener.focus();
+    };
+  }, [open]);
 
   if (!reference) return null;
   const q = query.trim().toLowerCase();
@@ -100,13 +110,13 @@ export function ReferenceDrawer({ reference, open, onClose }) {
   return (
     <>
       <div className={`drawer-scrim ${open ? "open" : ""}`} onClick={onClose} aria-hidden="true" />
-      <aside className={`reference-drawer ${open ? "open" : ""}`} aria-hidden={!open} aria-label={reference.title}>
+      <aside className={`reference-drawer ${open ? "open" : ""}`} role="dialog" aria-modal="true" aria-hidden={!open} aria-label={reference.title}>
         <div className="drawer-head">
           <h2>{reference.title}</h2>
           <button className="icon-btn" onClick={onClose} aria-label="Close reference">✕</button>
         </div>
         <p className="muted small">{reference.note}</p>
-        <input className="drawer-search" type="search" placeholder="Search the reference" value={query} onChange={(e) => setQuery(e.target.value)} tabIndex={open ? 0 : -1} />
+        <input ref={searchRef} className="drawer-search" type="text" aria-label="Search the reference" placeholder="Search the reference" value={query} onChange={(e) => setQuery(e.target.value)} tabIndex={open ? 0 : -1} />
         <div className="drawer-body">
           {sections.length === 0 && <p className="muted">Nothing matches “{query}”.</p>}
           {sections.map((s) => (

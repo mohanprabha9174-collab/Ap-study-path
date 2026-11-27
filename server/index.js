@@ -227,7 +227,9 @@ app.get("/api/progress", requireAuth, wrap(async (req, res) => {
 
 app.put("/api/progress/:key", requireAuth, wrap(async (req, res) => {
   if (!KEY_RE.test(req.params.key)) return res.status(400).json({ error: "Bad key" });
-  const state = JSON.stringify(req.body.state ?? null).slice(0, 100000);
+  const state = JSON.stringify(req.body.state ?? null);
+  // Refuse oversized saves instead of cutting them, which would store broken JSON.
+  if (state.length > 200000) return res.status(413).json({ error: "This saved exam is too large. Remove some highlights and try again." });
   await db.run("DELETE FROM test_progress WHERE user_id = ? AND test_key = ?", [req.userId, req.params.key]);
   await db.run("INSERT INTO test_progress (user_id, test_key, state, updated_at) VALUES (?, ?, ?, ?)",
     [req.userId, req.params.key, state, now()]);

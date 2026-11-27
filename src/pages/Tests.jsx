@@ -38,8 +38,17 @@ function shuffle(list) {
   return copy;
 }
 
+// Bump when question order or answer positions change, so old saved answers aren't
+// matched against different choices.
+const DATA_VERSION = 2;
+const isStale = (saved) => Boolean(saved) && (saved.v || 0) < DATA_VERSION;
+const staleNotice = () => window.dispatchEvent(new CustomEvent("ap-notice", {
+  detail: "The questions in this exam were updated since you saved it, so it starts fresh. Your past scores are still in My Progress."
+}));
+
 function newState(length, extra = {}) {
   return {
+    v: DATA_VERSION,
     started: false, mode: "exam", timeMultiplier: 1, status: "active",
     currentIndex: 0, answers: Array(length).fill(null), flagged: [], eliminated: {}, highlights: {}, elapsed: 0,
     ...extra
@@ -73,6 +82,34 @@ function ProgressStatus({ progress, failed, onRetry }) {
   return null;
 }
 
+// "Custom quiz: Units 2 and 4" so history rows can be told apart.
+function quizTitle(questions) {
+  const units = [...new Set(questions.map((q) => q.unit))].sort((a, b) => a - b);
+  if (!units.length) return "Custom quiz";
+  const list = units.length === 1 ? units[0] : `${units.slice(0, -1).join(", ")} and ${units[units.length - 1]}`;
+  return `Custom quiz: Unit${units.length > 1 ? "s" : ""} ${list}`;
+}
+
+// Close a popover on Escape or a click outside it.
+function useDismiss(ref, open, close) {
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) close(); };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    return () => { document.removeEventListener("keydown", onKey); document.removeEventListener("pointerdown", onDown); };
+  }, [ref, open, close]);
+}
+
+// Clicking the tab you're already on starts that tab fresh (e.g. a new quiz after results).
+function useTabReset(reset) {
+  useEffect(() => {
+    window.addEventListener("ap-tab-reset", reset);
+    return () => window.removeEventListener("ap-tab-reset", reset);
+  }, [reset]);
+}
+
 function useAllProgress() {
   const { store } = useApp();
   const [progress, setProgress] = useState(null);
@@ -92,6 +129,7 @@ export function TestsTab({ course }) {
   const [progress, reload, failed] = useAllProgress();
   const ready = Boolean(progress) && !failed;
   const [active, setActive] = useState(null);
+  useTabReset(useCallback(() => { setActive(null); reload(); }, [reload]));
 
   if (active) {
     return (
@@ -118,6 +156,10 @@ export function TestsTab({ course }) {
       await store.clearProgress(key);
       setActive({ test, state: newState(test.questions.length) });
     } else if (!saved) {
+      setActive({ test, state: newState(test.questions.length) });
+    } else if (isStale(saved)) {
+      await store.clearProgress(key);
+      staleNotice();
       setActive({ test, state: newState(test.questions.length) });
     } else {
       setActive({ test, state: { ...newState(test.questions.length), started: true, ...saved } });
@@ -183,12 +225,13 @@ export function QuizTab({ course, initialUnits }) {
   const byId = useMemo(() => Object.fromEntries(pool.map((q) => [q.id, q])), [pool]);
   const available = pool.filter((q) => units.includes(q.unit)).length;
   const saved = progress?.[key];
+  useTabReset(useCallback(() => { setActive(null); reload(); }, [reload]));
 
   if (active) {
     return (
       <TestRunner
         course={course}
-        title="Custom quiz"
+        title={quizTitle(active.questionIds.map((id) => byId[id]).filter(Boolean))}
         questions={active.questionIds.map((id) => byId[id]).filter(Boolean)}
         progressKey={key}
         testId="custom"
@@ -236,9 +279,12 @@ export function QuizTab({ course, initialUnits }) {
       </div>
 
       <div className="button-row">
-        <button className="primary-btn" disabled={available === 0 || !ready} onClick={build}>Set up a {Math.min(count, available)}-question quiz</button>
+        <button className="primary-btn" disabled={available === 0 || !ready} onClick={build}>{available === 0 ? "Pick at least one unit" : `Set up a ${Math.min(count, available)}-question quiz`}</button>
         {saved && saved.status !== "done" && saved.questionIds && (
-          <button className="secondary-btn" onClick={() => setActive({ ...newState(saved.questionIds.length), started: true, ...saved })}>Resume last quiz</button>
+          <button className="secondary-btn" onClick={() => {
+            if (isStale(saved)) { store.clearProgress(key); staleNotice(); reload(); return; }
+            setActive({ ...newState(saved.questionIds.length), started: true, ...saved });
+          }}>Resume last quiz</button>
         )}
       </div>
       {units.length === 0 && <p className="error-box">Pick at least one unit.</p>}
@@ -264,6 +310,12 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
   const [refOpen, setRefOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const navRef = useRef(null);
+  const settingsRef = useRef(null);
+  const closeNav = useCallback(() => setNavOpen(false), []);
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  useDismiss(navRef, navOpen, closeNav);
+  useDismiss(settingsRef, settingsOpen, closeSettings);
   const [toast, setToast] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
@@ -445,7 +497,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
           <button className="tool-btn" aria-label="Smaller text" disabled={prefs.textScale <= TEXT_SIZES[0]} onClick={() => setPrefs({ textScale: TEXT_SIZES[Math.max(0, TEXT_SIZES.indexOf(prefs.textScale) - 1)] })}>A−</button>
           <button className="tool-btn" aria-label="Larger text" disabled={prefs.textScale >= TEXT_SIZES[TEXT_SIZES.length - 1]} onClick={() => setPrefs({ textScale: TEXT_SIZES[Math.min(TEXT_SIZES.length - 1, TEXT_SIZES.indexOf(prefs.textScale) + 1)] })}>A+</button>
         </div>
-        <div className="popover-anchor">
+        <div className="popover-anchor" ref={settingsRef}>
           <button className={`tool-btn ${settingsOpen ? "on" : ""}`} onClick={() => setSettingsOpen(!settingsOpen)} aria-expanded={settingsOpen}>Settings</button>
           {settingsOpen && <SettingsPopover prefs={prefs} setPrefs={setPrefs} onClose={() => setSettingsOpen(false)} />}
         </div>
@@ -456,7 +508,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
   const footer = (
     <div className="exam-footer">
       <span className="footer-left muted small">{answeredCount} of {questions.length} answered</span>
-      <div className="popover-anchor center">
+      <div className="popover-anchor center" ref={navRef}>
         <button className="nav-toggle" onClick={() => setNavOpen(!navOpen)} aria-expanded={navOpen}>
           {view === "check" ? "Check your work" : `Question ${state.currentIndex + 1} of ${questions.length}`} <span className={`caret ${navOpen ? "up" : ""}`}>▾</span>
         </button>
@@ -470,7 +522,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
       <div className="button-row">
         {view === "check" ? (
           <>
-            <button className="ghost-btn" onClick={() => goTo(questions.length - 1)}>Back</button>
+            <button className="ghost-btn" onClick={() => goTo(state.currentIndex)}>Back to question {state.currentIndex + 1}</button>
             <button className="primary-btn" onClick={() => finish()}>Submit</button>
           </>
         ) : (
@@ -627,7 +679,7 @@ function SetupScreen({ course, title, count, baseTimeLimit, state, setState, pre
           </label>
           <label className={`choice-card ${state.mode === "practice" ? "on" : ""}`}>
             <input type="radio" name="mode" checked={state.mode === "practice"} onChange={() => set({ mode: "practice" })} />
-            <span><strong>Practice mode</strong>See the correct answer and explanation right after each question.</span>
+            <span><strong>Practice mode</strong>See the correct answer and explanation right after each question. Your first pick locks in, so choose carefully.</span>
           </label>
         </fieldset>
 
@@ -770,7 +822,7 @@ function Review({ course, questions, answers, onBack }) {
       <div className="quiz-top-row">
         <button className="ghost-btn" onClick={onBack}>Back to results</button>
         <div className="segmented compact">
-          <button className={filter === "wrong" ? "active" : ""} onClick={() => setFilter("wrong")}>Missed only</button>
+          <button className={filter === "wrong" ? "active" : ""} onClick={() => setFilter("wrong")}>Missed or skipped</button>
           <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>All questions</button>
         </div>
       </div>

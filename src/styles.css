@@ -396,7 +396,7 @@ textarea { width: 100%; min-height: 240px; resize: vertical; padding: 0.9rem 1re
 .dash-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
 .dash-card { padding: 1.3rem; display: flex; flex-direction: column; border-top: 5px solid var(--accent); }
 .dash-card h2 { font-size: 1.3rem; }
-.dash-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 0.6rem 0 1rem; }
+.dash-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.5rem; margin: 0.6rem 0 1rem; }
 .dash-stats div { display: flex; flex-direction: column; padding: 0.6rem 0.75rem; background: var(--paper); border-radius: var(--r-sm); }
 .dash-stats strong { font-family: var(--display); font-size: 1.45rem; line-height: 1.1; }
 .dash-stats span { font-size: 0.82rem; color: var(--pencil); }
@@ -791,3 +791,15 @@ main:focus { outline: none; }
 /* Leave room so the floating tutor button never covers the footer text. */
 .course-hub { padding-bottom: 5rem; }
 .tool-btn.on:hover { background: var(--ink); color: #fff; }
+/* FRQ picker: a dropdown above the prompt on small screens instead of a long list of cards. */
+.frq-picker { display: none; }
+@media (max-width: 980px) {
+  .frq-picker { display: grid; gap: 0.35rem; font-weight: 600; }
+  .frq-picker select { font: inherit; font-weight: 600; min-height: 48px; padding: 0 0.75rem; border: 2px solid var(--line, #cfd6d1); border-radius: var(--r-sm); background: var(--card, #fff); color: inherit; }
+  .frq-picker select:focus-visible { outline: 3px solid var(--focus, #0e6b4f); outline-offset: 2px; }
+  .frq-sidebar { display: none; }
+}
+.ai-starters .starter-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+.error-box .link-btn.inline { margin-left: 0.5rem; }
+.frq-picker { min-width: 0; }
+.frq-picker select { width: 100%; min-width: 0; max-width: 100%; }

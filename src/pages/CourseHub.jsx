@@ -45,7 +45,7 @@ export default function CourseHub({ course, tab, extra }) {
 
       <nav className="tab-bar" aria-label={`${course.short} sections`}>
         {TABS.map((t) => (
-          <button key={t.id} className={current === t.id ? "active" : ""} onClick={() => navigate(`/${course.id}/${t.id}`)}>
+          <button key={t.id} className={current === t.id ? "active" : ""} onClick={() => (current === t.id ? window.dispatchEvent(new CustomEvent("ap-tab-reset")) : navigate(`/${course.id}/${t.id}`))}>
             {t.label}
           </button>
         ))}
@@ -60,7 +60,7 @@ export default function CourseHub({ course, tab, extra }) {
 
       {current === "tests" && <TestsTab course={course} />}
       {current === "quiz" && <QuizTab key={extra || "all"} course={course} initialUnits={extra} />}
-      {current === "frq" && <FrqTab course={course} />}
+      {current === "frq" && <FrqTab course={course} frqParam={extra} />}
       {current === "notes" && <NotesTab course={course} unitParam={extra} />}
       {current === "tips" && <TipsTab course={course} />}
 

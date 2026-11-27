@@ -272,13 +272,22 @@ Network: outbound connection to 198.51.100.24:8080`, ["A malicious document macr
 function seededShuffle(questions, seed) {
   let s = seed;
   const rand = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
-  return questions.map((item) => {
-    const order = item.choices.map((_, i) => i);
-    for (let i = order.length - 1; i > 0; i--) {
+  const shuffle = (list) => {
+    const out = [...list];
+    for (let i = out.length - 1; i > 0; i--) {
       const j = Math.floor(rand() * (i + 1));
-      [order[i], order[j]] = [order[j], order[i]];
+      [out[i], out[j]] = [out[j], out[i]];
     }
-    return { ...item, choices: order.map((i) => item.choices[i]), correctAnswer: order.indexOf(item.correctAnswer) };
+    return out;
+  };
+  // The right answer's position comes from a shuffled, evenly filled list, so A to D come up about equally.
+  const slots = shuffle(questions.map((_, i) => i % 4));
+  return questions.map((item, n) => {
+    const right = item.choices[item.correctAnswer];
+    const wrong = shuffle(item.choices.filter((_, i) => i !== item.correctAnswer));
+    const at = Math.min(slots[n], item.choices.length - 1);
+    wrong.splice(at, 0, right);
+    return { ...item, choices: wrong, correctAnswer: at };
   });
 }
 

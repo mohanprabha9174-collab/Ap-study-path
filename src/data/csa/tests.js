@@ -481,7 +481,7 @@ for (int[] row : m) {
     "low=0, high=9 → mid 4 (16 < 23) → low=5 → mid 7 (56 > 23) → high=6 → mid 5 (23 found). That is 3 comparisons: 16, 56, 23."),
   q("A2-41", 4, "Which statement best describes merge sort?", null,
     ["It repeatedly splits the list in half, sorts each half recursively, and merges the sorted halves.", "It repeatedly swaps the smallest remaining element into the next position.", "It inserts each element into its correct place among the elements already sorted.", "It compares the middle element to a target value."], 0,
-    "That is merge sort's divide-and-conquer strategy. Option B is selection sort, option C is insertion sort, and option D is binary search."),
+    "That is merge sort's divide-and-conquer strategy. Swapping the smallest element in is selection sort, inserting into a sorted part is insertion sort, and checking the middle against a target is binary search."),
   q("A2-42", 4, "What is returned by rev(\"code\")?", `public static String rev(String s) {
   if (s.length() <= 1) {
     return s;
@@ -495,13 +495,22 @@ for (int[] row : m) {
 function seededShuffle(questions, seed) {
   let s = seed;
   const rand = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
-  return questions.map((item) => {
-    const order = item.choices.map((_, i) => i);
-    for (let i = order.length - 1; i > 0; i--) {
+  const shuffle = (list) => {
+    const out = [...list];
+    for (let i = out.length - 1; i > 0; i--) {
       const j = Math.floor(rand() * (i + 1));
-      [order[i], order[j]] = [order[j], order[i]];
+      [out[i], out[j]] = [out[j], out[i]];
     }
-    return { ...item, choices: order.map((i) => item.choices[i]), correctAnswer: order.indexOf(item.correctAnswer) };
+    return out;
+  };
+  // The right answer's position comes from a shuffled, evenly filled list, so A to D come up about equally.
+  const slots = shuffle(questions.map((_, i) => i % 4));
+  return questions.map((item, n) => {
+    const right = item.choices[item.correctAnswer];
+    const wrong = shuffle(item.choices.filter((_, i) => i !== item.correctAnswer));
+    const at = Math.min(slots[n], item.choices.length - 1);
+    wrong.splice(at, 0, right);
+    return { ...item, choices: wrong, correctAnswer: at };
   });
 }
 
