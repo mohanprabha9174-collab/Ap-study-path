@@ -20,7 +20,15 @@ function normalizeKeys() {
   const byLoose = {};
   for (const name of Object.keys(process.env)) byLoose[name.trim().toUpperCase()] = name;
   for (const [canonical, alts] of Object.entries(ALIASES)) {
-    const found = [canonical, ...alts].map((n) => byLoose[n]).find((n) => n && clean(process.env[n]));
+    // Prefer the newest numbered copy (e.g. ANTHROPIC_API_KEY_2 over ANTHROPIC_API_KEY_1 over ANTHROPIC_API_KEY),
+    // since people often add a new key next to an old one instead of replacing it.
+    const numbered = Object.keys(byLoose)
+      .map((loose) => ({ loose, m: loose.match(new RegExp(`^${canonical}[ _-]*(\\d+)$`)) }))
+      .filter((x) => x.m)
+      .sort((a, b) => Number(b.m[1]) - Number(a.m[1]))
+      .map((x) => byLoose[x.loose]);
+    const found = [...numbered, canonical, ...alts].map((n) => byLoose[String(n).trim().toUpperCase()] || n)
+      .find((n) => n && clean(process.env[n]));
     if (found) process.env[canonical] = clean(process.env[found]);
   }
 }
