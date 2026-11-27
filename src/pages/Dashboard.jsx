@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { CodeView } from "../components/ExamTools.jsx";
 import { courses, courseList } from "../data/courses.js";
-import { api, setToken } from "../lib/api.js";
+import { api, getToken, setToken } from "../lib/api.js";
 import { navigate, useApp } from "../App.jsx";
 
 export default function Dashboard() {
-  const { user, store, backend } = useApp();
+  const { user, store, backend, signOut } = useApp();
   const [attempts, setAttempts] = useState(null);
   const [frqs, setFrqs] = useState([]);
 
@@ -77,6 +77,7 @@ export default function Dashboard() {
         <div className="account-grid">
           <RecoveryCode />
           <ChangePassword />
+          <YourData onDeleted={signOut} />
         </div>
       )}
     </section>
@@ -307,6 +308,67 @@ function FrqHistory({ frqs, store }) {
           })}
         </ul>
       )}
+    </div>
+  );
+}
+
+function YourData({ onDeleted }) {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [sure, setSure] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  async function download() {
+    setMsg(null);
+    try {
+      const data = await api("/account/export");
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ap-study-path-my-data.json";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      setMsg({ ok: false, text: err.message });
+    }
+  }
+
+  async function remove(e) {
+    e.preventDefault();
+    setMsg(null);
+    try {
+      await api("/account/delete", { method: "POST", body: { password } });
+      try {
+        Object.keys(localStorage).filter((k) => k.startsWith("ap-study-path:")).forEach((k) => localStorage.removeItem(k));
+      } catch { /* ignore */ }
+      window.dispatchEvent(new CustomEvent("ap-notice", { detail: "Your account and everything saved with it were deleted." }));
+      onDeleted();
+    } catch (err) {
+      setMsg({ ok: false, text: err.message });
+    }
+  }
+
+  return (
+    <div className="card account-card">
+      <h2>Your data</h2>
+      <p className="muted">Download everything saved in your account, or delete the account. See the <a href="#/privacy">privacy policy</a>.</p>
+      <div className="button-row">
+        <button className="secondary-btn small-btn" onClick={download} disabled={!getToken()}>Download my data</button>
+        <button className="link-btn danger-link" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "Cancel" : "Delete my account"}</button>
+      </div>
+      {open && (
+        <form className="login-form narrow" onSubmit={remove}>
+          <p><strong>This can't be undone.</strong> Your scores, saved exams, FRQ answers and account are removed for good.</p>
+          <label htmlFor="del-pw">Your password</label>
+          <input id="del-pw" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+          <label className="agree-row">
+            <input type="checkbox" checked={sure} onChange={(e) => setSure(e.target.checked)} />
+            <span>I understand everything will be deleted.</span>
+          </label>
+          <button className="danger-btn" type="submit" disabled={!sure || !password}>Delete my account</button>
+        </form>
+      )}
+      {msg && <div className={msg.ok ? "success-box" : "error-box"} role={msg.ok ? "status" : "alert"}>{msg.text}</div>}
     </div>
   );
 }

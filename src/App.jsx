@@ -3,6 +3,7 @@ import { courses } from "./data/courses.js";
 import { api, checkBackend, getToken, setToken } from "./lib/api.js";
 import { createStore, migrateLegacyProgress, moveGuestDrafts, setDraftOwner } from "./lib/store.js";
 import Home from "./pages/Home.jsx";
+import { PrivacyPage, TermsPage } from "./pages/Legal.jsx";
 import ResetPage from "./pages/ResetPage.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
@@ -99,7 +100,7 @@ export default function App() {
 
   useEffect(() => {
     const course = courses[route.page];
-    const names = { home: "", login: route.sub === "register" ? "Create an account" : "Sign in", dashboard: "My progress", reset: "Reset your password" };
+    const names = { home: "", login: route.sub === "register" ? "Create an account" : "Sign in", dashboard: "My progress", reset: "Reset your password", privacy: "Privacy policy", terms: "Terms of use" };
     const tabNames = { tests: "Practice exams", quiz: "Custom quiz", frq: "FRQ practice", notes: "Unit notes", tips: "Tips" };
     const part = course ? `${course.short} ${tabNames[route.sub] || "Practice exams"}` : names[route.page] ?? "Page not found";
     document.title = part ? `${part} | AP Study Path` : "AP Study Path: AP CSP, CSA and Cyber practice";
@@ -165,6 +166,10 @@ export default function App() {
     content = <Home />;
   } else if (route.page === "login") {
     content = <AuthPage key={route.sub || "login"} initialMode={route.sub === "register" ? "register" : "login"} />;
+  } else if (route.page === "privacy") {
+    content = <PrivacyPage />;
+  } else if (route.page === "terms") {
+    content = <TermsPage />;
   } else if (route.page === "reset") {
     content = <ResetPage key={route.sub || "code"} token={route.sub} />;
   } else if (route.page === "dashboard") {
@@ -205,6 +210,10 @@ export default function App() {
         <main id="main" tabIndex={-1}>{content}</main>
         <footer className="site-footer">
           <p>AP Study Path: free practice for AP CSP, AP CSA, and AP Cybersecurity. AP® is a trademark registered by the College Board, which is not affiliated with and does not endorse this site.</p>
+          <nav className="footer-links" aria-label="Legal">
+            <a href="#/privacy">Privacy policy</a>
+            <a href="#/terms">Terms of use</a>
+          </nav>
         </footer>
       </div>
     </AppContext.Provider>

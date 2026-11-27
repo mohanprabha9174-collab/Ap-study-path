@@ -280,7 +280,7 @@ export default function AiHelper({ open, onClose, course, context, starters = []
         </form>
         <p className="ai-footnote">
           {chats && <strong>{chats.remaining} of {chats.limit} helper messages left today. </strong>}
-          AI can make mistakes. Check important answers against your notes.
+          AI can make mistakes. Check important answers against your notes. Messages are sent to Anthropic's Claude to answer, so leave out personal details.
         </p>
       </>
     );
