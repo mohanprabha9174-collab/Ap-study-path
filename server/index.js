@@ -10,7 +10,7 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { openDatabase } from "./db.js";
 import { aiEnabled, aiProvider, gradeWithAI, gradeWithRubric } from "./grader.js";
-import { aiSettingsSeen } from "./ai.js";
+import { aiSettingsSeen, estimateCostUsd, onUsage } from "./ai.js";
 import { courses } from "../src/data/courses.js";
 import { tutorReply } from "./tutor.js";
 
@@ -92,32 +92,78 @@ async function requireAuth(req, res, next) {
 
 // ---------- AI spending caps ----------
 // Per-hour limits live in the rate limiters below. These daily caps are a hard ceiling on
-// how many AI calls the whole site (and each student) can make per day, so the API bill
-// can't run away. Defaults: 300 calls/day for the whole site, 40 per student.
-const AI_DAILY_LIMIT = Number(process.env.AI_DAILY_LIMIT || 300);
-const AI_USER_DAILY_LIMIT = Number(process.env.AI_USER_DAILY_LIMIT || 40);
+// ---------- AI limits ----------
+// Students get separate daily allowances for FRQ grading and for the chat helper, and the
+// whole site has a dollar budget per month (and per day), so the API bill can't run away.
+// Defaults are sized for about 1,000 students on Claude Haiku 5.5; change them in the host's
+// environment settings without touching code.
+const LIMITS = {
+  grade: Number(process.env.AI_GRADES_PER_DAY || 8),
+  help: Number(process.env.AI_CHATS_PER_DAY || 20)
+};
+const AI_DAILY_LIMIT = Number(process.env.AI_DAILY_LIMIT || 8000); // backstop on total calls a day
+const MONTHLY_BUDGET = Number(process.env.AI_MONTHLY_BUDGET_USD || 100);
+const DAILY_BUDGET = Math.min(MONTHLY_BUDGET, Number(process.env.AI_DAILY_BUDGET_USD || Math.max(1, MONTHLY_BUDGET / 15)));
 const today = () => new Date().toISOString().slice(0, 10);
 
-async function reserveAiCall(userId) {
+// Add the estimated cost of every AI call to today's spend.
+onUsage((usage) => {
+  const micro = Math.round(estimateCostUsd(usage) * 1e6);
+  if (!micro) return;
+  db.run(
+    "INSERT INTO ai_spend (day, micro_usd) VALUES (?, ?) ON CONFLICT (day) DO UPDATE SET micro_usd = ai_spend.micro_usd + ?",
+    [today(), micro, micro]
+  ).catch((err) => console.error("Couldn't record AI spend:", err.message));
+});
+
+async function spendUsd() {
   const day = today();
-  const site = await db.get("SELECT COALESCE(SUM(calls), 0) AS n FROM ai_usage WHERE day = ?", [day]);
-  if (Number(site?.n || 0) >= AI_DAILY_LIMIT) {
-    return { ok: false, reason: "The site has reached today's AI limit. AI features come back tomorrow; you can still use rubric scoring." };
+  const month = day.slice(0, 7);
+  const d = await db.get("SELECT COALESCE(SUM(micro_usd), 0) AS n FROM ai_spend WHERE day = ?", [day]);
+  const m = await db.get("SELECT COALESCE(SUM(micro_usd), 0) AS n FROM ai_spend WHERE day LIKE ?", [`${month}%`]);
+  return { today: Number(d?.n || 0) / 1e6, month: Number(m?.n || 0) / 1e6 };
+}
+
+async function usageFor(userId) {
+  const rows = await db.all("SELECT kind, calls FROM ai_quota WHERE day = ? AND user_id = ?", [today(), userId]);
+  const used = { grade: 0, help: 0 };
+  rows.forEach((r) => { if (r.kind in used) used[r.kind] = Number(r.calls); });
+  const pack = (kind) => ({ used: used[kind], limit: LIMITS[kind], remaining: Math.max(0, LIMITS[kind] - used[kind]) });
+  return { grades: pack("grade"), chats: pack("help") };
+}
+
+async function reserveAiCall(userId, kind) {
+  const day = today();
+  const spend = await spendUsd();
+  if (spend.month >= MONTHLY_BUDGET) {
+    return { ok: false, reason: "The site has used this month's AI budget. AI features come back next month; rubric scoring still works." };
   }
-  const mine = await db.get("SELECT calls FROM ai_usage WHERE day = ? AND user_id = ?", [day, userId]);
-  if (Number(mine?.calls || 0) >= AI_USER_DAILY_LIMIT) {
-    return { ok: false, reason: `You've used all ${AI_USER_DAILY_LIMIT} of your AI requests for today. They reset tomorrow.` };
+  if (spend.today >= DAILY_BUDGET) {
+    return { ok: false, reason: "The site has reached today's AI limit. AI features come back tomorrow; rubric scoring still works." };
+  }
+  const site = await db.get("SELECT COALESCE(SUM(calls), 0) AS n FROM ai_quota WHERE day = ?", [day]);
+  if (Number(site?.n || 0) >= AI_DAILY_LIMIT) {
+    return { ok: false, reason: "The site has reached today's AI limit. AI features come back tomorrow; rubric scoring still works." };
+  }
+  const mine = await db.get("SELECT calls FROM ai_quota WHERE day = ? AND user_id = ? AND kind = ?", [day, userId, kind]);
+  if (Number(mine?.calls || 0) >= LIMITS[kind]) {
+    return {
+      ok: false,
+      reason: kind === "grade"
+        ? `You've used all ${LIMITS.grade} AI grades for today. They reset tomorrow; until then you get the rubric estimate.`
+        : `You've used all ${LIMITS.help} AI helper messages for today. They reset tomorrow.`
+    };
   }
   await db.run(
-    "INSERT INTO ai_usage (day, user_id, calls) VALUES (?, ?, 1) ON CONFLICT (day, user_id) DO UPDATE SET calls = ai_usage.calls + 1",
-    [day, userId]
+    "INSERT INTO ai_quota (day, user_id, kind, calls) VALUES (?, ?, ?, 1) ON CONFLICT (day, user_id, kind) DO UPDATE SET calls = ai_quota.calls + 1",
+    [day, userId, kind]
   );
   return { ok: true };
 }
 
 // Give a reserved call back when the request fails before the AI answered.
-async function releaseAiCall(userId) {
-  await db.run("UPDATE ai_usage SET calls = calls - 1 WHERE day = ? AND user_id = ? AND calls > 0", [today(), userId]).catch(() => {});
+async function releaseAiCall(userId, kind) {
+  await db.run("UPDATE ai_quota SET calls = calls - 1 WHERE day = ? AND user_id = ? AND kind = ? AND calls > 0", [today(), userId, kind]).catch(() => {});
 }
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -303,15 +349,23 @@ app.post("/api/frq/grade", requireAuth, gradeLimiter, wrap(async (req, res) => {
   if (response.trim().length < 10) return res.status(400).json({ error: "Write a response before grading." });
 
   let result;
-  const reservation = aiEnabled() ? await reserveAiCall(req.userId) : { ok: false };
-  if (aiEnabled() && !reservation.ok) {
+  // Grading the exact same answer again returns the earlier AI grade for free.
+  const previous = aiEnabled() ? await db.get(
+    "SELECT feedback FROM frq_submissions WHERE user_id = ? AND frq_id = ? AND response = ? AND grader = 'ai' ORDER BY created_at DESC LIMIT 1",
+    [req.userId, frqId, response]
+  ) : null;
+  const reusable = previous && !(frq.usesPpr && (ppr || (Array.isArray(req.body.pprFiles) && req.body.pprFiles.length)));
+  const reservation = !reusable && aiEnabled() ? await reserveAiCall(req.userId, "grade") : { ok: false };
+  if (reusable) {
+    result = { ...JSON.parse(previous.feedback), notice: "Same answer as last time, so this is your earlier AI grade (it didn't use one of today's grades)." };
+  } else if (aiEnabled() && !reservation.ok) {
     result = { ...gradeWithRubric({ frq, response }), notice: reservation.reason };
   } else if (aiEnabled()) {
     try {
       result = await gradeWithAI({ frq, courseName: courses[course].name, response, ppr: frq.usesPpr ? ppr : "", pprFiles: frq.usesPpr ? cleanFiles(req.body.pprFiles) : [] });
     } catch (err) {
       console.error(err.message);
-      await releaseAiCall(req.userId);
+      await releaseAiCall(req.userId, "grade");
       result = { ...gradeWithRubric({ frq, response }), notice: "The AI grader was unavailable, so this is a keyword estimate. Try again in a minute." };
     }
   } else {
@@ -327,9 +381,7 @@ app.post("/api/frq/grade", requireAuth, gradeLimiter, wrap(async (req, res) => {
 }));
 
 app.get("/api/ai/usage", requireAuth, wrap(async (req, res) => {
-  const mine = await db.get("SELECT calls FROM ai_usage WHERE day = ? AND user_id = ?", [today(), req.userId]);
-  const used = Number(mine?.calls || 0);
-  res.json({ used, limit: AI_USER_DAILY_LIMIT, remaining: Math.max(0, AI_USER_DAILY_LIMIT - used) });
+  res.json(await usageFor(req.userId));
 }));
 
 // ---------- AI study helper ----------
@@ -349,12 +401,12 @@ app.post("/api/ai/help", requireAuth, helpLimiter, wrap(async (req, res) => {
   const kind = ["mcq", "frq", "general"].includes(req.body.kind) ? req.body.kind : "general";
   const history = (Array.isArray(req.body.history) ? req.body.history : [])
     .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
-    .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }))
-    .slice(-12);
+    .map((m) => ({ role: m.role, content: m.content.slice(0, 2000) }))
+    .slice(-8);
   if (!history.length || history[history.length - 1].role !== "user") {
     return res.status(400).json({ error: "Ask a question first." });
   }
-  const reservation = await reserveAiCall(req.userId);
+  const reservation = await reserveAiCall(req.userId, "help");
   if (!reservation.ok) return res.status(429).json({ error: reservation.reason });
   try {
     const reply = await tutorReply({
@@ -372,7 +424,7 @@ app.post("/api/ai/help", requireAuth, helpLimiter, wrap(async (req, res) => {
     });
     res.json({ reply });
   } catch (err) {
-    await releaseAiCall(req.userId);
+    await releaseAiCall(req.userId, "help");
     if (err.status) return res.status(err.status).json({ error: err.message });
     console.error(err.message);
     res.status(502).json({ error: "The AI helper couldn't answer right now. Try again in a minute." });

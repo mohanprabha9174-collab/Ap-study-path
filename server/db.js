@@ -50,6 +50,17 @@ const SCHEMA = [
     calls INTEGER NOT NULL,
     PRIMARY KEY (day, user_id)
   )`,
+  `CREATE TABLE IF NOT EXISTS ai_quota (
+    day TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    calls INTEGER NOT NULL,
+    PRIMARY KEY (day, user_id, kind)
+  )`,
+  `CREATE TABLE IF NOT EXISTS ai_spend (
+    day TEXT PRIMARY KEY,
+    micro_usd INTEGER NOT NULL
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_attempts_user ON attempts(user_id, course)`,
   `CREATE INDEX IF NOT EXISTS idx_frq_user ON frq_submissions(user_id, course, frq_id)`
 ];
