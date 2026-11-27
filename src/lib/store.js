@@ -117,14 +117,45 @@ export function createStore(user) {
     async listFrqHistory() {
       if (remote) return (await api("/frq/history")).submissions || [];
       return localList("frq-history");
+    },
+
+    // One graded answer with its feedback, for "See this answer" on My Progress.
+    async getFrqSubmission(id) {
+      if (remote) return (await api(`/frq/submission/${encodeURIComponent(id)}`)).submission;
+      return localList("frq-history").find((h) => h.id === id) || null;
     }
   };
 }
 
-// Drafts are always local so typing never waits on the network.
+// Drafts are always local so typing never waits on the network. Each account has its own drafts,
+// so two students on one computer never see each other's answers.
+let draftOwner = "guest";
+export function setDraftOwner(uid) {
+  draftOwner = uid ? `u-${uid}` : "guest";
+}
 export function loadDraft(key) {
-  return localGet(`draft:${key}`, "");
+  const mine = localGet(`drafts:${draftOwner}:${key}`, null);
+  if (mine !== null) return mine;
+  // Drafts saved before they were kept per account belong to the guest.
+  return draftOwner === "guest" ? localGet(`draft:${key}`, "") : "";
 }
 export function saveDraft(key, text) {
-  localSet(`draft:${key}`, text);
+  localSet(`drafts:${draftOwner}:${key}`, text);
+}
+// When a guest signs in, their drafts move to the account unless it already has one for that FRQ.
+export function moveGuestDrafts(uid) {
+  try {
+    const target = `u-${uid}`;
+    const keys = Object.keys(localStorage);
+    const guest = keys.filter((k) => k.startsWith(`${LOCAL_PREFIX}drafts:guest:`) || k.startsWith(`${LOCAL_PREFIX}draft:`));
+    for (const k of guest) {
+      const key = k.startsWith(`${LOCAL_PREFIX}draft:`) ? k.slice(`${LOCAL_PREFIX}draft:`.length) : k.slice(`${LOCAL_PREFIX}drafts:guest:`.length);
+      const value = localStorage.getItem(k);
+      const dest = `${LOCAL_PREFIX}drafts:${target}:${key}`;
+      let empty = true;
+      try { empty = !String(JSON.parse(value || '""')).trim(); } catch { /* keep */ }
+      if (!empty && !String(JSON.parse(localStorage.getItem(dest) || '""')).trim()) localStorage.setItem(dest, value);
+      localStorage.removeItem(k);
+    }
+  } catch { /* drafts stay where they are */ }
 }

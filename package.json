@@ -9,7 +9,8 @@
     "build": "vite build",
     "start": "node --disable-warning=ExperimentalWarning server/index.js",
     "preview": "vite preview",
-    "check:content": "node scripts/check-content.mjs"
+    "check:content": "node scripts/check-content.mjs",
+    "reset-link": "node scripts/reset-link.mjs"
   },
   "dependencies": {
     "cors": "^2.8.6",

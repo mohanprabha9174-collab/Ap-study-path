@@ -47,7 +47,7 @@ export default function AuthPage({ initialMode = "login" }) {
     try {
       const path = mode === "register" ? "/auth/register" : "/auth/login";
       const data = await api(path, { method: "POST", auth: false, body: { email, password, name } });
-      await signIn(data.token, data.user);
+      await signIn(data.token, data.user, data.recoveryCode);
       navigate("/dashboard");
     } catch (err) {
       setError(err.message);
@@ -85,6 +85,9 @@ export default function AuthPage({ initialMode = "login" }) {
               <label htmlFor="auth-confirm">Confirm password</label>
               <input id="auth-confirm" type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
             </>
+          )}
+          {mode === "login" && (
+            <button type="button" className="link-btn forgot-link" onClick={() => navigate("/reset")}>Forgot your password?</button>
           )}
           {error && <div className="error-box" role="alert">{error}</div>}
           <button className="primary-btn" type="submit" disabled={busy}>{busy ? "Please wait…" : mode === "register" ? "Create account" : "Sign in"}</button>

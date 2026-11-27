@@ -783,6 +783,7 @@ function Navigator({ questions, state, onPick, large }) {
     <div className={`navigator ${large ? "large" : ""}`}>
       <div className="nav-legend small">
         <span><i className="lg current" /> Current</span>
+        <span><i className="lg answered" /> Answered</span>
         <span><i className="lg unanswered" /> Unanswered</span>
         <span><i className="lg flagged" /> For review</span>
       </div>

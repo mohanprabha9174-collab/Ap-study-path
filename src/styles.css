@@ -557,6 +557,7 @@ mark.hl { color: inherit; border-radius: 3px; padding: 0 1px; cursor: pointer; b
 .lg.current { outline: 2px solid var(--pen); outline-offset: 1px; }
 .lg.unanswered { background: var(--sheet); border-style: dashed; border-color: var(--pencil); }
 .lg.flagged { background: var(--highlight); border-color: #d9b800; }
+.lg.answered { background: var(--ink); border-color: var(--ink); }
 .palette button { transition: transform 0.1s; }
 .palette button:hover { transform: translateY(-1px); }
 .palette button:not(.answered):not(.flagged) { border-style: dashed; border-color: var(--pencil); }
@@ -931,3 +932,51 @@ html { scroll-padding-top: 84px; }
 @media (hover: none) { .shortcut-hint { display: none; } }
 @media (max-width: 600px) { .code-view { font-size: 0.76rem; } }
 .lock-hint { margin: 0.8rem 0 0; font-size: 0.9rem; color: var(--pencil); }
+
+/* ---------- password recovery + past FRQs ---------- */
+.forgot-link { align-self: flex-end; margin-top: -0.35rem; font-size: 0.92rem; }
+.code-input { font-family: var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.small-note { font-size: 0.9rem; margin: 0.25rem 0; }
+.recovery-card { padding: 1.3rem 1.5rem; margin-bottom: 1rem; border: 2px solid var(--highlight); background: var(--highlight-soft); }
+.recovery-card h2 { margin: 0 0 0.35rem; }
+.recovery-code-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin: 0.8rem 0 1rem; }
+.recovery-code { font-family: var(--mono); font-size: 1.35rem; font-weight: 700; letter-spacing: 0.08em; padding: 0.45rem 0.8rem; background: var(--sheet); border: 1px dashed var(--ink); border-radius: var(--r-sm); user-select: all; }
+.account-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 1rem; align-items: start; }
+.account-grid .account-card { margin-bottom: 0; }
+.account-card h2 { font-size: 1.15rem; margin: 0 0 0.4rem; }
+.account-card.needs-code { border-left: 4px solid var(--u4); }
+.history-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem; }
+.history-head select { padding: 0.45rem 0.7rem; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--sheet); min-height: 40px; }
+.frq-history-list { list-style: none; padding: 0; margin: 0.75rem 0 0; }
+.frq-history-list > li { border-top: 1px solid var(--line); }
+.frq-history-list > li:first-child { border-top: 0; }
+.frq-history-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 0.5rem 1rem; align-items: center; padding: 0.75rem 0; }
+.frq-history-main { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.frq-history-main strong { overflow-wrap: anywhere; }
+.frq-history-meta { display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; color: var(--pencil); font-size: 0.9rem; }
+.frq-history-actions { display: flex; align-items: center; gap: 0.6rem; }
+.score-pill { font-family: var(--display); font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.98rem; white-space: nowrap; }
+.score-pill.good { background: var(--ok-soft); color: var(--ok); }
+.score-pill.mid { background: var(--highlight-soft); color: #6b5300; }
+.score-pill.low { background: var(--bad-soft); color: var(--bad); }
+.frq-history-detail { padding: 0 0 1rem; }
+.frq-history-summary { font-weight: 700; margin: 0 0 0.6rem; }
+.frq-history-rows { list-style: none; padding: 0; margin: 0 0 0.8rem; display: grid; gap: 0.35rem; }
+.frq-history-rows li { padding: 0.45rem 0.7rem; border-radius: var(--r-sm); border-left: 4px solid var(--line); background: var(--paper); }
+.frq-history-rows li.earned { border-left-color: var(--ok); }
+.frq-history-rows li.missed { border-left-color: var(--bad); }
+.frq-history-answer { white-space: pre-wrap; background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-md); padding: 0.8rem 1rem; max-height: 360px; overflow: auto; }
+@media (max-width: 640px) {
+  .frq-history-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .frq-history-actions { grid-column: 1 / -1; }
+}
+
+/* Wide code scrolls sideways: a soft glow on the edge that still has hidden code (no JS, follows the scroll). */
+.code-block:not(.ai-msg .code-block) {
+  background:
+    linear-gradient(to right, #142038 35%, rgba(20, 32, 56, 0)) left center / 48px 100% no-repeat local,
+    linear-gradient(to left, #142038 35%, rgba(20, 32, 56, 0)) right center / 48px 100% no-repeat local,
+    linear-gradient(to right, rgba(143, 211, 255, 0.28), rgba(143, 211, 255, 0)) left center / 16px 100% no-repeat scroll,
+    linear-gradient(to left, rgba(143, 211, 255, 0.28), rgba(143, 211, 255, 0)) right center / 16px 100% no-repeat scroll,
+    #142038;
+}

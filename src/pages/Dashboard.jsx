@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CodeView } from "../components/ExamTools.jsx";
 import { courses, courseList } from "../data/courses.js";
 import { api, setToken } from "../lib/api.js";
 import { navigate, useApp } from "../App.jsx";
@@ -34,6 +35,8 @@ export default function Dashboard() {
         )}
       </div>
 
+      {user && <RecoveryCodeNotice />}
+
       <div className="dash-grid">
         {courseList.map((course) => <CourseSummary key={course.id} course={course} attempts={attempts.filter((a) => a.course === course.id)} frqs={frqs.filter((f) => f.course === course.id)} />)}
       </div>
@@ -68,7 +71,14 @@ export default function Dashboard() {
         )}
       </div>
 
-      {user && <ChangePassword />}
+      <FrqHistory frqs={frqs} store={store} />
+
+      {user && (
+        <div className="account-grid">
+          <RecoveryCode />
+          <ChangePassword />
+        </div>
+      )}
     </section>
   );
 }
@@ -138,6 +148,169 @@ function CourseSummary({ course, attempts, frqs }) {
   );
 }
 
+const NEW_CODE_KEY = "ap-study-path:new-recovery-code";
+
+function CodeToCopy({ code }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="recovery-code-row">
+      <code className="recovery-code">{code}</code>
+      <button className="secondary-btn small-btn" onClick={() => {
+        navigator.clipboard?.writeText(code).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
+      }}>{copied ? "Copied" : "Copy"}</button>
+    </div>
+  );
+}
+
+// Shown right after sign-up or a password reset: the code is only ever shown this once.
+function RecoveryCodeNotice() {
+  const [code, setCode] = useState(() => { try { return sessionStorage.getItem(NEW_CODE_KEY); } catch { return null; } });
+  if (!code) return null;
+  return (
+    <div className="card recovery-card" role="status">
+      <h2>Save your recovery code</h2>
+      <p>If you forget your password, this code resets it. <strong>It's shown only once</strong>, so write it down or save it somewhere safe.</p>
+      <CodeToCopy code={code} />
+      <button className="primary-btn" onClick={() => { try { sessionStorage.removeItem(NEW_CODE_KEY); } catch { /* ignore */ } setCode(null); }}>I've saved it</button>
+    </div>
+  );
+}
+
+function RecoveryCode() {
+  const [info, setInfo] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => { api("/auth/recovery-code").then(setInfo).catch(() => setInfo({ hasCode: false })); }, [code]);
+
+  async function make(e) {
+    e.preventDefault();
+    setError("");
+    try {
+      const data = await api("/auth/recovery-code", { method: "POST", body: { password } });
+      setCode(data.recoveryCode);
+      setPassword("");
+      try { sessionStorage.removeItem(NEW_CODE_KEY); } catch { /* ignore */ }
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <div className={`card account-card ${info && !info.hasCode ? "needs-code" : ""}`}>
+      <h2>Recovery code</h2>
+      {info === null ? <p className="muted">Checking…</p> : info.hasCode ? (
+        <p className="muted">You have a code (made {new Date(info.createdAt).toLocaleDateString()}). It resets your password if you forget it. Making a new one cancels the old one.</p>
+      ) : (
+        <p><strong>You don't have a recovery code yet.</strong> Without one, a forgotten password can't be reset. Make one now and save it.</p>
+      )}
+      {code ? (
+        <>
+          <p>Your new code. <strong>It's shown only once</strong>, so save it now.</p>
+          <CodeToCopy code={code} />
+        </>
+      ) : !open ? (
+        <button className={info && !info.hasCode ? "primary-btn" : "link-btn"} onClick={() => setOpen(true)}>{info?.hasCode ? "Make a new code" : "Make my recovery code"}</button>
+      ) : (
+        <form className="login-form narrow" onSubmit={make}>
+          <label htmlFor="rc-pw">Your password</label>
+          <input id="rc-pw" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+          <button className="primary-btn" type="submit">Show my new code</button>
+          {error && <div className="error-box" role="alert">{error}</div>}
+        </form>
+      )}
+    </div>
+  );
+}
+
+const frqTitle = (f) => courses[f.course]?.frqs?.find((x) => x.id === f.frqId)?.title || "FRQ";
+
+function FrqHistory({ frqs, store }) {
+  const [openId, setOpenId] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [course, setCourse] = useState("all");
+  const shown = frqs.filter((f) => course === "all" || f.course === course);
+
+  async function toggle(f) {
+    if (openId === f.id) { setOpenId(null); return; }
+    setOpenId(f.id);
+    setDetail({ loading: true });
+    try {
+      const d = await store.getFrqSubmission(f.id);
+      setDetail(d ? { ...d, loading: false } : { error: "That answer wasn't saved." });
+    } catch (err) {
+      setDetail({ error: err.message });
+    }
+  }
+
+  return (
+    <div className="card history-card frq-history-card">
+      <div className="history-head">
+        <h2>Past FRQs</h2>
+        {frqs.length > 0 && (
+          <select aria-label="Show FRQs for" value={course} onChange={(e) => setCourse(e.target.value)}>
+            <option value="all">All courses</option>
+            {courseList.map((c) => <option key={c.id} value={c.id}>{c.short}</option>)}
+          </select>
+        )}
+      </div>
+      {frqs.length === 0 ? (
+        <div className="empty-state">
+          <p>No graded FRQs yet. Write an answer on an FRQ page and grade it; each one shows up here with its score and feedback.</p>
+          <div className="button-row">
+            {courseList.map((c) => <button key={c.id} className="secondary-btn" onClick={() => navigate(`/${c.id}/frq`)}>{c.short} FRQs</button>)}
+          </div>
+        </div>
+      ) : (
+        <ul className="frq-history-list">
+          {shown.slice(0, 40).map((f) => {
+            const pct = Math.round((f.score / f.total) * 100);
+            const isOpen = openId === f.id;
+            return (
+              <li key={f.id} className={isOpen ? "open" : ""}>
+                <div className="frq-history-row">
+                  <div className="frq-history-main">
+                    <strong>{frqTitle(f)}</strong>
+                    <span className="frq-history-meta"><span>{courses[f.course]?.short}</span><span>{new Date(f.createdAt).toLocaleDateString()}</span><span>{f.grader === "ai" ? "AI graded" : "Rubric estimate"}</span></span>
+                  </div>
+                  <span className={`score-pill ${pct >= 70 ? "good" : pct >= 40 ? "mid" : "low"}`}>{f.score}/{f.total}</span>
+                  <div className="frq-history-actions">
+                    <button className="link-btn" aria-expanded={isOpen} onClick={() => toggle(f)}>{isOpen ? "Hide answer" : "See answer"}</button>
+                    <button className="secondary-btn small-btn" onClick={() => navigate(`/${f.course}/frq/${f.frqId}`)}>Try again</button>
+                  </div>
+                </div>
+                {isOpen && (
+                  <div className="frq-history-detail">
+                    {detail?.loading ? <p className="muted">Loading…</p> : detail?.error ? <p className="error-box">{detail.error}</p> : (
+                      <>
+                        {detail?.feedback?.summary && <p className="frq-history-summary">{detail.feedback.summary}</p>}
+                        {detail?.feedback?.rows?.length > 0 && (
+                          <ul className="frq-history-rows">
+                            {detail.feedback.rows.map((r, i) => (
+                              <li key={i} className={Number(r.earned) >= Number(r.max) ? "earned" : "missed"}>
+                                <b>{r.earned}/{r.max}</b> {r.point}{r.reason ? <span className="muted"> — {r.reason}</span> : null}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {detail?.response ? (
+                          f.course === "csa" ? <CodeView code={detail.response} /> : <p className="frq-history-answer">{detail.response}</p>
+                        ) : <p className="muted">The answer text wasn't saved for this one.</p>}
+                      </>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function ChangePassword() {
   const [open, setOpen] = useState(false);
   const [currentPassword, setCurrent] = useState("");
@@ -163,7 +336,8 @@ function ChangePassword() {
 
   return (
     <div className="card account-card">
-      <button className="link-btn" onClick={() => setOpen(!open)}>{open ? "Hide" : "Change password"}</button>
+      <h2>Password</h2>
+      <button className="link-btn" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "Hide" : "Change password"}</button>
       {open && (
         <form className="login-form narrow" onSubmit={submit}>
           <label htmlFor="cur-pw">Current password</label>

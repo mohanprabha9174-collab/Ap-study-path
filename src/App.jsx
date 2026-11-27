@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { courses } from "./data/courses.js";
 import { api, checkBackend, getToken, setToken } from "./lib/api.js";
-import { createStore, migrateLegacyProgress } from "./lib/store.js";
+import { createStore, migrateLegacyProgress, moveGuestDrafts, setDraftOwner } from "./lib/store.js";
 import Home from "./pages/Home.jsx";
+import ResetPage from "./pages/ResetPage.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import CourseHub from "./pages/CourseHub.jsx";
@@ -37,6 +38,13 @@ async function carryOverGuestWork() {
         try { await api("/attempts", { method: "POST", body: a }); moved += 1; } catch { left.unshift(a); }
       }
       localStorage.setItem(`${PREFIX}attempts`, JSON.stringify(left));
+    }
+    // Rubric-scored FRQs from guest mode join the account's FRQ history.
+    const frqs = JSON.parse(localStorage.getItem(`${PREFIX}frq-history`) || "[]");
+    if (Array.isArray(frqs) && frqs.length) {
+      const { added } = await api("/frq/import", { method: "POST", body: { entries: frqs.filter((f) => f && typeof f === "object") } });
+      localStorage.removeItem(`${PREFIX}frq-history`);
+      moved += Number(added) || 0;
     }
   } catch { /* the guest copies stay on this device if anything fails */ }
   if (moved) window.dispatchEvent(new CustomEvent("ap-notice", { detail: "Your guest progress was added to your account." }));
@@ -91,7 +99,7 @@ export default function App() {
 
   useEffect(() => {
     const course = courses[route.page];
-    const names = { home: "", login: route.sub === "register" ? "Create an account" : "Sign in", dashboard: "My progress" };
+    const names = { home: "", login: route.sub === "register" ? "Create an account" : "Sign in", dashboard: "My progress", reset: "Reset your password" };
     const tabNames = { tests: "Practice exams", quiz: "Custom quiz", frq: "FRQ practice", notes: "Unit notes", tips: "Tips" };
     const part = course ? `${course.short} ${tabNames[route.sub] || "Practice exams"}` : names[route.page] ?? "Page not found";
     document.title = part ? `${part} | AP Study Path` : "AP Study Path: AP CSP, CSA and Cyber practice";
@@ -123,15 +131,21 @@ export default function App() {
     return () => { cancelled = true; };
   }, []);
 
-  const store = useMemo(() => createStore(user), [user]);
+  const store = useMemo(() => {
+    setDraftOwner(user?.id); // set before any FRQ box reads its draft
+    return createStore(user);
+  }, [user]);
 
   const ctx = {
     backend,
     user,
     store,
-    async signIn(token, nextUser) {
+    async signIn(token, nextUser, recoveryCode) {
       setToken(token);
+      // A new recovery code is shown once, on My Progress, until the student says they saved it.
+      if (recoveryCode) { try { sessionStorage.setItem("ap-study-path:new-recovery-code", recoveryCode); } catch { /* ignore */ } }
       await carryOverGuestWork();
+      moveGuestDrafts(nextUser.id);
       setUser(nextUser);
     },
     signOut() {
@@ -151,6 +165,8 @@ export default function App() {
     content = <Home />;
   } else if (route.page === "login") {
     content = <AuthPage key={route.sub || "login"} initialMode={route.sub === "register" ? "register" : "login"} />;
+  } else if (route.page === "reset") {
+    content = <ResetPage key={route.sub || "code"} token={route.sub} />;
   } else if (route.page === "dashboard") {
     content = <Dashboard />;
   } else if (Object.hasOwn(courses, route.page)) {

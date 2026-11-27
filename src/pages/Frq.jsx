@@ -129,7 +129,7 @@ export function FrqTab({ course, frqParam }) {
         result = await api("/frq/grade", { method: "POST", body: { course: course.id, frqId: frq.id, response, ppr: frq.usesPpr ? ppr : "", pprFiles: frq.usesPpr ? project.files : [] } });
       } else {
         result = { ...gradeWithRubric({ frq, response }), solution: frq.solution || null };
-        await store.addFrqResult({ course: course.id, frqId: frq.id, score: result.score, total: result.total, grader: result.grader });
+        await store.addFrqResult({ course: course.id, frqId: frq.id, score: result.score, total: result.total, grader: result.grader, response, feedback: { summary: result.summary || "", rows: result.rows || [] } });
       }
       setResults((prev) => ({ ...prev, [frq.id]: { ...result, gradedText: response } }));
       setTimeout(() => document.getElementById("frq-result")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
