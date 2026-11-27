@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { navigate, useApp } from "../App.jsx";
 import { QuizTab, TestsTab } from "./Tests.jsx";
 import { FrqTab } from "./Frq.jsx";
@@ -26,7 +26,7 @@ const TUTOR_STARTERS = {
   cyber: ["Explain the CIA triad with examples", "How do I read firewall rules?", "Make me a 2-week study plan"]
 };
 
-export default function CourseHub({ course, tab }) {
+export default function CourseHub({ course, tab, extra }) {
   const current = TABS.some((t) => t.id === tab) ? tab : "tests";
   const [tutorOpen, setTutorOpen] = useState(false);
   const { user, backend } = useApp();
@@ -59,9 +59,9 @@ export default function CourseHub({ course, tab }) {
       </div>
 
       {current === "tests" && <TestsTab course={course} />}
-      {current === "quiz" && <QuizTab course={course} />}
+      {current === "quiz" && <QuizTab key={extra || "all"} course={course} initialUnits={extra} />}
       {current === "frq" && <FrqTab course={course} />}
-      {current === "notes" && <NotesTab course={course} />}
+      {current === "notes" && <NotesTab course={course} unitParam={extra} />}
       {current === "tips" && <TipsTab course={course} />}
 
       {(current === "notes" || current === "tips") && (
@@ -78,16 +78,28 @@ export default function CourseHub({ course, tab }) {
   );
 }
 
-function NotesTab({ course }) {
-  const [activeUnitId, setActiveUnitId] = useState(null);
-  const [openTopicId, setOpenTopicId] = useState(null);
-  const unit = course.units.find((u) => u.id === activeUnitId);
+function NotesTab({ course, unitParam }) {
+  // The open unit lives in the URL (#/csp/notes/3) so Back returns to the unit list.
+  const unit = course.units.find((u) => String(u.id) === String(unitParam));
+  const [openTopicId, setOpenTopicId] = useState(unit?.topics[0]?.id ?? null);
+  const headerRef = useRef(null);
+  const openUnit = (u) => { setOpenTopicId(u.topics[0]?.id); navigate(`/${course.id}/notes/${u.id}`); };
+
+  useEffect(() => {
+    if (!unit || !headerRef.current) return;
+    setOpenTopicId((id) => (unit.topics.some((t) => t.id === id) ? id : unit.topics[0]?.id));
+    const el = headerRef.current;
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ block: "start" });
+      el.focus({ preventScroll: true });
+    });
+  }, [unit?.id]);
 
   if (!unit) {
     return (
       <div className="unit-card-grid">
         {course.units.map((u) => (
-          <button className={`card unit-card unit-${u.id}`} key={u.id} onClick={() => { setActiveUnitId(u.id); setOpenTopicId(u.topics[0]?.id); }}>
+          <button className={`card unit-card unit-${u.id}`} key={u.id} onClick={() => openUnit(u)}>
             <span className="unit-badge">Unit {u.id}</span>
             <h2>{u.name}</h2>
             <p>{u.overview}</p>
@@ -100,12 +112,12 @@ function NotesTab({ course }) {
 
   return (
     <div className="unit-detail-page">
-      <button className="ghost-btn" onClick={() => setActiveUnitId(null)}>← All units</button>
-      <div className={`card unit-detail-header unit-${unit.id}`}>
+      <button className="ghost-btn" onClick={() => navigate(`/${course.id}/notes`)}>← All units</button>
+      <div className={`card unit-detail-header unit-${unit.id}`} ref={headerRef} tabIndex={-1}>
         <span className="unit-badge">Unit {unit.id}</span>
-        <h1>{unit.name}</h1>
+        <h2 className="unit-title">{unit.name}</h2>
         <p>{unit.overview}</p>
-        <button className="secondary-btn" onClick={() => navigate(`/${course.id}/quiz`)}>Build a quiz</button>
+        <button className="secondary-btn" onClick={() => navigate(`/${course.id}/quiz/${unit.id}`)}>Quiz this unit</button>
       </div>
       <div className="accordion-list">
         {unit.topics.map((topic) => {

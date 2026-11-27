@@ -11,6 +11,11 @@ function localGet(key, fallback) {
     return fallback;
   }
 }
+// Lists from storage are checked so a damaged entry can't crash the page.
+function localList(key) {
+  const value = localGet(key, []);
+  return Array.isArray(value) ? value.filter((x) => x && typeof x === "object") : [];
+}
 function localSet(key, value) {
   try { localStorage.setItem(LOCAL_PREFIX + key, JSON.stringify(value)); } catch { /* ignore */ }
 }
@@ -64,29 +69,48 @@ export function createStore(user) {
 
     async addAttempt(attempt) {
       if (remote) {
-        await api("/attempts", { method: "POST", body: attempt }).catch(() => {});
-        return;
+        try {
+          await api("/attempts", { method: "POST", body: attempt });
+        } catch {
+          // Keep it on this device and send it next time the history loads.
+          const pending = localList("pending-attempts");
+          pending.push(attempt);
+          localSet("pending-attempts", pending.slice(-50));
+          window.dispatchEvent(new CustomEvent("ap-notice", { detail: "Your score couldn't reach your account, so it's kept on this device. It uploads the next time you open My Progress while signed in." }));
+          return { saved: false };
+        }
+        return { saved: true };
       }
-      const list = localGet("attempts", []);
+      const list = localList("attempts");
       list.unshift({ ...attempt, id: String(Date.now()), createdAt: new Date().toISOString() });
       localSet("attempts", list.slice(0, 200));
     },
 
     async listAttempts() {
-      if (remote) return (await api("/attempts")).attempts || [];
-      return localGet("attempts", []);
+      if (remote) {
+        const pending = localList("pending-attempts");
+        if (pending.length) {
+          const left = [];
+          for (const item of pending) {
+            try { await api("/attempts", { method: "POST", body: item }); } catch { left.push(item); }
+          }
+          localSet("pending-attempts", left);
+        }
+        return (await api("/attempts")).attempts || [];
+      }
+      return localList("attempts");
     },
 
     async addFrqResult(entry) {
       if (remote) return; // the server saves graded submissions itself
-      const list = localGet("frq-history", []);
+      const list = localList("frq-history");
       list.unshift({ ...entry, id: String(Date.now()), createdAt: new Date().toISOString() });
       localSet("frq-history", list.slice(0, 200));
     },
 
     async listFrqHistory() {
       if (remote) return (await api("/frq/history")).submissions || [];
-      return localGet("frq-history", []);
+      return localList("frq-history");
     }
   };
 }

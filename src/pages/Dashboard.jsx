@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { courses, courseList } from "../data/courses.js";
-import { api } from "../lib/api.js";
+import { api, setToken } from "../lib/api.js";
 import { navigate, useApp } from "../App.jsx";
 
 export default function Dashboard() {
@@ -9,8 +9,10 @@ export default function Dashboard() {
   const [frqs, setFrqs] = useState([]);
 
   useEffect(() => {
-    store.listAttempts().then(setAttempts).catch(() => setAttempts([]));
-    store.listFrqHistory().then(setFrqs).catch(() => setFrqs([]));
+    const valid = (list) => (Array.isArray(list) ? list : []).filter((a) =>
+      a && Number(a.total) > 0 && Number.isFinite(Number(a.score)) && !Number.isNaN(new Date(a.createdAt).getTime()));
+    store.listAttempts().then((list) => setAttempts(valid(list))).catch(() => setAttempts([]));
+    store.listFrqHistory().then((list) => setFrqs(Array.isArray(list) ? list.filter((f) => f && f.course) : [])).catch(() => setFrqs([]));
   }, [store]);
 
   if (attempts === null) return <section className="page"><div className="card loading-card">Loading your progress…</div></section>;
@@ -86,14 +88,14 @@ function CourseSummary({ course, attempts, frqs }) {
     <article className={`card dash-card accent-${course.accent}`}>
       <h2>{course.name}</h2>
       <div className="dash-stats">
-        <div><strong>{attempts.length}</strong><span>tests taken</span></div>
+        <div><strong>{attempts.length}</strong><span>exams and quizzes</span></div>
         <div><strong>{attempts.length ? `${Math.round(best * 100)}%` : "—"}</strong><span>best score</span></div>
         <div><strong>{recent.length ? `${Math.round(avg * 100)}%` : "—"}</strong><span>recent avg</span></div>
         <div><strong>{frqAvg === null ? "—" : `${Math.round(frqAvg * 100)}%`}</strong><span>FRQ avg</span></div>
       </div>
       {units.length > 0 && (
         <div className="unit-bars">
-          {Object.values(unitTotals).sort((a, b) => a.unit - b.unit).map((u) => (
+          {[...units].sort((a, b) => a.unit - b.unit).map((u) => (
             <div className="unit-bar" key={u.unit}>
               <span>U{u.unit}</span>
               <div className="bar-track"><div className={`bar-fill unit-${u.unit}`} style={{ width: `${Math.round((u.correct / u.total) * 100)}%` }} /></div>
@@ -108,7 +110,7 @@ function CourseSummary({ course, attempts, frqs }) {
         <p className="muted">Take a practice exam to see which units you're strong and weak in.</p>
       )}
       <div className="button-row">
-        <button className="primary-btn small-btn" onClick={() => navigate(`/${course.id}/${weakest ? "quiz" : "tests"}`)}>{weakest ? "Custom quiz" : "Start an exam"}</button>
+        <button className="primary-btn small-btn" onClick={() => navigate(weakest ? `/${course.id}/quiz/${weakest.unit}` : `/${course.id}/tests`)}>{weakest ? `Quiz Unit ${weakest.unit}` : "Start an exam"}</button>
         <button className="secondary-btn small-btn" onClick={() => navigate(`/${course.id}/frq`)}>FRQs</button>
       </div>
     </article>
@@ -119,18 +121,22 @@ function ChangePassword() {
   const [open, setOpen] = useState(false);
   const [currentPassword, setCurrent] = useState("");
   const [newPassword, setNext] = useState("");
-  const [msg, setMsg] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [msg, setMsg] = useState(null);
 
   async function submit(e) {
     e.preventDefault();
-    setMsg("");
+    setMsg(null);
+    if (newPassword !== confirm) { setMsg({ ok: false, text: "The two new passwords don't match." }); return; }
     try {
-      await api("/auth/change-password", { method: "POST", body: { currentPassword, newPassword } });
-      setMsg("Password updated.");
+      const data = await api("/auth/change-password", { method: "POST", body: { currentPassword, newPassword } });
+      if (data.token) setToken(data.token);
+      setMsg({ ok: true, text: "Password updated. Other devices are signed out." });
       setCurrent("");
       setNext("");
+      setConfirm("");
     } catch (err) {
-      setMsg(err.message);
+      setMsg({ ok: false, text: err.message });
     }
   }
 
@@ -143,8 +149,10 @@ function ChangePassword() {
           <input id="cur-pw" type="password" value={currentPassword} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />
           <label htmlFor="new-pw">New password</label>
           <input id="new-pw" type="password" minLength={8} value={newPassword} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" />
+          <label htmlFor="confirm-pw">New password again</label>
+          <input id="confirm-pw" type="password" minLength={8} value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
           <button className="primary-btn" type="submit">Update password</button>
-          {msg && <div className="info-box">{msg}</div>}
+          {msg && <div className={msg.ok ? "success-box" : "error-box"} role={msg.ok ? "status" : "alert"}>{msg.text}</div>}
         </form>
       )}
     </div>

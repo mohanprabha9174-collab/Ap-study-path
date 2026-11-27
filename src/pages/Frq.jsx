@@ -182,8 +182,14 @@ export function FrqTab({ course }) {
             className={course.id === "csa" ? "mono code-input" : ""}
             value={response}
             onChange={(e) => onResponseChange(e.target.value)}
+            maxLength={12000}
+            aria-describedby="response-meta"
             onKeyDown={(e) => {
-              if (course.id === "csa" && e.key === "Tab") {
+              // Tab indents Java code. Press Esc first to let Tab move focus out of the box.
+              if (e.key === "Escape") { e.currentTarget.dataset.escaped = "1"; return; }
+              const escaped = e.currentTarget.dataset.escaped === "1";
+              delete e.currentTarget.dataset.escaped;
+              if (course.id === "csa" && e.key === "Tab" && !e.shiftKey && !escaped) {
                 e.preventDefault();
                 const el = e.target;
                 const start = el.selectionStart;
@@ -201,10 +207,14 @@ export function FrqTab({ course }) {
             }
             spellCheck={course.id !== "csa"}
           />
-          <div className="response-meta">{response.trim() ? response.trim().split(/\s+/).length : 0} words, saved as a draft on this device</div>
+          <div className="response-meta" id="response-meta">
+            {response.trim() ? response.trim().split(/\s+/).length : 0} words, saved as a draft on this device
+            {course.id === "csa" && ". Tab indents; press Esc then Tab to leave the box"}
+            {response.length > 10000 && <strong> · {response.length.toLocaleString()} of 12,000 characters</strong>}
+          </div>
 
-          {error && <div className="error-box">{error}</div>}
-          {noProjectWarning && (
+          {error && <div className="error-box" role="alert">{error}</div>}
+          {noProjectWarning && !hasProject && (
             <div className="confirm-card pop-in">
               <p><strong>You haven't uploaded your project yet.</strong> Without it, the AI can't check your answer against your actual code, so your score will be less accurate.</p>
               <div className="button-row">
@@ -218,7 +228,7 @@ export function FrqTab({ course }) {
               {busy ? (canUseServer && aiAvailable ? "AI is grading…" : "Scoring…") : canUseServer && aiAvailable ? "Grade with AI" : "Score with rubric"}
             </button>
             <button className="secondary-btn ai-btn" onClick={() => setAiOpen(true)}><span className="ai-badge">AI</span> Get help</button>
-            <button className="ghost-btn" onClick={() => onResponseChange("")}>Clear</button>
+            <button className="ghost-btn" onClick={() => { if (!response.trim() || window.confirm("Erase your whole answer? This can't be undone.")) onResponseChange(""); }}>Clear</button>
             {frq.solution && (result || myHistory.length > 0) && (
               <button className="secondary-btn" onClick={() => setShowSolution(!showSolution)}>{showSolution ? "Hide" : "Show"} reference solution</button>
             )}
@@ -250,7 +260,7 @@ export function FrqTab({ course }) {
         open={aiOpen}
         onClose={() => setAiOpen(false)}
         course={course}
-        context={{ key: `frq:${frq.id}:${result ? "graded" : "draft"}`, label: frq.title, kind: "frq", frqId: frq.id, draft: response, graded: Boolean(result), ppr: frq.usesPpr ? ppr : "", pprFiles: frq.usesPpr ? project.files : [] }}
+        context={{ key: `frq:${frq.id}`, label: frq.title, kind: "frq", frqId: frq.id, draft: response, graded: Boolean(result), ppr: frq.usesPpr ? ppr : "", pprFiles: frq.usesPpr ? project.files : [] }}
         starters={frqStarters(Boolean(result))}
       />
     </div>

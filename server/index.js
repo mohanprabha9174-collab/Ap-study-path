@@ -57,22 +57,36 @@ function verifyPassword(password, stored) {
 }
 
 function issueToken(user) {
-  return jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
+  // pv ties the token to the current password, so changing the password signs out old sessions.
+  return jwt.sign({ sub: user.id, email: user.email, pv: passwordVersion(user) }, JWT_SECRET, { expiresIn: "30d" });
 }
+function passwordVersion(user) {
+  return crypto.createHash("sha256").update(String(user.password_hash)).digest("hex").slice(0, 12);
+}
+const courseFor = (id) => (typeof id === "string" && Object.hasOwn(courses, id) ? courses[id] : null);
 function publicUser(u) {
   return { id: u.id, email: u.email, name: u.name || "", createdAt: u.created_at };
 }
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const header = req.get("authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) return res.status(401).json({ error: "Please sign in." });
+  let payload;
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.userId = payload.sub;
-    next();
+    payload = jwt.verify(token, JWT_SECRET);
   } catch {
-    res.status(401).json({ error: "Your session expired. Please sign in again." });
+    return res.status(401).json({ error: "Your session expired. Please sign in again." });
+  }
+  try {
+    const user = await db.get("SELECT id, password_hash FROM users WHERE id = ?", [payload.sub]);
+    if (!user || (payload.pv && payload.pv !== passwordVersion(user))) {
+      return res.status(401).json({ error: "Your session expired. Please sign in again." });
+    }
+    req.userId = user.id;
+    next();
+  } catch (err) {
+    next(err);
   }
 }
 
@@ -101,9 +115,39 @@ async function reserveAiCall(userId) {
   return { ok: true };
 }
 
+// Give a reserved call back when the request fails before the AI answered.
+async function releaseAiCall(userId) {
+  await db.run("UPDATE ai_usage SET calls = calls - 1 WHERE day = ? AND user_id = ? AND calls > 0", [today(), userId]).catch(() => {});
+}
+
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
+// Login is limited per email + network, and only failed tries count, so a class on one
+// school network can't lock each other out.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  skipSuccessfulRequests: true,
+  keyGenerator: (req) => `${ipKeyGenerator(req.ip)}|${String(req.body?.email || "").trim().toLowerCase()}`,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many wrong passwords for this email. Wait 15 minutes and try again." }
+});
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many new accounts from this network. Try again in an hour." }
+});
+const passwordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  keyGenerator: (req) => req.userId || ipKeyGenerator(req.ip),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many password changes. Wait 15 minutes and try again." }
+});
 const gradeLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   limit: Number(process.env.GRADE_LIMIT_PER_HOUR || 30),
@@ -121,7 +165,7 @@ app.get("/api/health", (req, res) => {
 // ---------- auth ----------
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-app.post("/api/auth/register", authLimiter, wrap(async (req, res) => {
+app.post("/api/auth/register", registerLimiter, wrap(async (req, res) => {
   const email = String(req.body.email || "").trim().toLowerCase();
   const password = String(req.body.password || "");
   const name = String(req.body.name || "").trim().slice(0, 60);
@@ -136,7 +180,7 @@ app.post("/api/auth/register", authLimiter, wrap(async (req, res) => {
   res.status(201).json({ token: issueToken(user), user: publicUser(user) });
 }));
 
-app.post("/api/auth/login", authLimiter, wrap(async (req, res) => {
+app.post("/api/auth/login", loginLimiter, wrap(async (req, res) => {
   const email = String(req.body.email || "").trim().toLowerCase();
   const password = String(req.body.password || "");
   const user = await db.get("SELECT * FROM users WHERE email = ?", [email]);
@@ -152,15 +196,17 @@ app.get("/api/auth/me", requireAuth, wrap(async (req, res) => {
   res.json({ user: publicUser(user) });
 }));
 
-app.post("/api/auth/change-password", requireAuth, authLimiter, wrap(async (req, res) => {
+app.post("/api/auth/change-password", requireAuth, passwordLimiter, wrap(async (req, res) => {
   const { currentPassword = "", newPassword = "" } = req.body;
   const user = await db.get("SELECT * FROM users WHERE id = ?", [req.userId]);
   if (!user || !verifyPassword(String(currentPassword), user.password_hash)) {
     return res.status(401).json({ error: "Current password is incorrect." });
   }
   if (String(newPassword).length < 8) return res.status(400).json({ error: "New password must be at least 8 characters." });
-  await db.run("UPDATE users SET password_hash = ? WHERE id = ?", [hashPassword(String(newPassword)), user.id]);
-  res.json({ ok: true });
+  const passwordHash = hashPassword(String(newPassword));
+  await db.run("UPDATE users SET password_hash = ? WHERE id = ?", [passwordHash, user.id]);
+  // Old sessions stop working; this device gets a fresh token.
+  res.json({ ok: true, token: issueToken({ ...user, password_hash: passwordHash }) });
 }));
 
 // ---------- in-progress test state ----------
@@ -196,10 +242,11 @@ app.delete("/api/progress/:key", requireAuth, wrap(async (req, res) => {
 // ---------- completed attempts ----------
 app.post("/api/attempts", requireAuth, wrap(async (req, res) => {
   const { course, testId, title, score, total, unitBreakdown } = req.body;
-  if (!courses[course]) return res.status(400).json({ error: "Unknown course" });
+  if (!courseFor(course)) return res.status(400).json({ error: "Unknown course" });
+  const cleanTotal = Math.min(500, Math.max(1, Number(total) | 0));
   const attempt = {
     id: newId(), course, testId: String(testId).slice(0, 80), title: String(title || "").slice(0, 120),
-    score: Math.max(0, Number(score) | 0), total: Math.max(1, Number(total) | 0)
+    score: Math.min(cleanTotal, Math.max(0, Number(score) | 0)), total: cleanTotal
   };
   await db.run(
     "INSERT INTO attempts (id, user_id, course, test_id, title, score, total, unit_breakdown, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -236,16 +283,21 @@ function cleanFiles(list) {
   return out;
 }
 
+const MAX_RESPONSE = 12000;
 function findFrq(course, frqId) {
-  return courses[course]?.frqs.find((f) => f.id === frqId) || null;
+  return courseFor(course)?.frqs?.find((f) => f.id === frqId) || null;
 }
 
 app.post("/api/frq/grade", requireAuth, gradeLimiter, wrap(async (req, res) => {
   const { course, frqId } = req.body;
-  const response = String(req.body.response || "").slice(0, 12000);
-  const ppr = String(req.body.ppr || "").slice(0, 15000);
+  if (typeof req.body.response !== "string") return res.status(400).json({ error: "Write a response before grading." });
   const frq = findFrq(course, frqId);
   if (!frq) return res.status(404).json({ error: "FRQ not found." });
+  if (req.body.response.length > MAX_RESPONSE) {
+    return res.status(413).json({ error: `Your answer is ${req.body.response.length.toLocaleString()} characters. The limit is ${MAX_RESPONSE.toLocaleString()}; shorten it and grade again.` });
+  }
+  const response = req.body.response;
+  const ppr = String(req.body.ppr || "").slice(0, 15000);
   if (response.trim().length < 10) return res.status(400).json({ error: "Write a response before grading." });
 
   let result;
@@ -257,6 +309,7 @@ app.post("/api/frq/grade", requireAuth, gradeLimiter, wrap(async (req, res) => {
       result = await gradeWithAI({ frq, courseName: courses[course].name, response, ppr: frq.usesPpr ? ppr : "", pprFiles: frq.usesPpr ? cleanFiles(req.body.pprFiles) : [] });
     } catch (err) {
       console.error(err.message);
+      await releaseAiCall(req.userId);
       result = { ...gradeWithRubric({ frq, response }), notice: "The AI grader was unavailable, so this is a keyword estimate. Try again in a minute." };
     }
   } else {
@@ -289,7 +342,7 @@ const helpLimiter = rateLimit({
 
 app.post("/api/ai/help", requireAuth, helpLimiter, wrap(async (req, res) => {
   if (!aiEnabled()) return res.status(503).json({ error: "The AI helper isn't set up on this server yet." });
-  const course = courses[req.body.course];
+  const course = courseFor(req.body.course);
   if (!course) return res.status(400).json({ error: "Unknown course" });
   const kind = ["mcq", "frq", "general"].includes(req.body.kind) ? req.body.kind : "general";
   const history = (Array.isArray(req.body.history) ? req.body.history : [])
@@ -317,6 +370,7 @@ app.post("/api/ai/help", requireAuth, helpLimiter, wrap(async (req, res) => {
     });
     res.json({ reply });
   } catch (err) {
+    await releaseAiCall(req.userId);
     if (err.status) return res.status(err.status).json({ error: err.message });
     console.error(err.message);
     res.status(502).json({ error: "The AI helper couldn't answer right now. Try again in a minute." });
@@ -343,6 +397,9 @@ if (fs.existsSync(dist)) {
 }
 
 app.use((err, req, res, next) => {
+  if (err.type === "entity.parse.failed") return res.status(400).json({ error: "That request wasn't valid JSON." });
+  if (err.type === "entity.too.large") return res.status(413).json({ error: "That upload is too large. Keep project files under 10 MB in total." });
+  if (err.status >= 400 && err.status < 500) return res.status(err.status).json({ error: err.message || "Bad request." });
   console.error(err);
   res.status(500).json({ error: "Something went wrong on the server." });
 });

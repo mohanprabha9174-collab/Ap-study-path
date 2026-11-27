@@ -25,7 +25,7 @@ export default function Home() {
             Full-length practice exams, quizzes built from your weak units, and free-response questions scored against a rubric for AP CSP, AP CSA, and AP Cybersecurity.
           </p>
           <div className="hero-actions">
-            <button className="primary-btn" onClick={() => navigate("/csa/tests")}>Start a practice exam</button>
+            <button className="primary-btn" onClick={() => document.getElementById("courses")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Pick your course</button>
             {!user && backend.available
               ? <button className="secondary-btn" onClick={() => navigate("/login")}>Create a free account</button>
               : <button className="secondary-btn" onClick={() => navigate("/dashboard")}>See my progress</button>}
@@ -57,7 +57,7 @@ export default function Home() {
         </div>
       </div>
 
-      <section className="course-list" aria-label="Courses">
+      <section className="course-list" id="courses" aria-label="Courses">
         {courseList.map((course) => {
           const questions = course.tests.reduce((s, t) => s + t.questions.length, 0);
           return (
