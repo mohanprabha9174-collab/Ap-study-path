@@ -21,7 +21,7 @@ const KEYWORDS = new Set([
 ]);
 const BUILTINS = new Set(["DISPLAY", "INPUT", "APPEND", "INSERT", "REMOVE", "LENGTH", "RANDOM", "MOVE_FORWARD",
   "ROTATE_LEFT", "ROTATE_RIGHT", "CAN_MOVE", "System", "Math", "ArrayList", "Integer", "Double", "Object"]);
-const TOKEN = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(\/\/.*$)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][A-Za-z0-9_]*)|(←|==|!=|<=|>=|&&|\|\||[{}])/gm;
+const TOKEN = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(\/\/.*$|\/\*.*?\*\/)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][A-Za-z0-9_]*)|(←|==|!=|<=|>=|&&|\|\||[{}])/gm;
 
 /** Split text into coloured spans. The text itself is unchanged, so highlight offsets stay correct. */
 function colorize(text, keyBase) {
@@ -46,11 +46,14 @@ function colorize(text, keyBase) {
 }
 
 /** Read-only code with line numbers, indent guides and colours (no highlighter). */
-export function CodeView({ code, className = "" }) {
-  return <HighlightText as="pre" code text={code} className={`code-block ${className}`} />;
+export function CodeView({ code, className = "", plain = false }) {
+  // Text whose lines are already numbered ("1. ...", "2  ALLOW ...") doesn't get a second set of numbers.
+  const lines = String(code).split("\n").filter((l) => l.trim());
+  const numbered = lines.length > 1 && lines.every((l) => /^\s*\d+[.)]?\s/.test(l));
+  return <HighlightText as="pre" code plain={plain} text={code} className={`${plain ? "source-view" : "code-block"} ${numbered ? "no-ln" : ""} ${className}`} />;
 }
 
-export function HighlightText({ text, ranges = [], active, color = "yellow", onChange, as: Tag = "p", className = "", code = false }) {
+export function HighlightText({ text, ranges = [], active, color = "yellow", onChange, as: Tag = "p", className = "", code = false, plain = false }) {
   const ref = useRef(null);
   // Set when a drag just made a highlight, so the click that follows the drag doesn't remove it.
   const justSelected = useRef(false);
@@ -132,7 +135,10 @@ export function HighlightText({ text, ranges = [], active, color = "yellow", onC
         const segs = [];
         const indentEnd = start + indent;
         if (a < indentEnd) segs.push(<span key="i" className="ind" style={{ "--n": Math.min(b, indentEnd) - a }}>{text.slice(a, Math.min(b, indentEnd))}</span>);
-        if (b > indentEnd) segs.push(...colorize(text.slice(Math.max(a, indentEnd), b), `${n}-${i}`));
+        if (b > indentEnd) {
+          const rest = text.slice(Math.max(a, indentEnd), b);
+          segs.push(...(plain ? [rest] : colorize(rest, `${n}-${i}`)));
+        }
         pieces.push(p.range ? markFor(p, `${n}-${i}`, segs) : <span key={`${n}-${i}`}>{segs}</span>);
       });
       lines.push(

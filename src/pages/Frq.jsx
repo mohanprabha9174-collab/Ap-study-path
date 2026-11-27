@@ -122,6 +122,8 @@ export function FrqTab({ course, frqParam }) {
   const result = results[frq.id];
   const myHistory = history.filter((h) => h.frqId === frq.id);
   const groups = [...new Set(course.frqs.map((f) => f.category))];
+  // FRQs in the order the sidebar shows them, for Previous / Next.
+  const ordered = groups.flatMap((g) => course.frqs.filter((f) => f.category === g));
 
   return (
     <div className="frq-page">
@@ -169,27 +171,14 @@ export function FrqTab({ course, frqParam }) {
 
         <div className="card frq-workspace">
           <FrqToolbar course={course} frqId={frq.id} />
-          <p className="eyebrow">{frq.category}, {rubricTotal(frq)} points</p>
-          <h2>{frq.title}</h2>
-          <p className="prompt-box">{frq.prompt}</p>
-          {frq.code && <CodeView code={frq.code} />}
-
-          {frq.sources?.length > 0 && (
-            <div className="sources">
-              {frq.sources.map((s) => (
-                <details className="source-card" key={s.title} open>
-                  <summary>{s.title}</summary>
-                  <pre>{s.content}</pre>
-                </details>
-              ))}
+          <div className="frq-head">
+            <div>
+              <p className="eyebrow">{frq.category}, {rubricTotal(frq)} points</p>
+              <h2>{frq.title}</h2>
             </div>
-          )}
-
-          {frq.parts?.length > 0 && (
-            <ol className="parts-list">
-              {frq.parts.map((p) => <li key={p.label}><strong>Part {p.label}.</strong> {p.text}</li>)}
-            </ol>
-          )}
+            <FrqNav frqs={ordered} current={frq} onGo={setSelectedId} />
+          </div>
+          <FrqPrompt frq={frq} />
 
           <ol className="frq-steps" aria-label="How to practice this FRQ">
             {frq.usesPpr && canUseServer && aiAvailable && <li className={hasProject ? "done" : "now"}>Upload your Create Task project at the top of this page</li>}
@@ -296,6 +285,12 @@ export function FrqTab({ course, frqParam }) {
             <p className="info-box" role="status">You've changed your answer since this grade. Grade again to update it.</p>
           )}
           {result && <GradeCard result={result} onAsk={() => setAiOpen(true)} />}
+          {result && nextFrq(ordered, frq) && (
+            <div className="next-frq card">
+              <p><strong>Ready for another?</strong> Next up: {nextFrq(ordered, frq).title}</p>
+              <button className="primary-btn" onClick={() => setSelectedId(nextFrq(ordered, frq).id)}>Go to the next FRQ</button>
+            </div>
+          )}
 
           {showSolution && frq.solution && (
             <div className="solution-box">
@@ -332,6 +327,89 @@ function frqStarters(graded) {
   return graded
     ? ["Explain my score", "How do I fix what I missed?", "Which rubric point should I fix first?", "Explain the reference solution"]
     : ["What is this question asking?", "Give me a hint for the first part", "Check my draft against the rubric (no answers)", "How should I start?"];
+}
+
+const nextFrq = (frqs, frq) => frqs[frqs.indexOf(frq) + 1] || null;
+
+// Previous / next buttons, so students can skip a question they don't want to do.
+function FrqNav({ frqs, current, onGo }) {
+  const i = frqs.indexOf(current);
+  return (
+    <nav className="frq-nav" aria-label="Move between FRQs">
+      <button className="ghost-btn" disabled={i <= 0} onClick={() => onGo(frqs[i - 1].id)}>Previous</button>
+      <span className="frq-nav__count">{i + 1} of {frqs.length}</span>
+      <button className="secondary-btn" disabled={i >= frqs.length - 1} onClick={() => onGo(frqs[i + 1].id)}>Skip to next</button>
+    </nav>
+  );
+}
+
+// Method calls and Java expressions in prose show in the code font, e.g. bestStreak(int goal).
+function withInlineCode(text) {
+  const out = [];
+  const re = /\b[A-Za-z_][A-Za-z0-9_]*(?:\[[^\]]*\])*\([^()]*\)|\b[a-z][A-Za-z0-9_]*\[[^\]]+\](?:\[[^\]]+\])?/g;
+  let last = 0;
+  let m;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    out.push(<code className="inline-code" key={m.index}>{m[0]}</code>);
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
+// Points per part, read from rubric rows labelled "A: ..." or "(a) ...".
+function partPoints(frq, label) {
+  const re = new RegExp(`^\\(?${label}\\)?[:\\s]`, "i");
+  const rows = frq.rubric.filter((r) => re.test(r.point));
+  return rows.length ? rows.reduce((sum, r) => sum + (r.points ?? 1), 0) : null;
+}
+
+// The prompt laid out for reading: intro, numbered sources you can cite by line, then each
+// part in its own box with its points.
+function FrqPrompt({ frq }) {
+  const paragraphs = String(frq.prompt).split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const intro = [];
+  const parts = [...(frq.parts || []).map((p) => ({ label: p.label, text: p.text }))];
+  paragraphs.forEach((p) => {
+    const m = p.match(/^\(([a-d])\)\s*([\s\S]*)$/i);
+    if (m && !frq.parts?.length) parts.push({ label: m[1], text: m[2] });
+    else intro.push(p);
+  });
+  return (
+    <div className="frq-prompt">
+      {intro.map((p, i) => <p className="prompt-intro" key={i}>{p}</p>)}
+      {frq.code && <CodeView code={frq.code} />}
+      {frq.sources?.length > 0 && (
+        <section className="sources" aria-label="Sources">
+          <p className="sources__hint">Line numbers are shown so you can cite them, for example "Source 2, line 3".</p>
+          {frq.sources.map((src) => {
+            const m = src.title.match(/^(Source \d+):\s*(.*)$/);
+            return (
+              <details className="source-card" key={src.title} open>
+                <summary>{m ? <><span className="source-tag">{m[1]}</span> {m[2]}</> : src.title}</summary>
+                <CodeView code={src.content} plain />
+              </details>
+            );
+          })}
+        </section>
+      )}
+      {parts.length > 0 && (
+        <ol className="part-cards" aria-label="Parts to answer">
+          {parts.map((p) => {
+            const pts = partPoints(frq, p.label);
+            return (
+              <li className="part-card" key={p.label}>
+                <span className="part-tag">Part {frq.parts?.length ? p.label : `(${p.label})`}</span>
+                {pts !== null && <span className="part-points">{pts} pt{pts === 1 ? "" : "s"}</span>}
+                <p>{withInlineCode(p.text)}</p>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  );
 }
 
 function GradingBanner({ aiAvailable, canUseServer, backendAvailable, usage }) {
