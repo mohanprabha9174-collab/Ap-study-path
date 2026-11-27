@@ -32,7 +32,16 @@ export async function api(path, { method = "GET", body, auth = true } = {}) {
     throw new ApiError("Can't reach the server. Check your connection and try again.", 0);
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(data.error || `Request failed (${res.status})`, res.status);
+  if (!res.ok) {
+    // A signed-in request that comes back 401 means the session ended (expired, password changed,
+    // account removed). Sign out everywhere so the page doesn't pretend the student is still signed in.
+    if (res.status === 401 && auth && token) {
+      setToken(null);
+      window.dispatchEvent(new CustomEvent("ap-session-expired"));
+    }
+    const fallback = res.status === 429 ? "Too many requests. Wait a few minutes and try again." : `Request failed (${res.status})`;
+    throw new ApiError(data.error || fallback, res.status);
+  }
   return data;
 }
 

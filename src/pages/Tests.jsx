@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useApp } from "../App.jsx";
+import { navigate, useApp } from "../App.jsx";
 import { references } from "../data/references.js";
 import { usePrefs } from "../lib/prefs.js";
 import AiHelper from "../components/AiHelper.jsx";
@@ -61,18 +61,36 @@ function scoreAttempt(course, questions, answers) {
   return { correct, total: questions.length, percentage, band, unitBreakdown };
 }
 
+function ProgressStatus({ progress, failed, onRetry }) {
+  if (failed) {
+    return (
+      <div className="error-box" role="alert">
+        Your saved progress didn't load, so starting is paused to protect it. <button className="link-btn inline" onClick={onRetry}>Try again</button>
+      </div>
+    );
+  }
+  if (!progress) return <p className="muted" role="status">Loading your saved progress…</p>;
+  return null;
+}
+
 function useAllProgress() {
   const { store } = useApp();
   const [progress, setProgress] = useState(null);
-  const reload = useCallback(() => store.loadAllProgress().then(setProgress).catch(() => setProgress({})), [store]);
+  const [failed, setFailed] = useState(false);
+  // A failed load must not look like "nothing saved": starting fresh would overwrite real progress.
+  const reload = useCallback(() => {
+    setFailed(false);
+    return store.loadAllProgress().then(setProgress).catch(() => { setProgress(null); setFailed(true); });
+  }, [store]);
   useEffect(() => { reload(); }, [reload]);
-  return [progress, reload];
+  return [progress, reload, failed];
 }
 
 // ================================================================ full practice exams
 export function TestsTab({ course }) {
   const { store } = useApp();
-  const [progress, reload] = useAllProgress();
+  const [progress, reload, failed] = useAllProgress();
+  const ready = Boolean(progress) && !failed;
   const [active, setActive] = useState(null);
 
   if (active) {
@@ -91,10 +109,15 @@ export function TestsTab({ course }) {
   }
 
   async function open(test, restart = false) {
+    if (!ready) return;
     const key = `${course.id}:${test.id}`;
-    const saved = progress?.[key];
-    if (restart || !saved) {
+    const saved = progress[key];
+    if (restart) {
+      const answered = saved?.answers?.filter((a) => a !== null && a !== undefined).length || 0;
+      if (saved?.status !== "done" && answered > 0 && !window.confirm(`Start over? Your ${answered} saved answers for ${test.title} will be erased.`)) return;
       await store.clearProgress(key);
+      setActive({ test, state: newState(test.questions.length) });
+    } else if (!saved) {
       setActive({ test, state: newState(test.questions.length) });
     } else {
       setActive({ test, state: { ...newState(test.questions.length), started: true, ...saved } });
@@ -102,6 +125,8 @@ export function TestsTab({ course }) {
   }
 
   return (
+    <>
+    <ProgressStatus progress={progress} failed={failed} onRetry={reload} />
     <div className="test-grid">
       {course.tests.map((test) => {
         const saved = progress?.[`${course.id}:${test.id}`];
@@ -121,11 +146,11 @@ export function TestsTab({ course }) {
             <div className="button-row">
               {saved ? (
                 <>
-                  <button className="primary-btn" onClick={() => open(test)}>{saved.status === "done" ? "View results" : "Resume"}</button>
-                  <button className="ghost-btn" onClick={() => open(test, true)}>Start over</button>
+                  <button className="primary-btn" disabled={!ready} onClick={() => open(test)}>{saved.status === "done" ? "View results" : "Resume"}</button>
+                  <button className="ghost-btn" disabled={!ready} onClick={() => open(test, true)}>Start over</button>
                 </>
               ) : (
-                <button className="primary-btn" onClick={() => open(test)}>Set up and start</button>
+                <button className="primary-btn" disabled={!ready} onClick={() => open(test)}>Set up and start</button>
               )}
             </div>
           </article>
@@ -136,15 +161,22 @@ export function TestsTab({ course }) {
         <p>Highlight text, cross out choices, hide the timer, mark questions for review, and open the reference sheet, just like in Bluebook. You choose exam or practice mode and your time limit before you start.</p>
       </article>
     </div>
+    </>
   );
 }
 
 // ================================================================ custom quiz builder
-export function QuizTab({ course }) {
+export function QuizTab({ course, initialUnits }) {
   const { store } = useApp();
-  const [progress, reload] = useAllProgress();
+  const [progress, reload, failed] = useAllProgress();
+  const ready = Boolean(progress) && !failed;
   const pool = useMemo(() => course.tests.flatMap((t) => t.questions), [course]);
-  const [units, setUnits] = useState(course.unitMeta.map((u) => u.id));
+  const [units, setUnits] = useState(() => {
+    // #/csa/quiz/4 (or 1,3) pre-selects units, e.g. from "Quiz this unit" or the weakest-unit tip.
+    const all = course.unitMeta.map((u) => u.id);
+    const picked = String(initialUnits || "").split(",").map((x) => all.find((id) => String(id) === x.trim())).filter((id) => id !== undefined);
+    return picked.length ? picked : all;
+  });
   const [count, setCount] = useState(15);
   const [active, setActive] = useState(null);
   const key = `${course.id}:custom`;
@@ -168,8 +200,10 @@ export function QuizTab({ course }) {
   }
 
   async function build() {
+    if (!ready) return;
+    if (saved && saved.status !== "done" && saved.questionIds && !window.confirm("Build a new quiz? Your unfinished quiz will be replaced once you start the new one.")) return;
     const ids = shuffle(pool.filter((q) => units.includes(q.unit))).slice(0, count).map((q) => q.id);
-    await store.clearProgress(key);
+    // Nothing is cleared here: the old quiz is only replaced when the new one actually starts.
     setActive(newState(ids.length, { questionIds: ids, mode: "practice" }));
   }
   const toggleUnit = (id) => setUnits((prev) => (prev.includes(id) ? prev.filter((u) => u !== id) : [...prev, id]));
@@ -178,6 +212,7 @@ export function QuizTab({ course }) {
     <div className="card quiz-builder">
       <h2>Build a quiz from {pool.length} questions</h2>
       <p className="muted">Every quiz is a new random mix. Pick the units you want to work on.</p>
+      <ProgressStatus progress={progress} failed={failed} onRetry={reload} />
 
       <h3>Units</h3>
       <div className="unit-toggle-grid">
@@ -201,7 +236,7 @@ export function QuizTab({ course }) {
       </div>
 
       <div className="button-row">
-        <button className="primary-btn" disabled={available === 0} onClick={build}>Set up a {Math.min(count, available)}-question quiz</button>
+        <button className="primary-btn" disabled={available === 0 || !ready} onClick={build}>Set up a {Math.min(count, available)}-question quiz</button>
         {saved && saved.status !== "done" && saved.questionIds && (
           <button className="secondary-btn" onClick={() => setActive({ ...newState(saved.questionIds.length), started: true, ...saved })}>Resume last quiz</button>
         )}
@@ -255,7 +290,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
       if (!prefs.showTimer) setPrefs({ showTimer: true });
     }
     if (remaining === 0) {
-      setToast("Time's up. Your answers were submitted.");
+      update({ timedOut: true });
       finish(true);
     }
   }, [remaining]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -324,18 +359,21 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
   useEffect(() => {
     if (view !== "quiz") return undefined;
     const onKey = (e) => {
-      if (e.target.closest("input, textarea, select") || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target.closest("input, textarea, select, [contenteditable]") || e.metaKey || e.ctrlKey || e.altKey) return;
+      // Shortcuts are off while a panel is open, so typing there never changes an answer.
+      if (refOpen || aiOpen || settingsOpen || navOpen || confirming) return;
       const s = stateRef.current;
       if (e.key === "ArrowRight") { e.preventDefault(); if (s.currentIndex < questions.length - 1) goTo(s.currentIndex + 1); else setView("check"); }
       else if (e.key === "ArrowLeft") { e.preventDefault(); goTo(s.currentIndex - 1); }
       else if (/^[a-d]$/i.test(e.key)) {
         const idx = e.key.toLowerCase().charCodeAt(0) - 97;
-        if (idx < questions[s.currentIndex].choices.length) choose(idx);
+        // A repeated key keeps the answer; only a click on the chosen bubble clears it.
+        if (idx < questions[s.currentIndex].choices.length && s.answers[s.currentIndex] !== idx) choose(idx);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [view, questions, goTo, choose]);
+  }, [view, questions, goTo, choose, refOpen, aiOpen, settingsOpen, navOpen, confirming]);
 
   if (view === "setup") {
     return (
@@ -451,7 +489,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
             </div>
             <Navigator questions={questions} state={state} onPick={goTo} large />
             {confirming && (
-              <div className="confirm-card pop-in" role="alertdialog" aria-label="Submit with unanswered questions">
+              <div className="confirm-card pop-in" role="alertdialog" aria-label="Submit with unanswered questions" ref={(el) => el?.scrollIntoView({ block: "center", behavior: "smooth" })}>
                 <p><strong>{unanswered} question{unanswered === 1 ? " is" : "s are"} unanswered.</strong> Blank answers count as wrong.</p>
                 <div className="button-row">
                   <button className="primary-btn" onClick={() => finish(true)}>Submit anyway</button>
@@ -550,7 +588,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
           open={aiOpen}
           onClose={() => setAiOpen(false)}
           course={course}
-          context={{ key: `${progressKey}:${state.currentIndex}:${revealed ? "a" : "q"}`, label: `Question ${state.currentIndex + 1}`, kind: "mcq", questionId: question.id, studentChoice: selected, answered: revealed }}
+          context={{ key: `${progressKey}:${state.currentIndex}`, label: `Question ${state.currentIndex + 1}`, kind: "mcq", questionId: question.id, studentChoice: selected, answered: revealed }}
           starters={mcqStarters(revealed, selected === question.correctAnswer)}
         />
       )}
@@ -677,6 +715,8 @@ function Navigator({ questions, state, onPick, large }) {
 function Results({ course, title, questions, state, onReview, onRestart, onExit }) {
   const result = scoreAttempt(course, questions, state.answers);
   const shown = useCountUp(result.percentage);
+  const weakUnit = Object.values(result.unitBreakdown).filter((u) => u.total > 0 && u.correct < u.total)
+    .sort((a, b) => a.correct / a.total - b.correct / b.total)[0];
   return (
     <div className="card results-card pop-in">
       <p className="eyebrow">{title}</p>
@@ -685,6 +725,7 @@ function Results({ course, title, questions, state, onReview, onRestart, onExit 
       </div>
       <h1>{result.correct} of {result.total} correct</h1>
       <h2>{result.band}</h2>
+      {state.timedOut && <p className="info-box" role="status">Time ran out, so your answers were submitted automatically.</p>}
       <p className="muted">Time used: {formatTime(state.elapsed || 0)}. Start your next quiz with your weakest unit.</p>
       <div className="unit-breakdown">
         {Object.values(result.unitBreakdown).map((u) => (
@@ -698,7 +739,8 @@ function Results({ course, title, questions, state, onReview, onRestart, onExit 
       </div>
       <div className="button-row center">
         <button className="primary-btn" onClick={onReview}>Review answers</button>
-        <button className="secondary-btn" onClick={onRestart}>Start over</button>
+        {weakUnit && <button className="secondary-btn" onClick={() => navigate(`/${course.id}/quiz/${weakUnit.unit}`)}>Quiz Unit {weakUnit.unit}</button>}
+        <button className="ghost-btn" onClick={onRestart}>Start over</button>
         <button className="ghost-btn" onClick={onExit}>Back to {course.short}</button>
       </div>
     </div>

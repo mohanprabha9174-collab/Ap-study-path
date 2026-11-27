@@ -40,7 +40,7 @@ export function gradeWithRubric({ frq, response }) {
     rows,
     score: rows.reduce((s, r) => s + r.earned, 0),
     total: rubricTotal(frq),
-    summary: "Keyword-based estimate (AI grading is not configured on this server). Use each rubric row to self-check.",
+    summary: "Keyword-based estimate, not an AI grade. Use each rubric row to check your own answer.",
     strengths: [],
     improvements: improvements.slice(0, 6),
     examTip: frq.tip || ""

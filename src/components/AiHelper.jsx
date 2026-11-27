@@ -72,13 +72,34 @@ export default function AiHelper({ open, onClose, course, context, starters = []
     if (open && canUse) api("/ai/usage").then(setUsage).catch(() => {});
   }, [open, canUse, messages.length]);
 
+  const drawerRef = useRef(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
+    const el = drawerRef.current;
+    if (el) { if (open) el.removeAttribute("inert"); else el.setAttribute("inert", ""); }
     if (!open) return undefined;
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    const opener = document.activeElement;
+    // Keep keyboard focus inside the drawer while it is open, and return it to the opener on close.
+    const onKey = (e) => {
+      if (e.key === "Escape") { closeRef.current(); return; }
+      if (e.key !== "Tab" || !el) return;
+      const items = [...el.querySelectorAll("button, textarea, input, a[href], [tabindex]:not([tabindex='-1'])")].filter((n) => !n.disabled && n.offsetParent !== null);
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      else if (!el.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    };
     window.addEventListener("keydown", onKey);
-    setTimeout(() => inputRef.current?.focus(), 250);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+    const t = setTimeout(() => (inputRef.current || el?.querySelector("button, a[href]"))?.focus(), 250);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("keydown", onKey);
+      if (opener && typeof opener.focus === "function") opener.focus();
+    };
+  }, [open]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
@@ -178,7 +199,7 @@ export default function AiHelper({ open, onClose, course, context, starters = []
   return (
     <>
       <div className={`drawer-scrim ${open ? "open" : ""}`} onClick={onClose} aria-hidden="true" />
-      <aside className={`reference-drawer ai-drawer ${open ? "open" : ""}`} aria-hidden={!open} aria-label="AI helper">
+      <aside ref={drawerRef} className={`reference-drawer ai-drawer ${open ? "open" : ""}`} role="dialog" aria-modal="true" aria-hidden={!open} aria-label="AI study helper">
         <div className="drawer-head">
           <h2><span className="ai-badge">AI</span> Study helper</h2>
           <div className="button-row">
