@@ -58,32 +58,55 @@ export function HighlightText({ text, ranges = [], active, color = "yellow", onC
   // Set when a drag just made a highlight, so the click that follows the drag doesn't remove it.
   const justSelected = useRef(false);
 
-  function onMouseUp() {
-    if (!active) return;
-    const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || !sel.rangeCount) return;
-    const range = sel.getRangeAt(0);
-    const box = ref.current;
-    if (!box || !box.contains(range.startContainer) || !box.contains(range.endContainer)) return;
-    const before = document.createRange();
-    before.selectNodeContents(box);
-    before.setEnd(range.startContainer, range.startOffset);
-    const s = before.toString().length;
-    const e = s + range.toString().length;
-    sel.removeAllRanges();
-    if (e <= s) return;
-    justSelected.current = true;
-    setTimeout(() => { justSelected.current = false; }, 0);
-    // Merge with any highlights the new one touches, so nothing already marked is lost.
-    let ns = s;
-    let ne = e;
-    const kept = [];
-    ranges.forEach((r) => {
-      if (r.e < s || r.s > e) kept.push(r);
-      else { ns = Math.min(ns, r.s); ne = Math.max(ne, r.e); }
-    });
-    onChange([...kept, { s: ns, e: ne, c: color }].sort((a, b) => a.s - b.s));
-  }
+  // Selections are read on the whole page, so a drag that runs from the question into the code
+  // (or the other way) highlights the part inside each box instead of being ignored.
+  const latest = useRef({ ranges, color, onChange });
+  latest.current = { ranges, color, onChange };
+  useEffect(() => {
+    if (!active) return undefined;
+    const onUp = () => {
+      const sel = window.getSelection();
+      const box = ref.current;
+      if (!box || !sel || sel.isCollapsed || !sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      if (!range.intersectsNode(box)) return;
+      const startIn = box.contains(range.startContainer);
+      const endIn = box.contains(range.endContainer);
+      const offsetOf = (node, offset) => {
+        const r = document.createRange();
+        r.selectNodeContents(box);
+        r.setEnd(node, offset);
+        return r.toString().length;
+      };
+      const full = box.textContent.length;
+      const s = startIn ? offsetOf(range.startContainer, range.startOffset) : 0;
+      const e = endIn ? offsetOf(range.endContainer, range.endOffset) : full;
+      // Clear the selection after every box on the page has read it.
+      setTimeout(() => sel.removeAllRanges(), 0);
+      if (e <= s) return;
+      justSelected.current = true;
+      setTimeout(() => { justSelected.current = false; }, 0);
+      const { ranges: current, color: c, onChange: change } = latest.current;
+      // Merge with highlights the new one overlaps (and same-colour ones it touches), so nothing
+      // already marked is lost; the merged highlight takes the colour just picked.
+      let ns = s;
+      let ne = e;
+      const kept = [];
+      current.forEach((r) => {
+        const overlaps = r.s < e && r.e > s;
+        const touches = (r.e === s || r.s === e) && r.c === c;
+        if (overlaps || touches) { ns = Math.min(ns, r.s); ne = Math.max(ne, r.e); }
+        else kept.push(r);
+      });
+      change?.([...kept, { s: ns, e: ne, c }].sort((a, b) => a.s - b.s));
+    };
+    document.addEventListener("mouseup", onUp);
+    document.addEventListener("touchend", onUp);
+    return () => {
+      document.removeEventListener("mouseup", onUp);
+      document.removeEventListener("touchend", onUp);
+    };
+  }, [active]);
 
   const parts = useMemo(() => {
     const out = [];
@@ -150,14 +173,14 @@ export function HighlightText({ text, ranges = [], active, color = "yellow", onC
       start = end + 1;
     });
     return (
-      <Tag ref={ref} className={`${className} code-view ${active ? "highlighting" : ""}`} onMouseUp={onMouseUp} onTouchEnd={onMouseUp} tabIndex={0}>
+      <Tag ref={ref} className={`${className} code-view ${active ? "highlighting" : ""}`} tabIndex={0}>
         <code>{lines}</code>
       </Tag>
     );
   }
 
   return (
-    <Tag ref={ref} className={`${className} ${active ? "highlighting" : ""}`} onMouseUp={onMouseUp} onTouchEnd={onMouseUp}>
+    <Tag ref={ref} className={`${className} ${active ? "highlighting" : ""}`}>
       {parts.map((p, i) =>
         p.range ? (
           <mark
@@ -191,6 +214,7 @@ export function ReferenceDrawer({ reference, open, onClose }) {
   closeRef.current = onClose;
   useEffect(() => {
     if (!open) return undefined;
+    setQuery(""); // each time it opens, the whole reference shows again
     // Focus the search box on open and give focus back to the opener on close.
     const opener = document.activeElement;
     const onKey = (e) => { if (e.key === "Escape") closeRef.current(); };
@@ -220,7 +244,9 @@ export function ReferenceDrawer({ reference, open, onClose }) {
         <p className="muted small">{reference.note}</p>
         <input ref={searchRef} className="drawer-search" type="text" aria-label="Search the reference" placeholder="Search the reference" value={query} onChange={(e) => setQuery(e.target.value)} tabIndex={open ? 0 : -1} />
         <div className="drawer-body">
-          {sections.length === 0 && <p className="muted">Nothing matches “{query}”.</p>}
+          {sections.length === 0 && (
+            <p className="muted">Nothing matches “{query}”. <button className="link-btn inline" onClick={() => { setQuery(""); searchRef.current?.focus(); }}>Clear search</button></p>
+          )}
           {sections.map((s) => (
             <section key={s.title} className="ref-section">
               <h3>{s.title}</h3>

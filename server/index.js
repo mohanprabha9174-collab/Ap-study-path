@@ -213,6 +213,111 @@ app.get("/api/health", (req, res) => {
 // ---------- auth ----------
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// ---------- password recovery ----------
+// Every account has a recovery code (shown once at sign-up, or made on My Progress). It resets
+// the password with no email needed. If an email service is set up (RESEND_API_KEY), a reset
+// link can be emailed too.
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function newRecoveryCode() {
+  const bytes = crypto.randomBytes(12);
+  const chars = [...bytes].map((b) => CODE_CHARS[b % CODE_CHARS.length]).join("");
+  return `${chars.slice(0, 4)}-${chars.slice(4, 8)}-${chars.slice(8, 12)}`;
+}
+const normalizeCode = (code) => String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+async function setRecoveryCode(userId) {
+  const code = newRecoveryCode();
+  const hash = hashPassword(normalizeCode(code));
+  await db.run(
+    "INSERT INTO recovery_codes (user_id, code_hash, created_at) VALUES (?, ?, ?) ON CONFLICT (user_id) DO UPDATE SET code_hash = excluded.code_hash, created_at = excluded.created_at",
+    [userId, hash, now()]
+  );
+  return code;
+}
+const emailEnabled = () => Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
+const sha = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
+
+async function sendResetEmail(to, link) {
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { authorization: `Bearer ${process.env.RESEND_API_KEY}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      from: process.env.EMAIL_FROM,
+      to: [to],
+      subject: "Reset your AP Study Path password",
+      text: `Someone asked to reset the password for your AP Study Path account.\n\nReset it here (the link works for 1 hour, once):\n${link}\n\nIf this wasn't you, ignore this email; your password stays the same.`
+    })
+  });
+  if (!r.ok) throw new Error(`Email failed: ${r.status}`);
+}
+
+const resetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 8,
+  keyGenerator: (req) => `${ipKeyGenerator(req.ip)}|${String(req.body?.email || req.body?.token || "").trim().toLowerCase().slice(0, 80)}`,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many reset tries. Wait 15 minutes and try again." }
+});
+
+app.get("/api/auth/reset-options", (req, res) => res.json({ email: emailEnabled() }));
+
+app.post("/api/auth/forgot", resetLimiter, wrap(async (req, res) => {
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const sent = { ok: true, message: "If that email has an account, a reset link is on its way. It works for 1 hour. Check your spam folder too." };
+  if (!emailEnabled()) return res.status(400).json({ error: "Email reset isn't set up on this site. Use your recovery code instead." });
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ error: "Enter a valid email address." });
+  const user = await db.get("SELECT id, email FROM users WHERE email = ?", [email]);
+  if (user) {
+    const token = crypto.randomBytes(24).toString("base64url");
+    await db.run("INSERT INTO password_resets (token_hash, user_id, expires_at, used) VALUES (?, ?, ?, 0)",
+      [sha(token), user.id, new Date(Date.now() + 60 * 60 * 1000).toISOString()]);
+    const origin = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
+    try { await sendResetEmail(user.email, `${origin.replace(/\/$/, "")}/#/reset/${token}`); } catch (err) { console.error(err.message); }
+  }
+  res.json(sent); // same answer either way, so it can't be used to check who has an account
+}));
+
+app.post("/api/auth/reset-password", resetLimiter, wrap(async (req, res) => {
+  const newPassword = String(req.body.newPassword || "");
+  let user = null;
+  if (req.body.token) {
+    const row = await db.get("SELECT * FROM password_resets WHERE token_hash = ?", [sha(req.body.token)]);
+    if (!row || Number(row.used) || new Date(row.expires_at).getTime() < Date.now()) {
+      return res.status(400).json({ error: "This reset link has expired or was already used. Ask for a new one." });
+    }
+    user = await db.get("SELECT * FROM users WHERE id = ?", [row.user_id]);
+  } else {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const candidate = await db.get("SELECT * FROM users WHERE email = ?", [email]);
+    const saved = candidate ? await db.get("SELECT code_hash FROM recovery_codes WHERE user_id = ?", [candidate.id]) : null;
+    if (!saved || !verifyPassword(normalizeCode(req.body.recoveryCode), saved.code_hash)) {
+      return res.status(400).json({ error: "That email and recovery code don't match. Check the code (letters and numbers, dashes optional)." });
+    }
+    user = candidate;
+  }
+  if (!user) return res.status(400).json({ error: "Account not found." });
+  if (newPassword.trim().length < 8) return res.status(400).json({ error: "New password must be at least 8 characters (not counting spaces at the ends)." });
+  const passwordHash = hashPassword(newPassword);
+  await db.run("UPDATE users SET password_hash = ? WHERE id = ?", [passwordHash, user.id]);
+  await db.run("UPDATE password_resets SET used = 1 WHERE user_id = ?", [user.id]);
+  // The old code is used up; the student gets a fresh one to save.
+  const recoveryCode = await setRecoveryCode(user.id);
+  res.json({ token: issueToken({ ...user, password_hash: passwordHash }), user: publicUser(user), recoveryCode });
+}));
+
+app.get("/api/auth/recovery-code", requireAuth, wrap(async (req, res) => {
+  const row = await db.get("SELECT created_at FROM recovery_codes WHERE user_id = ?", [req.userId]);
+  res.json({ hasCode: Boolean(row), createdAt: row?.created_at || null });
+}));
+
+app.post("/api/auth/recovery-code", requireAuth, passwordLimiter, wrap(async (req, res) => {
+  const user = await db.get("SELECT * FROM users WHERE id = ?", [req.userId]);
+  if (!user || !verifyPassword(String(req.body.password || ""), user.password_hash)) {
+    return res.status(400).json({ error: "Password is incorrect." });
+  }
+  res.json({ recoveryCode: await setRecoveryCode(user.id) });
+}));
+
 app.post("/api/auth/register", registerLimiter, wrap(async (req, res) => {
   const email = String(req.body.email || "").trim().toLowerCase();
   const password = String(req.body.password || "");
@@ -225,7 +330,8 @@ app.post("/api/auth/register", registerLimiter, wrap(async (req, res) => {
   const user = { id: newId(), email, name, password_hash: hashPassword(password), created_at: now() };
   await db.run("INSERT INTO users (id, email, name, password_hash, created_at) VALUES (?, ?, ?, ?, ?)",
     [user.id, user.email, user.name, user.password_hash, user.created_at]);
-  res.status(201).json({ token: issueToken(user), user: publicUser(user) });
+  const recoveryCode = await setRecoveryCode(user.id);
+  res.status(201).json({ token: issueToken(user), user: publicUser(user), recoveryCode });
 }));
 
 app.post("/api/auth/login", loginLimiter, wrap(async (req, res) => {
@@ -458,6 +564,30 @@ app.post("/api/ai/help", requireAuth, helpLimiter, wrap(async (req, res) => {
   }
 }));
 
+// A guest's rubric-scored FRQs move into the account they create. Only rubric estimates can be
+// added this way (an AI grade has to come from the grader itself).
+app.post("/api/frq/import", requireAuth, wrap(async (req, res) => {
+  const list = Array.isArray(req.body.entries) ? req.body.entries.slice(0, 200) : [];
+  let added = 0;
+  for (const e of list) {
+    const frq = e && findFrq(e.course, e.frqId);
+    if (!frq) continue;
+    const total = Number(e.total);
+    const score = Number(e.score);
+    if (!(total > 0) || !Number.isFinite(score)) continue;
+    const created = new Date(e.createdAt);
+    const createdAt = Number.isNaN(created.getTime()) || created.getTime() > Date.now() ? now() : created.toISOString();
+    const response = typeof e.response === "string" ? e.response.slice(0, MAX_RESPONSE) : "";
+    const clamped = Math.min(total, Math.max(0, score));
+    await db.run(
+      "INSERT INTO frq_submissions (id, user_id, course, frq_id, response, score, total, grader, feedback, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'rubric', ?, ?)",
+      [newId(), req.userId, e.course, e.frqId, response, clamped, total, JSON.stringify({ score: clamped, total, grader: "rubric", importedFromGuest: true }), createdAt]
+    );
+    added += 1;
+  }
+  res.json({ added });
+}));
+
 app.get("/api/frq/history", requireAuth, wrap(async (req, res) => {
   const rows = await db.all(
     "SELECT id, course, frq_id, score, total, grader, created_at FROM frq_submissions WHERE user_id = ? ORDER BY created_at DESC LIMIT 200",
@@ -466,6 +596,17 @@ app.get("/api/frq/history", requireAuth, wrap(async (req, res) => {
   res.json({ submissions: rows.map((r) => ({
     id: r.id, course: r.course, frqId: r.frq_id, score: Number(r.score), total: Number(r.total), grader: r.grader, createdAt: r.created_at
   })) });
+}));
+
+app.get("/api/frq/submission/:id", requireAuth, wrap(async (req, res) => {
+  const r = await db.get("SELECT * FROM frq_submissions WHERE id = ? AND user_id = ?", [String(req.params.id), req.userId]);
+  if (!r) return res.status(404).json({ error: "That answer wasn't found." });
+  let feedback = {};
+  try { feedback = JSON.parse(r.feedback || "{}"); } catch { feedback = {}; }
+  res.json({ submission: {
+    id: r.id, course: r.course, frqId: r.frq_id, response: r.response, score: Number(r.score), total: Number(r.total),
+    grader: r.grader, createdAt: r.created_at, feedback: { summary: feedback.summary || "", rows: Array.isArray(feedback.rows) ? feedback.rows : [] }
+  } });
 }));
 
 app.use("/api", (req, res) => res.status(404).json({ error: "Not found" }));
