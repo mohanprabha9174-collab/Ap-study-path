@@ -79,7 +79,7 @@ export function FrqTab({ course, frqParam }) {
     window.addEventListener("ap-usage", onUsage);
     return () => window.removeEventListener("ap-usage", onUsage);
   }, []);
-  const aiLeft = !(aiAvailable && canUseServer) || !usage || usage.remaining > 0;
+  const aiLeft = !(aiAvailable && canUseServer) || !usage?.grades || usage.grades.remaining > 0;
 
   useEffect(() => {
     store.listFrqHistory().then((list) => setHistory(list.filter((h) => h.course === course.id))).catch(() => setHistory([]));
@@ -312,10 +312,11 @@ function frqStarters(graded) {
 }
 
 function GradingBanner({ aiAvailable, canUseServer, backendAvailable, usage }) {
-  if (aiAvailable && canUseServer && usage?.remaining === 0) {
+  const grades = usage?.grades;
+  if (aiAvailable && canUseServer && grades?.remaining === 0) {
     return (
       <div className="card grading-banner">
-        <span><strong>You've used today's {usage.limit} AI requests.</strong> Grading falls back to the keyword rubric estimate until they reset tomorrow.</span>
+        <span><strong>You've used today's {grades.limit} AI grades.</strong> Grading falls back to the keyword rubric estimate until they reset tomorrow. Grading the same answer again is free.</span>
       </div>
     );
   }
@@ -323,7 +324,7 @@ function GradingBanner({ aiAvailable, canUseServer, backendAvailable, usage }) {
     return (
       <div className="card grading-banner ai">
         <span><strong>AI grading is on.</strong> Your answer is scored row by row against the rubric, with specific fixes.</span>
-        {usage && <span className="usage-pill">{usage.remaining} of {usage.limit} AI requests left today</span>}
+        {grades && <span className="usage-pill">{grades.remaining} of {grades.limit} AI grades left today</span>}
       </div>
     );
   }

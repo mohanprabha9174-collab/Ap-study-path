@@ -67,6 +67,36 @@ async function failed(res, name) {
   return new Error(`${name} error ${res.status}: ${scrub(detail).slice(0, 300)}`);
 }
 
+// ---------- cost control ----------
+// Haiku 5.5 is the default: about 20x cheaper than Sonnet and good at rubric grading and
+// tutoring. Set ANTHROPIC_GRADER_MODEL / ANTHROPIC_HELP_MODEL to use a different model per job.
+const DEFAULT_CLAUDE = "claude-haiku-5-5";
+function claudeModel(purpose) {
+  if (purpose === "grade" && process.env.ANTHROPIC_GRADER_MODEL) return process.env.ANTHROPIC_GRADER_MODEL;
+  if (purpose === "help" && process.env.ANTHROPIC_HELP_MODEL) return process.env.ANTHROPIC_HELP_MODEL;
+  return process.env.ANTHROPIC_MODEL || DEFAULT_CLAUDE;
+}
+
+// US dollars per million tokens: [input, output, cache read, cache write]. Used only to
+// estimate spend for the budget cap, so a close guess is fine for unknown models.
+const PRICES = [
+  [/haiku-5/, (inTok) => (inTok > 100000 ? [0.5, 2.5, 0.05, 0.625] : [0.1, 0.5, 0.01, 0.125])],
+  [/haiku/, () => [1, 5, 0.1, 1.25]],
+  [/sonnet/, () => [2, 10, 0.1, 2.5]],
+  [/opus/, () => [4, 20, 0.2, 5]],
+  [/fable|mythos/, () => [10, 50, 0.25, 12.5]],
+  [/gpt|o\d/, () => [0.25, 2, 0.025, 0.25]],
+  [/gemini/, () => [0.3, 2.5, 0.03, 0.3]]
+];
+export function estimateCostUsd({ model, input = 0, output = 0, cacheRead = 0, cacheWrite = 0 }) {
+  const entry = PRICES.find(([re]) => re.test(model)) || [null, () => [2, 10, 0.2, 2.5]];
+  const [pi, po, pr, pw] = entry[1](input + cacheRead + cacheWrite);
+  return (input * pi + output * po + cacheRead * pr + cacheWrite * pw) / 1e6;
+}
+let recordUsage = () => {};
+/** The server registers a function here to add each call's estimated cost to its budget. */
+export function onUsage(fn) { recordUsage = fn; }
+
 /**
  * Send a conversation to the configured model.
  * @param {object} opts
@@ -75,9 +105,10 @@ async function failed(res, name) {
  * @param {{name:string, type:string, data:string}[]} [opts.attachments] base64 images/PDFs added to the first user message
  * @param {boolean} [opts.json] ask for a JSON object reply
  * @param {number} [opts.maxTokens]
+ * @param {"grade"|"help"} [opts.purpose] picks the model and labels the cost
  * @returns {Promise<string>} the model's reply text
  */
-export async function chat({ system, messages, attachments = [], json = false, maxTokens = 2000 }) {
+export async function chat({ system, messages, attachments = [], json = false, maxTokens = 2000, purpose = "help" }) {
   const provider = aiProvider();
   if (!provider) throw new Error("No AI key configured");
   const firstUser = messages.findIndex((m) => m.role === "user");
@@ -88,9 +119,10 @@ export async function chat({ system, messages, attachments = [], json = false, m
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
+        model: claudeModel(purpose),
         max_tokens: maxTokens,
-        system,
+        // The instructions repeat across students, so mark them cacheable (cache reads cost ~10%).
+        system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
         messages: messages.map((m, i) => ({
           role: m.role,
           content: withFiles(i, () => [
@@ -105,6 +137,8 @@ export async function chat({ system, messages, attachments = [], json = false, m
     });
     if (!res.ok) throw await failed(res, "Claude");
     const data = await res.json();
+    const u = data.usage || {};
+    recordUsage({ purpose, model: data.model || claudeModel(purpose), input: u.input_tokens || 0, output: u.output_tokens || 0, cacheRead: u.cache_read_input_tokens || 0, cacheWrite: u.cache_creation_input_tokens || 0 });
     return (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
   }
 
@@ -134,6 +168,8 @@ export async function chat({ system, messages, attachments = [], json = false, m
     });
     if (!res.ok) throw await failed(res, "OpenAI");
     const data = await res.json();
+    const u = data.usage || {};
+    recordUsage({ purpose, model: data.model || "gpt", input: u.prompt_tokens || 0, output: u.completion_tokens || 0 });
     return data.choices?.[0]?.message?.content || "";
   }
 
@@ -153,5 +189,7 @@ export async function chat({ system, messages, attachments = [], json = false, m
   });
   if (!res.ok) throw await failed(res, "Gemini");
   const data = await res.json();
+  const u = data.usageMetadata || {};
+  recordUsage({ purpose, model, input: u.promptTokenCount || 0, output: u.candidatesTokenCount || 0 });
   return (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
 }

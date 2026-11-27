@@ -65,7 +65,7 @@ export async function gradeWithAI({ frq, courseName, response, ppr, pprFiles = [
     `STUDENT RESPONSE TO GRADE:\n<student_response>\n${response}\n</student_response>`
   ].filter(Boolean).join("\n\n");
 
-  const text = await chat({ system: SYSTEM_PROMPT, messages: [{ role: "user", content: user }], attachments: frq.usesPpr ? pprFiles : [], json: true, maxTokens: 2500 });
+  const text = await chat({ system: SYSTEM_PROMPT, messages: [{ role: "user", content: user }], attachments: frq.usesPpr ? pprFiles : [], json: true, maxTokens: 1800, purpose: "grade" });
   const parsed = extractJson(text);
 
   // Clamp to the rubric so the model can never invent points.

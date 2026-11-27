@@ -77,7 +77,8 @@ export default function AiHelper({ open, onClose, course, context, starters = []
       }).catch(() => {});
     }
   }, [open, canUse, messages.length]);
-  const outOfRequests = usage?.remaining === 0;
+  const chats = usage?.chats;
+  const outOfRequests = chats?.remaining === 0;
 
   // Stop the page behind the drawer from scrolling while it is open.
   useEffect(() => {
@@ -194,7 +195,7 @@ export default function AiHelper({ open, onClose, course, context, starters = []
             </div>
           )}
           {outOfRequests && (
-            <div className="info-box">You've used all {usage.limit} AI requests for today. They reset tomorrow; until then you can still practice and score FRQs with the rubric.</div>
+            <div className="info-box">You've used all {chats.limit} AI helper messages for today. They reset tomorrow; until then you can still practice and grade FRQs.</div>
           )}
         </div>
         {messages.length > 0 && starters.length > 0 && !busy && !outOfRequests && (
@@ -218,7 +219,7 @@ export default function AiHelper({ open, onClose, course, context, starters = []
           <button className="primary-btn" type="submit" disabled={busy || !input.trim() || outOfRequests}>Send</button>
         </form>
         <p className="ai-footnote">
-          {usage && <strong>{usage.remaining} of {usage.limit} AI requests left today. </strong>}
+          {chats && <strong>{chats.remaining} of {chats.limit} helper messages left today. </strong>}
           AI can make mistakes. Check important answers against your notes.
         </p>
       </>
