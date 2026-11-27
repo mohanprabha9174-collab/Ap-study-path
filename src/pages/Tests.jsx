@@ -250,7 +250,15 @@ export function QuizTab({ course, initialUnits }) {
 function TestRunner({ course, title, questions, progressKey, testId, initialState, baseTimeLimit, onExit }) {
   const { store } = useApp();
   const [prefs, setPrefs] = usePrefs();
-  const [state, setState] = useState(initialState);
+  // In timed exam mode the clock keeps running while the student is away, like the real exam.
+  // Practice mode still pauses.
+  const [awayNote] = useState(() => {
+    const s = initialState;
+    if (s.mode !== "exam" || !(s.timeMultiplier > 0) || !s.started || s.status === "done" || !s.lastActiveAt) return 0;
+    return Math.max(0, Math.floor((Date.now() - s.lastActiveAt) / 1000));
+  });
+  const [state, setState] = useState(() => (awayNote ? { ...initialState, elapsed: (initialState.elapsed || 0) + awayNote } : initialState));
+  const persist = (s) => store.saveProgress(progressKey, { ...s, lastActiveAt: Date.now() });
   const [view, setView] = useState(initialState.status === "done" ? "results" : initialState.started ? "quiz" : "setup");
   const [highlighter, setHighlighter] = useState(false);
   const [refOpen, setRefOpen] = useState(false);
@@ -263,6 +271,9 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
   stateRef.current = state;
   const skipSave = useRef(false);
   const warned = useRef(false);
+  useEffect(() => {
+    if (awayNote >= 60) setToast(`Exam mode: the clock kept running while you were away (${Math.round(awayNote / 60)} min).`);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const reference = references[course.id];
   const exam = state.mode === "exam";
@@ -278,8 +289,8 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
   }, [view]);
 
   useEffect(() => {
-    const id = setInterval(() => { if (stateRef.current.started) store.saveProgress(progressKey, stateRef.current); }, 15000);
-    return () => { clearInterval(id); if (!skipSave.current && stateRef.current.started) store.saveProgress(progressKey, stateRef.current); };
+    const id = setInterval(() => { if (stateRef.current.started) persist(stateRef.current); }, 15000);
+    return () => { clearInterval(id); if (!skipSave.current && stateRef.current.started) persist(stateRef.current); };
   }, [progressKey, store]);
 
   useEffect(() => {
@@ -299,7 +310,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
     const next = { ...stateRef.current, ...patch };
     stateRef.current = next;
     setState(next);
-    if (next.started) store.saveProgress(progressKey, next);
+    if (next.started) persist(next);
     return next;
   }
 
@@ -352,7 +363,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
   }
 
   async function exitTest() {
-    if (stateRef.current.started) await store.saveProgress(progressKey, stateRef.current);
+    if (stateRef.current.started) await persist(stateRef.current);
     onExit();
   }
 
@@ -612,7 +623,7 @@ function SetupScreen({ course, title, count, baseTimeLimit, state, setState, pre
           <legend>How do you want to take it?</legend>
           <label className={`choice-card ${state.mode === "exam" ? "on" : ""}`}>
             <input type="radio" name="mode" checked={state.mode === "exam"} onChange={() => set({ mode: "exam" })} />
-            <span><strong>Exam mode</strong>Answers stay hidden until you submit. You can skip, change answers, and come back.</span>
+            <span><strong>Exam mode</strong>Answers stay hidden until you submit. You can skip, change answers, and come back. The timer keeps running if you leave, like the real exam.</span>
           </label>
           <label className={`choice-card ${state.mode === "practice" ? "on" : ""}`}>
             <input type="radio" name="mode" checked={state.mode === "practice"} onChange={() => set({ mode: "practice" })} />

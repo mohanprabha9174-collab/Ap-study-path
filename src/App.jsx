@@ -15,6 +15,33 @@ function parseHash() {
   return { page: parts[0] || "home", sub: parts[1] || null, extra: parts[2] || null };
 }
 
+// When a guest signs in or creates an account, move what they did as a guest into the account:
+// unfinished exams the account doesn't already have, and finished scores.
+async function carryOverGuestWork() {
+  const PREFIX = "ap-study-path:";
+  let moved = 0;
+  try {
+    const { progress: remote = {} } = await api("/progress");
+    for (const k of Object.keys(localStorage).filter((x) => x.startsWith(`${PREFIX}progress:`))) {
+      const key = k.slice(`${PREFIX}progress:`.length);
+      if (remote[key]) continue;
+      const state = JSON.parse(localStorage.getItem(k) || "null");
+      if (!state?.started) continue;
+      await api(`/progress/${encodeURIComponent(key)}`, { method: "PUT", body: { state } });
+      moved += 1;
+    }
+    const attempts = JSON.parse(localStorage.getItem(`${PREFIX}attempts`) || "[]");
+    if (Array.isArray(attempts) && attempts.length) {
+      const left = [];
+      for (const a of attempts.slice().reverse()) {
+        try { await api("/attempts", { method: "POST", body: a }); moved += 1; } catch { left.unshift(a); }
+      }
+      localStorage.setItem(`${PREFIX}attempts`, JSON.stringify(left));
+    }
+  } catch { /* the guest copies stay on this device if anything fails */ }
+  if (moved) window.dispatchEvent(new CustomEvent("ap-notice", { detail: "Your guest progress was added to your account." }));
+}
+
 export function navigate(path) {
   window.location.hash = path.startsWith("/") ? path : `/${path}`;
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -81,8 +108,9 @@ export default function App() {
     backend,
     user,
     store,
-    signIn(token, nextUser) {
+    async signIn(token, nextUser) {
       setToken(token);
+      await carryOverGuestWork();
       setUser(nextUser);
     },
     signOut() {
