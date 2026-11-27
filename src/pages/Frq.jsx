@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { navigate, useApp } from "../App.jsx";
+import { navigate, scrollBehavior, useApp } from "../App.jsx";
 import { api } from "../lib/api.js";
 import { gradeWithRubric, rubricTotal } from "../lib/rubricGrader.js";
 import { loadDraft, saveDraft } from "../lib/store.js";
@@ -14,10 +14,23 @@ const FRQ_MINUTES = { csp: 30, csa: 22, cyber: 50 };
 function FrqToolbar({ course, frqId }) {
   const [prefs, setPrefs] = usePrefs();
   const [refOpen, setRefOpen] = useState(false);
-  const [running, setRunning] = useState(false);
-  const [left, setLeft] = useState(FRQ_MINUTES[course.id] * 60);
-  // One timer per course: switching FRQs keeps it running (CSP's 30 minutes cover several prompts).
-  useEffect(() => { setRunning(false); setLeft(FRQ_MINUTES[course.id] * 60); }, [course.id]);
+  // One timer per course. It keeps running across FRQs, tab switches and reloads (it's stored
+  // in this browser tab), since CSP's 30 minutes cover several prompts.
+  const timerKey = `ap-study-path:frq-timer:${course.id}`;
+  const readTimer = () => {
+    try {
+      const t = JSON.parse(sessionStorage.getItem(timerKey) || "null");
+      if (!t) return { left: FRQ_MINUTES[course.id] * 60, running: false };
+      const left = t.running ? Math.max(0, Math.round(t.left - (Date.now() - t.at) / 1000)) : t.left;
+      return { left, running: t.running && left > 0 };
+    } catch { return { left: FRQ_MINUTES[course.id] * 60, running: false }; }
+  };
+  const [running, setRunning] = useState(() => readTimer().running);
+  const [left, setLeft] = useState(() => readTimer().left);
+  useEffect(() => { const t = readTimer(); setRunning(t.running); setLeft(t.left); }, [course.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    try { sessionStorage.setItem(timerKey, JSON.stringify({ left, running, at: Date.now() })); } catch { /* ignore */ }
+  }, [left, running, timerKey]);
   useEffect(() => {
     if (!running) return undefined;
     const id = setInterval(() => setLeft((t) => (t <= 1 ? (setRunning(false), 0) : t - 1)), 1000);
@@ -28,7 +41,7 @@ function FrqToolbar({ course, frqId }) {
   return (
     <div className="frq-toolbar">
       <div className="frq-timer">
-        {left === 0 ? <span className="exam-timer low" role="status">Time's up</span>
+        {left === 0 ? <span className="exam-timer low times-up" role="alert">Time's up: finish your sentence and grade it</span>
           : prefs.showTimer ? <span className={`exam-timer ${left <= 300 && running ? "low" : ""}`}>{formatTime(left)}</span> : <span className="exam-timer hidden-timer">Timer hidden</span>}
         {left > 0 && <button className="bar-btn" onClick={() => setRunning(!running)}>{running ? "Pause" : left === full ? `Start ${FRQ_MINUTES[course.id]}-minute timer` : "Resume"}</button>}
         {left !== full && <button className="bar-btn" onClick={() => { setRunning(false); setLeft(full); }}>{left === 0 ? "Start again" : "Reset"}</button>}
@@ -43,8 +56,16 @@ function FrqToolbar({ course, frqId }) {
 export function FrqTab({ course, frqParam }) {
   const { user, backend, store } = useApp();
   // The open FRQ lives in the URL (#/csa/frq/<id>) so reloads and links keep it.
-  const frq = course.frqs.find((f) => f.id === frqParam) || course.frqs[0];
-  const setSelectedId = (id) => navigate(`/${course.id}/frq/${id}`);
+  const lastKey = `ap-study-path:last-frq:${course.id}`;
+  const remembered = (() => { try { return sessionStorage.getItem(lastKey); } catch { return null; } })();
+  const frq = course.frqs.find((f) => f.id === frqParam) || course.frqs.find((f) => f.id === remembered) || orderFrqs(course.frqs)[0];
+  useEffect(() => { try { sessionStorage.setItem(lastKey, frq.id); } catch { /* ignore */ } }, [frq.id, lastKey]);
+  const setSelectedId = (id) => {
+    navigate(`/${course.id}/frq/${id}`);
+    // Bring the new prompt into view (the page may be scrolled down to the answer).
+    requestAnimationFrame(() => document.querySelector(".frq-workspace")?.scrollIntoView({ block: "start", behavior: scrollBehavior() }));
+  };
+  const [askText, setAskText] = useState("");
   const [response, setResponse] = useState(() => loadDraft(`frq:${frq.id}`));
   const [project, setProject] = useProject();
   const [noProjectWarning, setNoProjectWarning] = useState(false);
@@ -121,19 +142,16 @@ export function FrqTab({ course, frqParam }) {
 
   const result = results[frq.id];
   const myHistory = history.filter((h) => h.frqId === frq.id);
-  const groups = [...new Set(course.frqs.map((f) => f.category))];
-  // FRQs in the order the sidebar shows them, for Previous / Next.
-  const ordered = groups.flatMap((g) => course.frqs.filter((f) => f.category === g));
+  // FRQs in exam order; the sidebar groups and Previous / Next both follow it.
+  const ordered = orderFrqs(course.frqs);
+  const groups = [...new Set(ordered.map((f) => f.category))];
 
   return (
     <div className="frq-page">
-      <GradingBanner aiAvailable={aiAvailable} canUseServer={canUseServer} backendAvailable={backend.available} usage={usage} />
+      <GradingBanner aiAvailable={aiAvailable} canUseServer={canUseServer} backendAvailable={backend.available} usage={usage} csp={course.id === "csp"} />
 
       {course.id === "csp" && (
         <>
-          {!(aiAvailable && canUseServer) && (
-            <p className="info-box">Your uploaded project is used when AI grading is on{aiAvailable ? ". Sign in to turn it on" : ""}. Until then it's saved on this device and the keyword estimate doesn't read it.</p>
-          )}
           <ProjectUpload project={{ ...project, code: ppr }} onChange={(next) => { setProject(next); saveDraft("ppr:csp", next.code); }} checklist={course.pprChecklist} />
         </>
       )}
@@ -217,28 +235,37 @@ export function FrqTab({ course, frqParam }) {
               const el = e.target;
               const start = el.selectionStart;
               const end = el.selectionEnd;
-              // Edit the box directly so the caret lands in the right place at once, then sync state.
-              const edit = (text, from, to) => {
+              // Edit through the browser's own text insertion so Ctrl+Z still works; fall back to
+              // setRangeText where that isn't supported. Then sync state from the box.
+              const edit = (text, from, to, select) => {
                 e.preventDefault();
-                el.setRangeText(text, from, to, "end");
+                el.setSelectionRange(from, to);
+                const ok = text ? document.execCommand("insertText", false, text) : document.execCommand("delete");
+                if (!ok) el.setRangeText(text, from, to, "end");
+                if (select) el.setSelectionRange(select[0], select[1]);
                 onResponseChange(el.value);
               };
-              const put = (text) => edit(text, start, end);
               const value = el.value;
               const lineStart = value.lastIndexOf("\n", start - 1) + 1;
               const line = value.slice(lineStart, start);
               const indent = line.match(/^ */)[0];
-              if (e.key === "Tab" && !e.shiftKey) {
-                // Tab indents by 4 spaces, the usual Java style.
-                put("    ");
-              } else if (e.key === "Tab" && e.shiftKey && start === end && indent.length) {
-                // Shift+Tab removes up to 4 spaces from the start of this line.
-                const cut = Math.min(4, indent.length);
-                edit("", lineStart, lineStart + cut);
-              } else if (e.key === "Enter" && !e.shiftKey && start === end) {
+              const multiLine = start !== end && value.slice(start, end).includes("\n");
+              if (e.key === "Tab" && (multiLine || e.shiftKey)) {
+                // With several lines selected (or Shift+Tab anywhere on a line), indent or outdent
+                // every touched line by 4 spaces and keep the lines selected.
+                const blockEnd = value.indexOf("\n", end - (value[end - 1] === "\n" ? 1 : 0));
+                const to = blockEnd === -1 ? value.length : blockEnd;
+                const block = value.slice(lineStart, to);
+                const changed = block.split("\n").map((l) => (e.shiftKey ? l.replace(/^ {1,4}/, "") : `    ${l}`)).join("\n");
+                if (changed === block) { e.preventDefault(); return; }
+                edit(changed, lineStart, to, [lineStart, lineStart + changed.length]);
+              } else if (e.key === "Tab") {
+                // Tab indents by 4 spaces, the usual Java style (replacing any selected text on one line).
+                edit("    ", start, end);
+              } else if (e.key === "Enter" && !e.shiftKey) {
                 // A new line keeps the current indentation, one level deeper after "{".
                 const deeper = /\{\s*$/.test(line) ? "    " : "";
-                put(`\n${indent}${deeper}`);
+                edit(`\n${indent}${deeper}`, start, end);
               } else if (e.key === "}" && start === end && /^ +$/.test(line)) {
                 // Typing "}" on an indented blank line steps back one level.
                 const cut = Math.min(4, line.length);
@@ -284,7 +311,16 @@ export function FrqTab({ course, frqParam }) {
           {result && result.gradedText !== undefined && result.gradedText !== response && (
             <p className="info-box" role="status">You've changed your answer since this grade. Grade again to update it.</p>
           )}
-          {result && <GradeCard result={result} onAsk={() => setAiOpen(true)} />}
+          {result && (
+            <GradeCard
+              result={result}
+              onAsk={result.score < result.total ? () => {
+                const missed = (result.rows || []).filter((r) => r.earned < r.max).map((r) => `"${r.point}"`).slice(0, 4);
+                setAskText(`Why did I lose points on ${missed.length ? missed.join(", ") : "this FRQ"}, and what exactly should I change in my answer?`);
+                setAiOpen(true);
+              } : null}
+            />
+          )}
           {result && nextFrq(ordered, frq) && (
             <div className="next-frq card">
               <p><strong>Ready for another?</strong> Next up: {nextFrq(ordered, frq).title}</p>
@@ -314,7 +350,9 @@ export function FrqTab({ course, frqParam }) {
       </div>
       <AiHelper
         open={aiOpen}
-        onClose={() => setAiOpen(false)}
+        onClose={() => { setAiOpen(false); setAskText(""); }}
+        autoAsk={askText}
+        onAutoAsked={() => setAskText("")}
         course={course}
         context={{ key: `frq:${frq.id}`, label: frq.title, kind: "frq", frqId: frq.id, draft: response, graded: Boolean(result), ppr: frq.usesPpr ? ppr : "", pprFiles: frq.usesPpr ? project.files : [] }}
         starters={frqStarters(Boolean(result))}
@@ -327,6 +365,13 @@ function frqStarters(graded) {
   return graded
     ? ["Explain my score", "How do I fix what I missed?", "Which rubric point should I fix first?", "Explain the reference solution"]
     : ["What is this question asking?", "Give me a hint for the first part", "Check my draft against the rubric (no answers)", "How should I start?"];
+}
+
+// FRQs in exam order: Written Response 1 before 2(a), 2(b), 2(c); FRQ 1 before FRQ 2, and so on.
+// Within a section, the order they're listed in the data.
+export function orderFrqs(frqs) {
+  const key = (f) => String(f.category).split(":")[0];
+  return frqs.map((f, i) => ({ f, i })).sort((a, b) => key(a.f).localeCompare(key(b.f), undefined, { numeric: true }) || a.i - b.i).map((x) => x.f);
 }
 
 const nextFrq = (frqs, frq) => frqs[frqs.indexOf(frq) + 1] || null;
@@ -378,7 +423,23 @@ function FrqPrompt({ frq }) {
   });
   return (
     <div className="frq-prompt">
-      {intro.map((p, i) => <p className="prompt-intro" key={i}>{p}</p>)}
+      {intro.map((p, i) => {
+        const example = p.match(/^Example:\s*\n([\s\S]+)$/);
+        if (example) return <div className="prompt-example" key={i}><p className="prompt-intro"><strong>Example</strong></p><CodeView code={example[1]} /></div>;
+        const lines = p.split("\n");
+        if (lines.length > 1 && lines.slice(1).every((l) => /^[•-]\s/.test(l))) {
+          return (
+            <div key={i}>
+              <p className="prompt-intro">{withInlineCode(lines[0])}</p>
+              <ul className="prompt-bullets">{lines.slice(1).map((l, li) => <li key={li}>{withInlineCode(l.replace(/^[•-]\s*/, ""))}</li>)}</ul>
+            </div>
+          );
+        }
+        if (lines.every((l) => /^[•-]\s/.test(l))) {
+          return <ul className="prompt-bullets" key={i}>{lines.map((l, li) => <li key={li}>{withInlineCode(l.replace(/^[•-]\s*/, ""))}</li>)}</ul>;
+        }
+        return <p className="prompt-intro" key={i}>{withInlineCode(p)}</p>;
+      })}
       {frq.code && <CodeView code={frq.code} />}
       {frq.sources?.length > 0 && (
         <section className="sources" aria-label="Sources">
@@ -412,12 +473,12 @@ function FrqPrompt({ frq }) {
   );
 }
 
-function GradingBanner({ aiAvailable, canUseServer, backendAvailable, usage }) {
+function GradingBanner({ aiAvailable, canUseServer, backendAvailable, usage, csp }) {
   const grades = usage?.grades;
   if (aiAvailable && canUseServer && grades?.remaining === 0) {
     return (
       <div className="card grading-banner">
-        <span><strong>You've used today's {grades.limit} AI grades.</strong> Grading falls back to the keyword rubric estimate until they reset tomorrow. Grading the same answer again is free.</span>
+        <span><strong>You've used today's {grades.limit} AI grades.</strong> Grading falls back to the keyword rubric estimate until they reset at midnight Eastern time. Grading the same answer again is free.</span>
       </div>
     );
   }
@@ -432,7 +493,7 @@ function GradingBanner({ aiAvailable, canUseServer, backendAvailable, usage }) {
   if (aiAvailable && !canUseServer) {
     return (
       <div className="card grading-banner">
-        <span><strong>Sign in to unlock AI grading.</strong> As a guest you get a quick keyword-based rubric estimate.</span>
+        <span><strong>Sign in to unlock AI grading.</strong> As a guest you get a quick keyword-based rubric estimate, your work saves only in this browser{csp ? ", and your uploaded project isn't read" : ""}.</span>
         <button className="primary-btn small-btn" onClick={() => navigate("/login")}>Sign in</button>
       </div>
     );

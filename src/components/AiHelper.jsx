@@ -3,29 +3,80 @@ import { navigate, useApp } from "../App.jsx";
 import { api } from "../lib/api.js";
 import { CodeView } from "./ExamTools.jsx";
 
-// Tiny, safe Markdown: fenced code, inline code, **bold**, bullet lists, paragraphs.
-// Builds React elements (no innerHTML), so model output can't inject HTML.
+// Small, safe Markdown: headings, fenced code, inline code, **bold**, *italic*, bullet and
+// numbered lists, tables and paragraphs. Builds React elements (no innerHTML), so model
+// output can't inject HTML.
 function renderInline(text, keyBase) {
   const parts = [];
-  const re = /(`[^`]+`|\*\*[^*]+\*\*)/g;
+  const re = /(`[^`]+`|\*\*[^*]+\*\*|(?<![*\w])\*[^*\s][^*]*\*(?![*\w]))/g;
   let last = 0;
   let m;
   let i = 0;
   while ((m = re.exec(text))) {
     if (m.index > last) parts.push(text.slice(last, m.index));
     const tok = m[0];
-    parts.push(tok.startsWith("`")
-      ? <code key={`${keyBase}-${i++}`}>{tok.slice(1, -1)}</code>
-      : <strong key={`${keyBase}-${i++}`}>{tok.slice(2, -2)}</strong>);
+    const key = `${keyBase}-${i++}`;
+    if (tok.startsWith("`")) parts.push(<code key={key}>{tok.slice(1, -1)}</code>);
+    else if (tok.startsWith("**")) parts.push(<strong key={key}>{tok.slice(2, -2)}</strong>);
+    else parts.push(<em key={key}>{tok.slice(1, -1)}</em>);
     last = m.index + tok.length;
   }
   if (last < text.length) parts.push(text.slice(last));
   return parts;
 }
 
+const BULLET = /^\s*[-*•]\s+/;
+const NUMBER = /^\s*\d+[.)]\s+/;
+const TABLE_ROW = /^\s*\|.*\|\s*$/;
+
+function renderLines(lines, key) {
+  // Group consecutive lines by kind so a lead-in sentence followed by a list renders correctly.
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const heading = line.match(/^\s*(#{1,6})\s+(.*)$/);
+    if (heading) {
+      out.push(<h4 key={`${key}-h${i}`}>{renderInline(heading[2], `${key}-h${i}`)}</h4>);
+      i++;
+    } else if (TABLE_ROW.test(line)) {
+      const rows = [];
+      while (i < lines.length && TABLE_ROW.test(lines[i])) rows.push(lines[i++]);
+      const cells = rows
+        .filter((r) => !/^\s*\|[\s:|-]+\|\s*$/.test(r))
+        .map((r) => r.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim()));
+      const [head, ...body] = cells;
+      out.push(
+        <div className="md-table" key={`${key}-t${i}`}>
+          <table>
+            <thead><tr>{head.map((c, ci) => <th key={ci}>{renderInline(c, `${key}-th${ci}`)}</th>)}</tr></thead>
+            <tbody>{body.map((r, ri) => <tr key={ri}>{r.map((c, ci) => <td key={ci}>{renderInline(c, `${key}-td${ri}-${ci}`)}</td>)}</tr>)}</tbody>
+          </table>
+        </div>
+      );
+    } else if (BULLET.test(line) || NUMBER.test(line)) {
+      const ordered = NUMBER.test(line);
+      const re = ordered ? NUMBER : BULLET;
+      const items = [];
+      const first = ordered ? parseInt(line, 10) : 1;
+      while (i < lines.length && re.test(lines[i])) items.push(lines[i++].replace(re, ""));
+      const List = ordered ? "ol" : "ul";
+      // Numbered lists split by blank lines keep counting (3. stays 3.).
+      out.push(<List key={`${key}-l${i}`} start={ordered && first > 1 ? first : undefined}>{items.map((it, li) => <li key={li}>{renderInline(it, `${key}-li${i}-${li}`)}</li>)}</List>);
+    } else {
+      const para = [];
+      while (i < lines.length && !/^\s*#{1,6}\s/.test(lines[i]) && !TABLE_ROW.test(lines[i]) && !BULLET.test(lines[i]) && !NUMBER.test(lines[i])) {
+        para.push(lines[i++]);
+      }
+      out.push(<p key={`${key}-p${i}`}>{para.map((l, li) => <span key={li}>{li > 0 && <br />}{renderInline(l, `${key}-p${i}-${li}`)}</span>)}</p>);
+    }
+  }
+  return out;
+}
+
 export function Markdown({ text }) {
   const blocks = [];
-  const chunks = text.split(/```[a-zA-Z]*\n?/);
+  const chunks = text.split(/```[\w+#.-]*\n?/);
   chunks.forEach((chunk, ci) => {
     if (ci % 2 === 1) {
       blocks.push(<CodeView key={`c${ci}`} className="small" code={chunk.replace(/\n$/, "")} />);
@@ -33,20 +84,7 @@ export function Markdown({ text }) {
     }
     chunk.split(/\n{2,}/).forEach((para, pi) => {
       const lines = para.split("\n").filter((l) => l.trim());
-      if (!lines.length) return;
-      if (lines.every((l) => /^\s*([-*]|\d+\.)\s+/.test(l))) {
-        blocks.push(
-          <ul key={`l${ci}-${pi}`}>
-            {lines.map((l, li) => <li key={li}>{renderInline(l.replace(/^\s*([-*]|\d+\.)\s+/, ""), `${ci}-${pi}-${li}`)}</li>)}
-          </ul>
-        );
-      } else {
-        blocks.push(
-          <p key={`p${ci}-${pi}`}>
-            {lines.map((l, li) => <span key={li}>{li > 0 && <br />}{renderInline(l.replace(/^#+\s*/, ""), `${ci}-${pi}-${li}`)}</span>)}
-          </p>
-        );
-      }
+      if (lines.length) blocks.push(...renderLines(lines, `${ci}-${pi}`));
     });
   });
   return <div className="md">{blocks}</div>;
@@ -57,15 +95,26 @@ export function Markdown({ text }) {
  * context: { key, label, kind: "mcq"|"frq"|"general", questionId?, studentChoice?, answered?, frqId?, draft?, graded?, ppr? }
  * starters: quick prompts shown as buttons.
  */
-export default function AiHelper({ open, onClose, course, context, starters = [] }) {
+const threadCache = {};
+
+export default function AiHelper({ open, onClose, course, context, starters = [], autoAsk = "", onAutoAsked }) {
   const { user, backend } = useApp();
-  const [threads, setThreads] = useState({});
+  // Chats are shared by every helper on the page (e.g. the quiz and its review screen),
+  // so a conversation about a question is still there when it's opened from somewhere else.
+  const [threads, setThreadsState] = useState(() => ({ ...threadCache }));
+  const setThreads = (update) => setThreadsState((t) => {
+    const next = typeof update === "function" ? update({ ...threadCache, ...t }) : update;
+    Object.assign(threadCache, next);
+    return next;
+  });
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const listRef = useRef(null);
   const inputRef = useRef(null);
   const messages = threads[context.key] || [];
+  // Don't offer a follow-up the student already asked.
+  const followUps = starters.filter((s) => !messages.some((m) => m.role === "user" && m.content === s));
   const [usage, setUsage] = useState(null);
   const canUse = Boolean(user && backend.available && backend.aiGrading);
 
@@ -124,10 +173,20 @@ export default function AiHelper({ open, onClose, course, context, starters = []
 
   useEffect(() => { setError(""); }, [context.key]);
 
+  // Opened from "Ask why this was marked wrong": send that question right away.
+  useEffect(() => {
+    if (open && autoAsk && canUse && !busy) {
+      send(autoAsk);
+      onAutoAsked?.();
+    }
+  }, [open, autoAsk]); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function send(text, base = messages) {
     const content = text.trim();
     if (!content || busy || outOfRequests) return;
-    const history = [...base, { role: "user", content }];
+    // A question that failed earlier and was never answered is replaced by the new one.
+    const trimmed = base[base.length - 1]?.role === "user" ? base.slice(0, -1) : base;
+    const history = [...trimmed, { role: "user", content }];
     setThreads((t) => ({ ...t, [context.key]: history }));
     setInput("");
     setError("");
@@ -187,7 +246,7 @@ export default function AiHelper({ open, onClose, course, context, starters = []
             </div>
           ))}
           {busy && <div className="ai-msg assistant typing" aria-label="AI is thinking"><span /><span /><span /></div>}
-          {error && (
+          {error && !outOfRequests && (
             <div className="error-box" role="alert">
               {error}
               {messages[messages.length - 1]?.role === "user" && !outOfRequests && (
@@ -196,12 +255,12 @@ export default function AiHelper({ open, onClose, course, context, starters = []
             </div>
           )}
           {outOfRequests && (
-            <div className="info-box">You've used all {chats.limit} AI helper messages for today. They reset tomorrow; until then you can still practice and grade FRQs.</div>
+            <div className="info-box">You've used all {chats.limit} AI helper messages for today. They reset at midnight Eastern time; until then you can still practice and grade FRQs.</div>
           )}
         </div>
-        {messages.length > 0 && starters.length > 0 && !busy && !outOfRequests && (
+        {messages.length > 0 && followUps.length > 0 && !busy && !outOfRequests && (
           <div className="ai-starters compact">
-            {starters.slice(0, 3).map((s) => <button key={s} className="starter-chip" onClick={() => send(s)}>{s}</button>)}
+            {followUps.slice(0, 3).map((s) => <button key={s} className="starter-chip" onClick={() => send(s)}>{s}</button>)}
           </div>
         )}
         <form className="ai-input" onSubmit={(e) => { e.preventDefault(); send(input); }}>
@@ -234,7 +293,7 @@ export default function AiHelper({ open, onClose, course, context, starters = []
         <div className="drawer-head">
           <h2><span className="ai-badge">AI</span> Study helper</h2>
           <div className="button-row">
-            {messages.length > 0 && <button className="bar-btn" onClick={() => setThreads((t) => ({ ...t, [context.key]: [] }))}>New chat</button>}
+            {messages.length > 0 && <button className="bar-btn" onClick={() => { setThreads((t) => ({ ...t, [context.key]: [] })); setError(""); requestAnimationFrame(() => inputRef.current?.focus()); }}>New chat</button>}
             <button className="icon-btn" onClick={onClose} aria-label="Close AI helper">✕</button>
           </div>
         </div>

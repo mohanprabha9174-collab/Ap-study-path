@@ -2,9 +2,9 @@ import { useState } from "react";
 import { api } from "../lib/api.js";
 import { navigate, useApp } from "../App.jsx";
 
-export default function AuthPage() {
+export default function AuthPage({ initialMode = "login" }) {
   const { signIn, backend, user } = useApp();
-  const [mode, setMode] = useState("login");
+  const [mode, setMode] = useState(initialMode);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -57,7 +57,7 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="auth-page">
+    <div className="auth-page">
       <section className="card auth-card">
         <div className="auth-copy">
           <h1>{mode === "register" ? "Create your account" : "Welcome back"}</h1>
@@ -79,21 +79,21 @@ export default function AuthPage() {
           <label htmlFor="auth-email">Email</label>
           <input id="auth-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" placeholder="student@example.com" />
           <label htmlFor="auth-password">Password</label>
-          <input id="auth-password" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder="At least 8 characters" />
+          <input id="auth-password" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder={mode === "register" ? "At least 8 characters" : ""} />
           {mode === "register" && (
             <>
               <label htmlFor="auth-confirm">Confirm password</label>
               <input id="auth-confirm" type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
             </>
           )}
-          {error && <div className="error-box">{error}</div>}
+          {error && <div className="error-box" role="alert">{error}</div>}
           <button className="primary-btn" type="submit" disabled={busy}>{busy ? "Please wait…" : mode === "register" ? "Create account" : "Sign in"}</button>
-          <button type="button" className="link-btn" onClick={() => { setMode(mode === "register" ? "login" : "register"); setError(""); }}>
+          <button type="button" className="link-btn" onClick={() => { setError(""); navigate(mode === "register" ? "/login" : "/login/register"); }}>
             {mode === "register" ? "Already have an account? Sign in" : "New here? Create a free account"}
           </button>
           <button type="button" className="link-btn" onClick={() => navigate("/")}>Continue as guest</button>
         </form>
       </section>
-    </main>
+    </div>
   );
 }

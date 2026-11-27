@@ -139,7 +139,8 @@ export async function chat({ system, messages, attachments = [], json = false, m
     const data = await res.json();
     const u = data.usage || {};
     recordUsage({ purpose, model: data.model || claudeModel(purpose), input: u.input_tokens || 0, output: u.output_tokens || 0, cacheRead: u.cache_read_input_tokens || 0, cacheWrite: u.cache_creation_input_tokens || 0 });
-    return (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
+    const text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
+    return data.stop_reason === "max_tokens" && !json ? `${text}\n\n*(That answer ran long and was cut off. Ask "continue" to get the rest.)*` : text;
   }
 
   if (provider === "openai") {
@@ -170,7 +171,8 @@ export async function chat({ system, messages, attachments = [], json = false, m
     const data = await res.json();
     const u = data.usage || {};
     recordUsage({ purpose, model: data.model || "gpt", input: u.prompt_tokens || 0, output: u.completion_tokens || 0 });
-    return data.choices?.[0]?.message?.content || "";
+    const text = data.choices?.[0]?.message?.content || "";
+    return data.choices?.[0]?.finish_reason === "length" && !json ? `${text}\n\n*(That answer ran long and was cut off. Ask "continue" to get the rest.)*` : text;
   }
 
   const model = process.env.GEMINI_MODEL || "gemini-flash-latest";

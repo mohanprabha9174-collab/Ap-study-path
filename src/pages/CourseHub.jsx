@@ -13,6 +13,8 @@ const TABS = [
   { id: "tips", label: "Tips & Tricks" }
 ];
 
+const TAB_LABEL = { tests: "practice exams", quiz: "custom quiz", frq: "FRQs", notes: "unit notes", tips: "tips" };
+
 const TAB_INTROS = {
   tests: { what: "Full-length exams that match the real test.", why: "Take one first: your results show which units to study." },
   quiz: { what: "Short quizzes built from the units you choose.", why: "Use these on your weak units. A new random mix every time." },
@@ -31,6 +33,18 @@ export default function CourseHub({ course, tab, extra }) {
   const current = TABS.some((t) => t.id === tab) ? tab : "tests";
   const [tutorOpen, setTutorOpen] = useState(false);
   const { user, backend } = useApp();
+  // The guest note shows once; "Hide" keeps it hidden on this device.
+  const [guestNoteHidden, setGuestNoteHidden] = useState(() => {
+    try { return localStorage.getItem("ap-study-path:guest-note-hidden") === "1"; } catch { return false; }
+  });
+  const hideGuestNote = () => {
+    setGuestNoteHidden(true);
+    try { localStorage.setItem("ap-study-path:guest-note-hidden", "1"); } catch { /* ignore */ }
+  };
+  // A link to a tab, unit or FRQ that doesn't exist says so instead of quietly showing something else.
+  const unknownPage = (tab && !TABS.some((t) => t.id === tab))
+    || (current === "notes" && extra && !course.units.some((u) => String(u.id) === String(extra)))
+    || (current === "frq" && extra && !course.frqs.some((f) => f.id === extra));
   return (
     <section className="page course-hub">
       <div className={`card course-banner accent-${course.accent}`}>
@@ -46,7 +60,7 @@ export default function CourseHub({ course, tab, extra }) {
 
       <nav className="tab-bar" aria-label={`${course.short} sections`}>
         {TABS.map((t) => (
-          <button key={t.id} className={current === t.id ? "active" : ""} onClick={() => (current === t.id ? window.dispatchEvent(new CustomEvent("ap-tab-reset")) : navigate(`/${course.id}/${t.id}`))}>
+          <button key={t.id} className={current === t.id ? "active" : ""} aria-current={current === t.id ? "page" : undefined} onClick={() => (current === t.id ? window.dispatchEvent(new CustomEvent("ap-tab-reset")) : navigate(`/${course.id}/${t.id}`))}>
             {t.label}
           </button>
         ))}
@@ -54,9 +68,13 @@ export default function CourseHub({ course, tab, extra }) {
 
       <div className="tab-intro">
         <p><strong>{TAB_INTROS[current].what}</strong> {TAB_INTROS[current].why}</p>
-        {!user && backend.available && (
-          <p className="guest-note">You're practicing as a guest, so progress saves only in this browser. <button className="link-btn inline" onClick={() => navigate("/login")}>Sign in</button> to save it everywhere{backend.aiGrading ? " and use AI help" : ""}.</p>
+        {!user && backend.available && !guestNoteHidden && current !== "frq" && (
+          <p className="guest-note">
+            You're practicing as a guest, so progress saves only in this browser. <button className="link-btn inline" onClick={() => navigate("/login")}>Sign in</button> to save it everywhere{backend.aiGrading ? " and use AI help" : ""}.
+            <button className="link-btn inline guest-note__close" onClick={hideGuestNote}>Hide</button>
+          </p>
         )}
+        {unknownPage && <p className="info-box" role="status">That link didn't match a page in {course.short}, so here are the {TAB_LABEL[current]}.</p>}
       </div>
 
       {current === "tests" && <TestsTab course={course} />}
@@ -118,24 +136,45 @@ function NotesTab({ course, unitParam }) {
         <span className="unit-badge">Unit {unit.id}</span>
         <h2 className="unit-title">{unit.name}</h2>
         <p>{unit.overview}</p>
-        <button className="secondary-btn" onClick={() => navigate(`/${course.id}/quiz/${unit.id}`)}>Quiz this unit</button>
+        <button className="primary-btn" onClick={() => navigate(`/${course.id}/quiz/${unit.id}`)}>Quiz this unit</button>
       </div>
       <div className="accordion-list">
         {unit.topics.map((topic) => {
           const open = openTopicId === topic.id;
           return (
             <article className="card accordion-item" key={topic.id}>
-              <button className="accordion-title" onClick={() => setOpenTopicId(open ? null : topic.id)}>
+              <button className="accordion-title" aria-expanded={open} aria-controls={`topic-${topic.id}`} onClick={() => setOpenTopicId(open ? null : topic.id)}>
                 <span>{topic.name}</span>
                 <strong>{open ? "−" : "+"}</strong>
               </button>
-              {open && <div className="accordion-content">{topic.paragraphs.map((p, i) => <p key={i}>{p}</p>)}</div>}
+              {open && (
+                <div className="accordion-content" id={`topic-${topic.id}`}>
+                  {topic.paragraphs.map((p, i) => {
+                    // "Exam tip: ..." paragraphs get the same callout as tips elsewhere on the site.
+                    const tip = p.match(/^Exam tip:\s*(.*)$/i);
+                    return tip
+                      ? <div className="info-box exam-tip" key={i}><strong>Exam tip:</strong> {tip[1]}</div>
+                      : <p key={i}>{p}</p>;
+                  })}
+                </div>
+              )}
             </article>
           );
         })}
       </div>
+      <div className="card unit-next">
+        <p><strong>Finished reading?</strong> Check what stuck with a quiz on Unit {unit.id} only.</p>
+        <button className="primary-btn" onClick={() => navigate(`/${course.id}/quiz/${unit.id}`)}>Quiz this unit</button>
+      </div>
     </div>
   );
+}
+
+// Bold the first sentence of a tip, which is its one-line takeaway.
+function emphasizeFirstSentence(text) {
+  const m = String(text).match(/^(.+?[.!?])(\s+[\s\S]*)?$/);
+  if (!m) return text;
+  return <><strong>{m[1]}</strong>{m[2] || ""}</>;
 }
 
 function TipsTab({ course }) {
@@ -147,7 +186,7 @@ function TipsTab({ course }) {
           {section.tips.map((tip) => (
             <div className="tip" key={tip.title}>
               <h3>{tip.title}</h3>
-              <p>{tip.text}</p>
+              <p>{emphasizeFirstSentence(tip.text)}</p>
               {tip.example && <CodeView code={tip.example} className="small" />}
             </div>
           ))}

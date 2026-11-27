@@ -150,7 +150,7 @@ System.out.println(total);`, ["13", "4072", "11", "9"], 0,
   private String name;
   // constructor goes here
 }`, ["public Pet(String name) { this.name = name; }", "public void Pet(String name) { this.name = name; }", "public Pet(String name) { name = this.name; }", "public Pet(String n) { String name = n; }"], 0,
-    "Constructors have no return type. this.name refers to the instance variable. Option D declares a new local variable instead."),
+    "Constructors have no return type, and this.name refers to the instance variable. Writing name = this.name copies the wrong way, and String name = n declares a new local variable instead."),
   q("A1-25", 3, "Which method header is correct for a public method named check that takes an int and a String and returns true or false?", null,
     ["public boolean check(int n, String s)", "public void check(int n, String s)", "public check boolean(int n, String s)", "public boolean check(n, s)"], 0,
     "A header lists access, return type, name, and typed parameters."),
@@ -263,7 +263,7 @@ x %= 4;`, ["3", "0", "1", "11"], 0,
     "Evaluation goes left to right. 1 + 2 is 3 (numbers). Then \"3\" + \"AP\" becomes a String, so the remaining + operators concatenate."),
   q("A2-03", 1, "Which expression evaluates to 7.5?", null,
     ["(double) (7 + 8) / 2", "(7 + 8) / 2", "(double) ((7 + 8) / 2)", "(int) (7.0 + 8) / 2"], 0,
-    "Casting 15 to 15.0 before dividing makes it double division. Option C divides as ints first (7) and then casts, giving 7.0."),
+    "Casting 15 to 15.0 before dividing makes it double division. (double) ((7 + 8) / 2) divides as ints first (7) and then casts, giving 7.0."),
   q("A2-04", 1, "What is printed?", `String w = "mississippi";
 System.out.println(w.substring(w.indexOf("ss") + 2));`, ["issippi", "ssissippi", "sissippi", "ippi"], 0,
     "The first \"ss\" starts at index 2, so substring(4) returns everything from index 4: \"issippi\"."),
@@ -326,7 +326,7 @@ System.out.println(k);`, ["5", "4", "6", "120"], 0,
     "Row r prints the numbers 1 through r, then moves to a new line."),
   q("A2-16", 2, "Which while loop prints the same output as for (int i = 2; i <= 8; i += 2) { System.out.print(i); }?", null,
     ["int i = 2; while (i <= 8) { System.out.print(i); i += 2; }", "int i = 2; while (i < 8) { System.out.print(i); i += 2; }", "int i = 2; while (i <= 8) { i += 2; System.out.print(i); }", "int i = 0; while (i <= 8) { System.out.print(i); i += 2; }"], 0,
-    "Initialize before the loop, test the same condition, and update at the end of the body. Option C updates before printing, which prints 4 through 10."),
+    "Initialize before the loop, test the same condition, and update at the end of the body. The loop that adds 2 before printing prints 4 through 10."),
   q("A2-17", 2, "What is the value of count when s is \"banana\"?", `int count = 0;
 for (int i = 0; i < s.length() - 1; i++) {
   if (s.substring(i, i + 2).equals("an")) {
@@ -373,7 +373,12 @@ a.deposit(50);
 a.withdraw(120);
 System.out.println(a.getBalance());`, ["30", "-20", "150", "-120"], 0,
     "Withdrawing 150 from 100 is ignored. The deposit makes 150, and withdrawing 120 leaves 30."),
-  q("A2-22", 3, "Using the Account class above, which statement in a different class causes a compile-time error?", null,
+  q("A2-22", 3, "Using the Account class below, which statement in a different class causes a compile-time error? Assume Account a = new Account(100); has run.", `public class Account {
+  private int balance;
+  public Account(int start) { balance = start; }
+  public void deposit(int amt) { balance += amt; }
+  public int getBalance() { return balance; }
+}`,
     ["a.balance = 500;", "a.deposit(500);", "int b = a.getBalance();", "Account c = new Account(0);"], 0,
     "balance is private, so code outside the Account class cannot access it directly."),
   q("A2-23", 3, "The Book class has constructors Book(String title) and Book(String title, int pages). Which statement compiles?", null,

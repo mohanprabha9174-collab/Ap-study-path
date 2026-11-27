@@ -23,8 +23,11 @@ function mcqStarters(answered, correct) {
   ];
 }
 
+// Choices that are code (multi-line, or one line with code punctuation) use the code font.
 function looksLikeCode(text) {
-  return /\n/.test(text) && /[;{}()←]/.test(text);
+  const t = String(text);
+  if (/\n/.test(t)) return /[;{}()←]/.test(t);
+  return /;\s*$|[{}]|\|\||&&|==|!=|\+\+|--|←|\[\d*\]|\w\(.*\)|^!\w/.test(t);
 }
 function cleanQuestion(text) {
   return text.replace(/^Practice Test \d+, Question \d+:\s*/, "");
@@ -40,8 +43,9 @@ function shuffle(list) {
 
 // Bump when question order or answer positions change, so old saved answers aren't
 // matched against different choices.
-const DATA_VERSION = 2;
-const isStale = (saved) => Boolean(saved) && (saved.v || 0) < DATA_VERSION;
+const DATA_VERSION = 3;
+// Old or damaged saves (wrong version, answers not a list) start fresh instead of crashing.
+const isStale = (saved) => Boolean(saved) && ((saved.v || 0) < DATA_VERSION || !Array.isArray(saved.answers));
 const staleNotice = () => window.dispatchEvent(new CustomEvent("ap-notice", {
   detail: "The questions in this exam were updated since you saved it, so it starts fresh. Your past scores are still in My Progress."
 }));
@@ -83,9 +87,10 @@ function ProgressStatus({ progress, failed, onRetry }) {
 }
 
 // "Custom quiz: Units 2 and 4" so history rows can be told apart.
-function quizTitle(questions) {
+function quizTitle(questions, allUnits) {
   const units = [...new Set(questions.map((q) => q.unit))].sort((a, b) => a - b);
   if (!units.length) return "Custom quiz";
+  if (allUnits && units.length === allUnits) return "Custom quiz: All units";
   const list = units.length === 1 ? units[0] : `${units.slice(0, -1).join(", ")} and ${units[units.length - 1]}`;
   return `Custom quiz: Unit${units.length > 1 ? "s" : ""} ${list}`;
 }
@@ -152,7 +157,7 @@ export function TestsTab({ course }) {
     const saved = progress[key];
     if (restart) {
       const answered = saved?.answers?.filter((a) => a !== null && a !== undefined).length || 0;
-      if (saved?.status !== "done" && answered > 0 && !window.confirm(`Start over? Your ${answered} saved answers for ${test.title} will be erased.`)) return;
+      if (saved?.status !== "done" && answered > 0 && !window.confirm(`Start over? Your ${answered} saved ${answered === 1 ? "answer" : "answers"} for ${test.title} will be erased.`)) return;
       await store.clearProgress(key);
       setActive({ test, state: newState(test.questions.length) });
     } else if (!saved) {
@@ -169,19 +174,30 @@ export function TestsTab({ course }) {
   return (
     <>
     <ProgressStatus progress={progress} failed={failed} onRetry={reload} />
+    <p className="tools-note">Every exam has the test-day tools: highlighter, cross-out, mark for review, reference sheet and a timer you can hide.</p>
     <div className="test-grid">
       {course.tests.map((test) => {
         const saved = progress?.[`${course.id}:${test.id}`];
         const answered = saved?.answers?.filter((a) => a !== null && a !== undefined).length || 0;
         const total = test.questions.length;
         return (
-          <article className="card test-card" key={test.id}>
+          <article className={`card test-card ${saved ? (saved.status === "done" ? "is-done" : "is-started") : ""}`} key={test.id}>
+            <span className={`test-status ${saved ? (saved.status === "done" ? "done" : "started") : "new"}`}>
+              {saved ? (saved.status === "done" ? "Finished" : "In progress") : "Not started"}
+            </span>
             <p className="eyebrow">{total} questions, {test.minutes || 90} minutes</p>
             <h2>{test.title}</h2>
             <p>{test.description}</p>
             {saved && (
               <div className="mini-progress">
                 <span>{saved.status === "done" ? "Finished. Your results are saved." : `${answered} of ${total} answered in ${saved.mode === "exam" ? "exam mode" : "practice mode"}`}</span>
+                {saved.status !== "done" && saved.mode === "exam" && saved.timeMultiplier > 0 && (() => {
+                  // Exam mode's clock keeps running while away, so show what's actually left.
+                  const limit = (test.minutes || 90) * 60 * saved.timeMultiplier;
+                  const away = saved.lastActiveAt ? (Date.now() - saved.lastActiveAt) / 1000 : 0;
+                  const left = Math.max(0, Math.round(limit - (saved.elapsed || 0) - away));
+                  return <strong className={`card-clock ${left === 0 ? "out" : ""}`}>{left === 0 ? "Time's up: open it to see your results" : `${formatTime(left)} left on the clock (it keeps running)`}</strong>;
+                })()}
                 <div className="mini-progress-track"><div style={{ width: `${(answered / total) * 100}%` }} /></div>
               </div>
             )}
@@ -198,10 +214,6 @@ export function TestsTab({ course }) {
           </article>
         );
       })}
-      <article className="card test-card mode-help">
-        <h2>Same tools as test day</h2>
-        <p>Highlight text, cross out choices, hide the timer, mark questions for review, and open the reference sheet, just like in Bluebook. You choose exam or practice mode and your time limit before you start.</p>
-      </article>
     </div>
     </>
   );
@@ -212,7 +224,17 @@ export function QuizTab({ course, initialUnits }) {
   const { store } = useApp();
   const [progress, reload, failed] = useAllProgress();
   const ready = Boolean(progress) && !failed;
-  const pool = useMemo(() => course.tests.flatMap((t) => t.questions), [course]);
+  // Some practice-exam questions are near-copies with only an app name changed; a quiz uses
+  // one of each, judged by having the same set of choices.
+  const pool = useMemo(() => {
+    const seen = new Set();
+    return course.tests.flatMap((t) => t.questions).filter((q) => {
+      const key = [...q.choices].sort().join("|");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [course]);
   const [units, setUnits] = useState(() => {
     // #/csa/quiz/4 (or 1,3) pre-selects units, e.g. from "Quiz this unit" or the weakest-unit tip.
     const all = course.unitMeta.map((u) => u.id);
@@ -231,7 +253,7 @@ export function QuizTab({ course, initialUnits }) {
     return (
       <TestRunner
         course={course}
-        title={quizTitle(active.questionIds.map((id) => byId[id]).filter(Boolean))}
+        title={quizTitle(active.questionIds.map((id) => byId[id]).filter(Boolean), course.unitMeta.length)}
         questions={active.questionIds.map((id) => byId[id]).filter(Boolean)}
         progressKey={key}
         testId="custom"
@@ -323,6 +345,8 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
   stateRef.current = state;
   const skipSave = useRef(false);
   const warned = useRef(false);
+  const [forceTimer, setForceTimer] = useState(false);
+  const clearToast = useCallback(() => setToast(""), []);
   useEffect(() => {
     if (awayNote >= 60) setToast(`Exam mode: the clock kept running while you were away (${Math.round(awayNote / 60)} min).`);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -350,7 +374,8 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
     if (remaining <= 300 && remaining > 0 && !warned.current) {
       warned.current = true;
       setToast("5 minutes remaining.");
-      if (!prefs.showTimer) setPrefs({ showTimer: true });
+      // Show the clock for the rest of this exam without changing the saved setting.
+      setForceTimer(true);
     }
     if (remaining === 0) {
       update({ timedOut: true });
@@ -452,9 +477,14 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
   if (view === "results") {
     return (
       <Results
-        course={course} title={title} questions={questions} state={state}
+        course={course} title={title} questions={questions} state={state} timeLimit={timeLimit}
         onReview={() => setView("review")}
-        onRestart={async () => { skipSave.current = true; await store.clearProgress(progressKey); onExit(); }}
+        onRestart={async () => {
+          if (!window.confirm("Start over? This attempt's answers will be cleared. Your score stays in My Progress.")) return;
+          skipSave.current = true;
+          await store.clearProgress(progressKey);
+          onExit();
+        }}
         onExit={onExit}
       />
     );
@@ -476,7 +506,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
       <div className="exam-bar-center">
         {timed ? (
           <>
-            {prefs.showTimer ? (
+            {prefs.showTimer || forceTimer ? (
               <span className={`exam-timer ${remaining <= 300 ? "low" : ""}`}>{formatTime(remaining)}</span>
             ) : (
               <span className="exam-timer hidden-timer" aria-label="Timer hidden">Timer hidden</span>
@@ -564,7 +594,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
         </div>
         {footer}
         <ReferenceDrawer reference={reference} open={refOpen} onClose={() => setRefOpen(false)} />
-        <Toast message={toast} onDone={() => setToast("")} />
+        <Toast message={toast} onDone={clearToast} />
       </section>
     );
   }
@@ -642,6 +672,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
               <span className="ai-badge">AI</span> {revealed ? (selected === question.correctAnswer ? "Ask the AI to go deeper" : "Ask the AI why you missed it") : "Stuck? Get a hint from the AI"}
             </button>
           )}
+          {!exam && !revealed && <p className="lock-hint">Practice mode: your first pick locks in and shows the answer.</p>}
           <p className="shortcut-hint muted small">Keyboard: A–D to answer, ← and → to move between questions.</p>
         </div>
       </div>
@@ -651,12 +682,12 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
           open={aiOpen}
           onClose={() => setAiOpen(false)}
           course={course}
-          context={{ key: `${progressKey}:${state.currentIndex}`, label: `Question ${state.currentIndex + 1}`, kind: "mcq", questionId: question.id, studentChoice: selected, answered: revealed }}
+          context={{ key: `q:${question.id}`, label: `Question ${state.currentIndex + 1}`, kind: "mcq", questionId: question.id, studentChoice: selected, answered: revealed }}
           starters={mcqStarters(revealed, selected === question.correctAnswer)}
         />
       )}
       <ReferenceDrawer reference={reference} open={refOpen} onClose={() => setRefOpen(false)} />
-      <Toast message={toast} onDone={() => setToast("")} />
+      <Toast message={toast} onDone={clearToast} />
     </section>
   );
 }
@@ -775,11 +806,14 @@ function Navigator({ questions, state, onPick, large }) {
   );
 }
 
-function Results({ course, title, questions, state, onReview, onRestart, onExit }) {
+function Results({ course, title, questions, state, onReview, onRestart, onExit, timeLimit }) {
   const result = scoreAttempt(course, questions, state.answers);
   const shown = useCountUp(result.percentage);
+  // Weakest unit: lowest score, and on a tie the one with the most questions missed.
   const weakUnit = Object.values(result.unitBreakdown).filter((u) => u.total > 0 && u.correct < u.total)
-    .sort((a, b) => a.correct / a.total - b.correct / b.total)[0];
+    .sort((a, b) => a.correct / a.total - b.correct / b.total || (b.total - b.correct) - (a.total - a.correct))[0];
+  const blank = state.answers.filter((a) => a === null || a === undefined).length;
+  const limit = state.timeMultiplier > 0 ? timeLimit : 0;
   return (
     <div className="card results-card pop-in">
       <p className="eyebrow">{title}</p>
@@ -789,7 +823,11 @@ function Results({ course, title, questions, state, onReview, onRestart, onExit 
       <h1>{result.correct} of {result.total} correct</h1>
       <h2>{result.band}</h2>
       {state.timedOut && <p className="info-box" role="status">Time ran out, so your answers were submitted automatically.</p>}
-      <p className="muted">Time used: {formatTime(state.elapsed || 0)}. Start your next quiz with your weakest unit.</p>
+      <p className="muted">
+        Time used: {formatTime(limit ? Math.min(state.elapsed || 0, limit) : state.elapsed || 0)}.
+        {blank > 0 && <> <strong>{blank} {blank === 1 ? "question was" : "questions were"} left blank.</strong></>}
+        {" "}Start your next quiz with your weakest unit.
+      </p>
       <div className="unit-breakdown">
         {Object.values(result.unitBreakdown).map((u) => (
           <div className={`unit-score unit-${u.unit}`} key={u.unit}>
@@ -802,7 +840,14 @@ function Results({ course, title, questions, state, onReview, onRestart, onExit 
       </div>
       <div className="button-row center">
         <button className="primary-btn" onClick={onReview}>Review answers</button>
-        {weakUnit && <button className="secondary-btn" onClick={() => navigate(`/${course.id}/quiz/${weakUnit.unit}`)}>Quiz Unit {weakUnit.unit}</button>}
+        {weakUnit && (
+          <button className="secondary-btn" onClick={() => {
+            const target = `#/${course.id}/quiz/${weakUnit.unit}`;
+            // Already on that page (a quiz's own results): start a fresh builder instead.
+            if (window.location.hash === target) window.dispatchEvent(new CustomEvent("ap-tab-reset"));
+            else navigate(target.slice(1));
+          }}>Quiz Unit {weakUnit.unit}</button>
+        )}
         <button className="ghost-btn" onClick={onRestart}>Start over</button>
         <button className="ghost-btn" onClick={onExit}>Back to {course.short}</button>
       </div>
@@ -852,7 +897,7 @@ function Review({ course, questions, answers, onBack }) {
           open={Boolean(aiItem)}
           onClose={() => setAiItem(null)}
           course={course}
-          context={{ key: `review:${aiItem.q.id}`, label: `Question ${aiItem.i + 1}`, kind: "mcq", questionId: aiItem.q.id, studentChoice: aiItem.selected, answered: true }}
+          context={{ key: `q:${aiItem.q.id}`, label: `Question ${aiItem.i + 1}`, kind: "mcq", questionId: aiItem.q.id, studentChoice: aiItem.selected, answered: true }}
           starters={mcqStarters(true, aiItem.selected === aiItem.q.correctAnswer)}
         />
       )}

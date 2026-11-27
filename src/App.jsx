@@ -42,9 +42,22 @@ async function carryOverGuestWork() {
   if (moved) window.dispatchEvent(new CustomEvent("ap-notice", { detail: "Your guest progress was added to your account." }));
 }
 
+const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+export const scrollBehavior = () => (reducedMotion() ? "auto" : "smooth");
+
+// Exam progress of a signed-in student also lives on the server; the local copy is removed on
+// sign-out or session expiry so the next person on a shared computer doesn't inherit it.
+function clearLocalProgress() {
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith("ap-study-path:progress:"))
+      .forEach((k) => localStorage.removeItem(k));
+  } catch { /* ignore */ }
+}
+
 export function navigate(path) {
   window.location.hash = path.startsWith("/") ? path : `/${path}`;
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({ top: 0, behavior: scrollBehavior() });
 }
 
 export default function App() {
@@ -56,6 +69,7 @@ export default function App() {
 
   useEffect(() => {
     const expired = () => {
+      clearLocalProgress();
       setUser(null);
       setNotice("Your session ended, so you've been signed out. Sign in again to keep saving to your account.");
     };
@@ -68,9 +82,16 @@ export default function App() {
     };
   }, []);
 
+  // After moving to another page, put keyboard and screen-reader focus at the top of the new content.
+  const firstRoute = useRef(true);
+  useEffect(() => {
+    if (firstRoute.current) { firstRoute.current = false; return; }
+    document.getElementById("main")?.focus({ preventScroll: true });
+  }, [route.page, route.sub]);
+
   useEffect(() => {
     const course = courses[route.page];
-    const names = { home: "", login: "Sign in", dashboard: "My progress" };
+    const names = { home: "", login: route.sub === "register" ? "Create an account" : "Sign in", dashboard: "My progress" };
     const tabNames = { tests: "Practice exams", quiz: "Custom quiz", frq: "FRQ practice", notes: "Unit notes", tips: "Tips" };
     const part = course ? `${course.short} ${tabNames[route.sub] || "Practice exams"}` : names[route.page] ?? "Page not found";
     document.title = part ? `${part} | AP Study Path` : "AP Study Path: AP CSP, CSA and Cyber practice";
@@ -117,11 +138,7 @@ export default function App() {
       setToken(null);
       // Exam progress is also kept on the server; remove the local copy here so the next person
       // on a shared or school computer doesn't see them.
-      try {
-        Object.keys(localStorage)
-          .filter((k) => k.startsWith("ap-study-path:progress:"))
-          .forEach((k) => localStorage.removeItem(k));
-      } catch { /* ignore */ }
+      clearLocalProgress();
       setUser(null);
       navigate("/");
     }
@@ -133,7 +150,7 @@ export default function App() {
   } else if (route.page === "home") {
     content = <Home />;
   } else if (route.page === "login") {
-    content = <AuthPage />;
+    content = <AuthPage key={route.sub || "login"} initialMode={route.sub === "register" ? "register" : "login"} />;
   } else if (route.page === "dashboard") {
     content = <Dashboard />;
   } else if (Object.hasOwn(courses, route.page)) {
@@ -141,9 +158,15 @@ export default function App() {
   } else {
     content = (
       <section className="page">
-        <div className="card results-card">
+        <div className="card results-card not-found">
           <h1>Page not found</h1>
-          <button className="primary-btn" onClick={() => navigate("/")}>Go home</button>
+          <p className="muted">That link doesn't go anywhere. Pick a course or go back to the home page.</p>
+          <div className="button-row">
+            <button className="primary-btn" onClick={() => navigate("/csp")}>AP CSP</button>
+            <button className="primary-btn" onClick={() => navigate("/csa")}>AP CSA</button>
+            <button className="primary-btn" onClick={() => navigate("/cyber")}>AP Cyber</button>
+            <button className="ghost-btn" onClick={() => navigate("/")}>Go home</button>
+          </div>
         </div>
       </section>
     );
@@ -217,7 +240,7 @@ function Navbar({ route }) {
             <span>{user.name || user.email}</span>
             <button onClick={signOut}>Sign out</button>
           </div>
-        ) : backend.available ? (
+        ) : backend.available && route.page !== "login" ? (
           <button className="primary-btn small-btn" onClick={() => go("/login")}>Sign in</button>
         ) : null}
       </div>

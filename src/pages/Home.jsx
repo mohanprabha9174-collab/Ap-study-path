@@ -1,7 +1,7 @@
 import { CodeView } from "../components/ExamTools.jsx";
 import { useState } from "react";
 import { courseList } from "../data/courses.js";
-import { navigate, useApp } from "../App.jsx";
+import { navigate, scrollBehavior, useApp } from "../App.jsx";
 
 const SAMPLE = {
   code: `int a = 17;
@@ -26,9 +26,9 @@ export default function Home() {
             Full-length practice exams, quizzes built from your weak units, and free-response questions scored against a rubric for AP CSP, AP CSA, and AP Cybersecurity.
           </p>
           <div className="hero-actions">
-            <button className="primary-btn" onClick={() => document.getElementById("courses")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Pick your course</button>
+            <button className="primary-btn" onClick={() => document.getElementById("courses")?.scrollIntoView({ behavior: scrollBehavior(), block: "start" })}>Pick your course</button>
             {!user && backend.available
-              ? <button className="secondary-btn" onClick={() => navigate("/login")}>Create a free account</button>
+              ? <button className="secondary-btn" onClick={() => navigate("/login/register")}>Create a free account</button>
               : <button className="secondary-btn" onClick={() => navigate("/dashboard")}>See my progress</button>}
           </div>
         </div>
@@ -50,9 +50,9 @@ export default function Home() {
             })}
           </div>
           {picked !== null && (
-            <div className={`explanation-box ${picked === SAMPLE.correct ? "good" : "bad"}`}>
+            <div className={`explanation-box ${picked === SAMPLE.correct ? "good" : "bad"}`} role="status">
               <strong>{picked === SAMPLE.correct ? "Correct." : "Not quite — it's B."}</strong> {SAMPLE.explanation}
-              <button className="link-btn" onClick={() => navigate("/csa/quiz")}>Get 15 more like this</button>
+              <button className="link-btn" onClick={() => navigate("/csa/quiz/1")}>Get 15 more Unit 1 questions</button>
             </div>
           )}
         </div>
@@ -103,7 +103,10 @@ export default function Home() {
           </li>
         </ol>
         {!user && backend.available && (
-          <p className="muted small">Tip: create a free account so your progress saves on every device{backend.aiGrading ? " and you can use AI grading" : ""}.</p>
+          <div className="home-account-cta">
+            <p><strong>Save your progress on every device.</strong> A free account keeps your scores{backend.aiGrading ? " and unlocks AI grading for FRQs" : ""}.</p>
+            <button className="primary-btn" onClick={() => navigate("/login/register")}>Create a free account</button>
+          </div>
         )}
       </section>
     </section>

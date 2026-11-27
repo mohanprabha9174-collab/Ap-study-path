@@ -104,7 +104,9 @@ const LIMITS = {
 const AI_DAILY_LIMIT = Number(process.env.AI_DAILY_LIMIT || 8000); // backstop on total calls a day
 const MONTHLY_BUDGET = Number(process.env.AI_MONTHLY_BUDGET_USD || 100);
 const DAILY_BUDGET = Math.min(MONTHLY_BUDGET, Number(process.env.AI_DAILY_BUDGET_USD || Math.max(1, MONTHLY_BUDGET / 15)));
-const today = () => new Date().toISOString().slice(0, 10);
+// Daily limits reset at midnight in the students' time zone (US Eastern by default).
+const AI_TIMEZONE = process.env.AI_TIMEZONE || "America/New_York";
+const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: AI_TIMEZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 
 // Add the estimated cost of every AI call to today's spend.
 onUsage((usage) => {
@@ -150,8 +152,8 @@ async function reserveAiCall(userId, kind) {
     return {
       ok: false,
       reason: kind === "grade"
-        ? `You've used all ${LIMITS.grade} AI grades for today. They reset tomorrow; until then you get the rubric estimate.`
-        : `You've used all ${LIMITS.help} AI helper messages for today. They reset tomorrow.`
+        ? `You've used all ${LIMITS.grade} AI grades for today. They reset at midnight Eastern time; until then you get the rubric estimate.`
+        : `You've used all ${LIMITS.help} AI helper messages for today. They reset at midnight Eastern time.`
     };
   }
   await db.run(
@@ -216,7 +218,7 @@ app.post("/api/auth/register", registerLimiter, wrap(async (req, res) => {
   const password = String(req.body.password || "");
   const name = String(req.body.name || "").trim().slice(0, 60);
   if (!EMAIL_RE.test(email)) return res.status(400).json({ error: "Enter a valid email address." });
-  if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters." });
+  if (password.trim().length < 8) return res.status(400).json({ error: "Password must be at least 8 characters (not counting spaces at the ends)." });
   if (await db.get("SELECT id FROM users WHERE email = ?", [email])) {
     return res.status(409).json({ error: "An account with this email already exists. Sign in instead." });
   }
@@ -246,9 +248,11 @@ app.post("/api/auth/change-password", requireAuth, passwordLimiter, wrap(async (
   const { currentPassword = "", newPassword = "" } = req.body;
   const user = await db.get("SELECT * FROM users WHERE id = ?", [req.userId]);
   if (!user || !verifyPassword(String(currentPassword), user.password_hash)) {
-    return res.status(401).json({ error: "Current password is incorrect." });
+    // 400, not 401: a wrong current password must not look like an expired session.
+    return res.status(400).json({ error: "Current password is incorrect." });
   }
-  if (String(newPassword).length < 8) return res.status(400).json({ error: "New password must be at least 8 characters." });
+  if (String(newPassword).trim().length < 8) return res.status(400).json({ error: "New password must be at least 8 characters (not counting spaces at the ends)." });
+  if (verifyPassword(String(newPassword), user.password_hash)) return res.status(400).json({ error: "Choose a password that's different from your current one." });
   const passwordHash = hashPassword(String(newPassword));
   await db.run("UPDATE users SET password_hash = ? WHERE id = ?", [passwordHash, user.id]);
   // Old sessions stop working; this device gets a fresh token.
@@ -293,12 +297,12 @@ app.post("/api/attempts", requireAuth, wrap(async (req, res) => {
   if (!courseFor(course)) return res.status(400).json({ error: "Unknown course" });
   const cleanTotal = Math.min(500, Math.max(1, Number(total) | 0));
   const attempt = {
-    id: newId(), course, testId: String(testId).slice(0, 80), title: String(title || "").slice(0, 120),
+    id: newId(), course, testId: String(testId || "unknown").slice(0, 80), title: String(title || "").slice(0, 120),
     score: Math.min(cleanTotal, Math.max(0, Number(score) | 0)), total: cleanTotal
   };
   await db.run(
     "INSERT INTO attempts (id, user_id, course, test_id, title, score, total, unit_breakdown, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    [attempt.id, req.userId, attempt.course, attempt.testId, attempt.title, attempt.score, attempt.total, JSON.stringify(unitBreakdown || {}), now()]
+    [attempt.id, req.userId, attempt.course, attempt.testId, attempt.title, attempt.score, attempt.total, JSON.stringify(cleanBreakdown(unitBreakdown)), now()]
   );
   res.status(201).json({ ok: true, id: attempt.id });
 }));
@@ -332,6 +336,21 @@ function cleanFiles(list) {
 }
 
 const MAX_RESPONSE = 12000;
+// Keep only well-formed unit rows ({unit, name, correct, total}) so a bad save can't break My Progress.
+function cleanBreakdown(raw) {
+  const out = {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  for (const [k, v] of Object.entries(raw).slice(0, 20)) {
+    if (!v || typeof v !== "object") continue;
+    const total = Math.max(0, Number(v.total) | 0);
+    const correct = Math.min(total, Math.max(0, Number(v.correct) | 0));
+    const unit = Number(v.unit) | 0;
+    if (!total || !unit) continue;
+    out[String(k).slice(0, 10)] = { unit, name: String(v.name || "").slice(0, 80), correct, total };
+  }
+  return out;
+}
+
 function findFrq(course, frqId) {
   return courseFor(course)?.frqs?.find((f) => f.id === frqId) || null;
 }
@@ -350,19 +369,27 @@ app.post("/api/frq/grade", requireAuth, gradeLimiter, wrap(async (req, res) => {
 
   let result;
   // Grading the exact same answer again returns the earlier AI grade for free.
+  // For CSP the uploaded project is part of what was graded, so it has to match too.
+  const files = frq.usesPpr ? cleanFiles(req.body.pprFiles) : [];
+  const projectHash = frq.usesPpr
+    ? crypto.createHash("sha256").update(ppr).update(files.map((f) => `${f.name}:${f.data.length}:${f.data.slice(0, 64)}`).join("|")).digest("hex").slice(0, 16)
+    : "";
   const previous = aiEnabled() ? await db.get(
-    "SELECT feedback FROM frq_submissions WHERE user_id = ? AND frq_id = ? AND response = ? AND grader = 'ai' ORDER BY created_at DESC LIMIT 1",
+    "SELECT id, feedback FROM frq_submissions WHERE user_id = ? AND frq_id = ? AND response = ? AND grader = 'ai' ORDER BY created_at DESC LIMIT 1",
     [req.userId, frqId, response]
   ) : null;
-  const reusable = previous && !(frq.usesPpr && (ppr || (Array.isArray(req.body.pprFiles) && req.body.pprFiles.length)));
+  let previousResult = null;
+  try { previousResult = previous ? JSON.parse(previous.feedback) : null; } catch { previousResult = null; }
+  const reusable = previousResult && (!frq.usesPpr || previousResult.projectHash === projectHash);
   const reservation = !reusable && aiEnabled() ? await reserveAiCall(req.userId, "grade") : { ok: false };
   if (reusable) {
-    result = { ...JSON.parse(previous.feedback), notice: "Same answer as last time, so this is your earlier AI grade (it didn't use one of today's grades)." };
+    // Same answer as before: return that grade without saving another copy to the history.
+    return res.json({ ...previousResult, id: previous.id, solution: frq.solution || null, notice: "Same answer as last time, so this is your earlier AI grade (it didn't use one of today's grades)." });
   } else if (aiEnabled() && !reservation.ok) {
     result = { ...gradeWithRubric({ frq, response }), notice: reservation.reason };
   } else if (aiEnabled()) {
     try {
-      result = await gradeWithAI({ frq, courseName: courses[course].name, response, ppr: frq.usesPpr ? ppr : "", pprFiles: frq.usesPpr ? cleanFiles(req.body.pprFiles) : [] });
+      result = { ...(await gradeWithAI({ frq, courseName: courses[course].name, response, ppr: frq.usesPpr ? ppr : "", pprFiles: files })), projectHash };
     } catch (err) {
       console.error(err.message);
       await releaseAiCall(req.userId, "grade");
@@ -452,7 +479,10 @@ if (fs.existsSync(dist)) {
 
 app.use((err, req, res, next) => {
   if (err.type === "entity.parse.failed") return res.status(400).json({ error: "That request wasn't valid JSON." });
-  if (err.type === "entity.too.large") return res.status(413).json({ error: "That upload is too large. Keep project files under 10 MB in total." });
+  if (err.type === "entity.too.large") {
+    const big = req.path === "/api/frq/grade" || req.path === "/api/ai/help";
+    return res.status(413).json({ error: big ? "That upload is too large. Keep project files under 10 MB in total." : "That request is too large." });
+  }
   if (err.status >= 400 && err.status < 500) return res.status(err.status).json({ error: err.message || "Bad request." });
   console.error(err);
   res.status(500).json({ error: "Something went wrong on the server." });

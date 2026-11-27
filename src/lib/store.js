@@ -1,5 +1,5 @@
 // Progress + history storage. Signed-in users sync to the server; guests use this browser's localStorage.
-import { api } from "./api.js";
+import { api, getToken } from "./api.js";
 
 const LOCAL_PREFIX = "ap-study-path:";
 
@@ -39,6 +39,7 @@ export function migrateLegacyProgress() {
 
 export function createStore(user) {
   const remote = Boolean(user);
+  const uid = user?.id || null;
   return {
     remote,
 
@@ -54,6 +55,9 @@ export function createStore(user) {
     },
 
     async saveProgress(key, state) {
+      // After sign-out (no token any more) an exam screen closing must not write the signed-in
+      // student's progress into this browser for the next person.
+      if (remote && !getToken()) return;
       if (remote) {
         api(`/progress/${encodeURIComponent(key)}`, { method: "PUT", body: { state } }).catch(() => {});
         localSet(`progress:${key}`, state); // keep a local copy for instant resume
@@ -74,7 +78,7 @@ export function createStore(user) {
         } catch {
           // Keep it on this device and send it next time the history loads.
           const pending = localList("pending-attempts");
-          pending.push(attempt);
+          pending.push({ ...attempt, uid });
           localSet("pending-attempts", pending.slice(-50));
           window.dispatchEvent(new CustomEvent("ap-notice", { detail: "Your score couldn't reach your account, so it's kept on this device. It uploads the next time you open My Progress while signed in." }));
           return { saved: false };
@@ -88,11 +92,13 @@ export function createStore(user) {
 
     async listAttempts() {
       if (remote) {
+        // Only upload scores this same account saved while offline.
         const pending = localList("pending-attempts");
-        if (pending.length) {
-          const left = [];
-          for (const item of pending) {
-            try { await api("/attempts", { method: "POST", body: item }); } catch { left.push(item); }
+        const mine = pending.filter((p) => p.uid === uid);
+        if (mine.length) {
+          const left = pending.filter((p) => p.uid !== uid);
+          for (const { uid: _ignored, ...item } of mine) {
+            try { await api("/attempts", { method: "POST", body: item }); } catch { left.push({ ...item, uid }); }
           }
           localSet("pending-attempts", left);
         }

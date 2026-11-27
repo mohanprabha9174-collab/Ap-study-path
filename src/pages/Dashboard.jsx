@@ -10,9 +10,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     const valid = (list) => (Array.isArray(list) ? list : []).filter((a) =>
-      a && Number(a.total) > 0 && Number.isFinite(Number(a.score)) && !Number.isNaN(new Date(a.createdAt).getTime()));
+      a && Number(a.total) > 0 && Number.isFinite(Number(a.score)) && Number(a.score) <= Number(a.total)
+      && !Number.isNaN(new Date(a.createdAt).getTime()))
+      .map((a) => ({
+        ...a,
+        // Skip damaged unit rows so one bad save can't break this page.
+        unitBreakdown: Object.fromEntries(Object.entries(a.unitBreakdown && typeof a.unitBreakdown === "object" ? a.unitBreakdown : {})
+          .filter(([, u]) => u && typeof u === "object" && Number(u.total) > 0))
+      }));
     store.listAttempts().then((list) => setAttempts(valid(list))).catch(() => setAttempts([]));
-    store.listFrqHistory().then((list) => setFrqs(Array.isArray(list) ? list.filter((f) => f && f.course) : [])).catch(() => setFrqs([]));
+    store.listFrqHistory().then((list) => setFrqs(Array.isArray(list) ? list.filter((f) => f && f.course && Number(f.total) > 0 && Number.isFinite(Number(f.score))) : [])).catch(() => setFrqs([]));
   }, [store]);
 
   if (attempts === null) return <section className="page"><div className="card loading-card">Loading your progress…</div></section>;
@@ -23,7 +30,7 @@ export default function Dashboard() {
         <p className="eyebrow">{user ? `Signed in as ${user.email}` : "Guest — progress is saved in this browser only"}</p>
         <h1>{user?.name ? `${user.name}'s progress` : "My progress"}</h1>
         {!user && backend.available && (
-          <p><button className="link-btn inline" onClick={() => navigate("/login")}>Create a free account</button> to save progress across devices and unlock AI grading.</p>
+          <p><button className="link-btn inline" onClick={() => navigate("/login/register")}>Create a free account</button> to save progress across devices and unlock AI grading.</p>
         )}
       </div>
 
@@ -37,7 +44,7 @@ export default function Dashboard() {
           <div className="empty-state">
             <p>Nothing here yet. Start with a practice exam: when you finish, this page shows your score for each unit and tells you what to study next.</p>
             <div className="button-row">
-              <button className="primary-btn" onClick={() => navigate("/csp/tests")}>AP CSP exam</button>
+              <button className="secondary-btn" onClick={() => navigate("/csp/tests")}>AP CSP exam</button>
               <button className="secondary-btn" onClick={() => navigate("/csa/tests")}>AP CSA exam</button>
               <button className="secondary-btn" onClick={() => navigate("/cyber/tests")}>AP Cyber exam</button>
             </div>
@@ -67,6 +74,16 @@ export default function Dashboard() {
 }
 
 function CourseSummary({ course, attempts, frqs }) {
+  // Nothing done yet in this course: one clear next step instead of empty stat tiles.
+  if (!attempts.length && !frqs.length) {
+    return (
+      <div className={`card dash-card dash-card--empty accent-${course.accent}`}>
+        <h2>{course.name}</h2>
+        <p className="muted">No exams or FRQs yet. A practice exam shows your score for each unit and what to study next.</p>
+        <button className="primary-btn" onClick={() => navigate(`/${course.id}/tests`)}>Take your first {course.short} exam</button>
+      </div>
+    );
+  }
   // Full practice exams and short custom quizzes are counted separately.
   const exams = attempts.filter((a) => a.testId !== "custom");
   const quizzes = attempts.length - exams.length;
