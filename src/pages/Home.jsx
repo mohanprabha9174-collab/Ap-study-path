@@ -1,3 +1,4 @@
+import { CodeView } from "../components/ExamTools.jsx";
 import { useState } from "react";
 import { courseList } from "../data/courses.js";
 import { navigate, useApp } from "../App.jsx";
@@ -35,7 +36,7 @@ export default function Home() {
         <div className="sample-q" aria-label="Sample question">
           <p className="sample-label">Try one — AP CSA, Unit 1</p>
           <p className="sample-prompt">What is printed?</p>
-          <pre className="code-block">{SAMPLE.code}</pre>
+          <CodeView code={SAMPLE.code} />
           <div className="choices">
             {SAMPLE.choices.map((c, i) => {
               const cls = ["choice-btn"];

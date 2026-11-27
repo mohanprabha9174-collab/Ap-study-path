@@ -7,7 +7,7 @@ import { references } from "../data/references.js";
 import AiHelper from "../components/AiHelper.jsx";
 import ProjectUpload, { useProject } from "../components/ProjectUpload.jsx";
 import { usePrefs } from "../lib/prefs.js";
-import { ReferenceDrawer, formatTime } from "../components/ExamTools.jsx";
+import { CodeView, ReferenceDrawer, formatTime } from "../components/ExamTools.jsx";
 
 const FRQ_MINUTES = { csp: 30, csa: 22, cyber: 50 };
 
@@ -172,7 +172,7 @@ export function FrqTab({ course, frqParam }) {
           <p className="eyebrow">{frq.category}, {rubricTotal(frq)} points</p>
           <h2>{frq.title}</h2>
           <p className="prompt-box">{frq.prompt}</p>
-          {frq.code && <pre className="code-block">{frq.code}</pre>}
+          {frq.code && <CodeView code={frq.code} />}
 
           {frq.sources?.length > 0 && (
             <div className="sources">
@@ -224,13 +224,36 @@ export function FrqTab({ course, frqParam }) {
               if (e.key === "Escape") { e.currentTarget.dataset.escaped = "1"; return; }
               const escaped = e.currentTarget.dataset.escaped === "1";
               delete e.currentTarget.dataset.escaped;
-              if (course.id === "csa" && e.key === "Tab" && !e.shiftKey && !escaped) {
+              if (course.id !== "csa" || escaped) return;
+              const el = e.target;
+              const start = el.selectionStart;
+              const end = el.selectionEnd;
+              // Edit the box directly so the caret lands in the right place at once, then sync state.
+              const edit = (text, from, to) => {
                 e.preventDefault();
-                const el = e.target;
-                const start = el.selectionStart;
-                const next = response.slice(0, start) + "  " + response.slice(el.selectionEnd);
-                onResponseChange(next);
-                requestAnimationFrame(() => { el.selectionStart = el.selectionEnd = start + 2; });
+                el.setRangeText(text, from, to, "end");
+                onResponseChange(el.value);
+              };
+              const put = (text) => edit(text, start, end);
+              const value = el.value;
+              const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+              const line = value.slice(lineStart, start);
+              const indent = line.match(/^ */)[0];
+              if (e.key === "Tab" && !e.shiftKey) {
+                // Tab indents by 4 spaces, the usual Java style.
+                put("    ");
+              } else if (e.key === "Tab" && e.shiftKey && start === end && indent.length) {
+                // Shift+Tab removes up to 4 spaces from the start of this line.
+                const cut = Math.min(4, indent.length);
+                edit("", lineStart, lineStart + cut);
+              } else if (e.key === "Enter" && !e.shiftKey && start === end) {
+                // A new line keeps the current indentation, one level deeper after "{".
+                const deeper = /\{\s*$/.test(line) ? "    " : "";
+                put(`\n${indent}${deeper}`);
+              } else if (e.key === "}" && start === end && /^ +$/.test(line)) {
+                // Typing "}" on an indented blank line steps back one level.
+                const cut = Math.min(4, line.length);
+                edit("}", start - cut, end);
               }
             }}
             placeholder={
@@ -244,7 +267,7 @@ export function FrqTab({ course, frqParam }) {
           />
           <div className="response-meta" id="response-meta">
             {response.trim() ? response.trim().split(/\s+/).length : 0} words, saved as a draft on this device
-            {course.id === "csa" && ". Tab indents; press Esc then Tab to leave the box"}
+            {course.id === "csa" && ". Tab indents 4 spaces, Enter keeps your indentation; press Esc then Tab to leave the box"}
             {response.length > 10000 && <strong> · {response.length.toLocaleString()} of 12,000 characters</strong>}
           </div>
 
@@ -278,7 +301,7 @@ export function FrqTab({ course, frqParam }) {
             <div className="solution-box">
               <h3>Reference solution</h3>
               <p className="muted">Other correct approaches also earn full credit.</p>
-              <pre className={course.id === "csa" ? "code-block" : "prose-pre"}>{frq.solution}</pre>
+              {course.id === "csa" ? <CodeView code={frq.solution} /> : <pre className="prose-pre">{frq.solution}</pre>}
             </div>
           )}
 

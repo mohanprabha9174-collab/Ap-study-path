@@ -3,7 +3,7 @@ import { navigate, useApp } from "../App.jsx";
 import { references } from "../data/references.js";
 import { usePrefs } from "../lib/prefs.js";
 import AiHelper from "../components/AiHelper.jsx";
-import { HIGHLIGHT_COLORS, HighlightText, ReferenceDrawer, Toast, formatTime, useCountUp } from "../components/ExamTools.jsx";
+import { HIGHLIGHT_COLORS, CodeView, HighlightText, ReferenceDrawer, Toast, formatTime, useCountUp } from "../components/ExamTools.jsx";
 
 const SECONDS_PER_QUESTION = { csp: 103, csa: 128, cyber: 80 };
 const TIME_OPTIONS = [
@@ -597,7 +597,7 @@ function TestRunner({ course, title, questions, progressKey, testId, initialStat
           />
           {question.code && (
             <HighlightText
-              as="pre" className="code-block q-code" text={question.code} ranges={hl[`${qKey}:c`]}
+              as="pre" code className="code-block q-code" text={question.code} ranges={hl[`${qKey}:c`]}
               active={highlighter} color={prefs.highlightColor} onChange={(r) => setHighlights(`${qKey}:c`, r)}
             />
           )}
@@ -831,7 +831,7 @@ function Review({ course, questions, answers, onBack }) {
         <div className="card quiz-card review-item" key={q.id || i}>
           <p className="eyebrow">Question {i + 1}, Unit {q.unit}: {course.unitMeta.find((u) => u.id === q.unit)?.name}</p>
           <h3>{cleanQuestion(q.question)}</h3>
-          {q.code && <pre className="code-block">{q.code}</pre>}
+          {q.code && <CodeView code={q.code} />}
           <div className="choices">
             {q.choices.map((choice, ci) => (
               <div key={ci} className={`choice-review ${ci === q.correctAnswer ? "correct" : ""} ${selected === ci && ci !== q.correctAnswer ? "wrong" : ""} ${looksLikeCode(choice) ? "mono" : ""}`}>

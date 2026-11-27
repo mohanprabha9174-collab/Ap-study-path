@@ -33,7 +33,7 @@ export const practiceTests = [
     "description": "A 70-question AP CSP practice exam covering all five units, with early robot path MCQs, binary conversion, Boolean logic, loops, lists, procedures, and longer code tracing.",
     "questions": [
       {
-        "question": "Practice Test 1, Question 1: ROBOT SEQUENCE QUESTION: A robot starts at S facing up/north. The goal G is two squares to the robot's right/east.\n\nWhich sequence reaches the goal?",
+        "question": "Practice Test 1, Question 1: A robot starts at S facing up/north. The goal G is two squares to the robot's right/east.\n\nWhich sequence reaches the goal?",
         "choices": [
           "MOVE_FORWARD()\nMOVE_FORWARD()",
           "ROTATE_LEFT()\nMOVE_FORWARD()\nMOVE_FORWARD()",
@@ -46,7 +46,7 @@ export const practiceTests = [
         "id": "T1-Q01"
       },
       {
-        "question": "Practice Test 1, Question 2: BINARY CONVERSION: What decimal value is represented by the binary number 10110?",
+        "question": "Practice Test 1, Question 2: What decimal value is represented by the binary number 10110?",
         "choices": [
           "16",
           "20",
@@ -59,7 +59,7 @@ export const practiceTests = [
         "id": "T1-Q02"
       },
       {
-        "question": "Practice Test 1, Question 3: BINARY CONVERSION: What is the binary representation of the decimal number 19?",
+        "question": "Practice Test 1, Question 3: What is the binary representation of the decimal number 19?",
         "choices": [
           "10011",
           "10101",
@@ -72,7 +72,7 @@ export const practiceTests = [
         "id": "T1-Q03"
       },
       {
-        "question": "Practice Test 1, Question 4: CODE QUESTION: What is displayed?\n\na ← 7\nb ← 12\nresult ← (a < 10) AND (b MOD 5 = 2)\nDISPLAY(result)",
+        "question": "Practice Test 1, Question 4: What is displayed?",
         "choices": [
           "false",
           "7",
@@ -82,10 +82,11 @@ export const practiceTests = [
         "correctAnswer": 2,
         "explanation": "Both comparisons are true because 7 < 10 and 12 MOD 5 is 2, so true AND true is true.",
         "unit": 3,
-        "id": "T1-Q04"
+        "id": "T1-Q04",
+        "code": "a ← 7\nb ← 12\nresult ← (a < 10) AND (b MOD 5 = 2)\nDISPLAY(result)"
       },
       {
-        "question": "Practice Test 1, Question 5: LONGER CODE TRACE: What is displayed?\n\ntotal ← 0\ni ← 1\nREPEAT 4 TIMES\n{\n  total ← total + i\n  i ← i + 2\n}\nDISPLAY(total)",
+        "question": "Practice Test 1, Question 5: What is displayed?",
         "choices": [
           "10",
           "12",
@@ -95,10 +96,11 @@ export const practiceTests = [
         "correctAnswer": 2,
         "explanation": "The loop adds 1, 3, 5, and 7, so the total is 16.",
         "unit": 3,
-        "id": "T1-Q05"
+        "id": "T1-Q05",
+        "code": "total ← 0\ni ← 1\nREPEAT 4 TIMES\n{\n  total ← total + i\n  i ← i + 2\n}\nDISPLAY(total)"
       },
       {
-        "question": "Practice Test 1, Question 6: MISSING LINE CODE QUESTION: The code should count how many even numbers are in the list. Which line should replace <MISSING LINE>?\n\nnumbers ← [3, 8, 10, 5, 2]\ncount ← 0\nFOR EACH n IN numbers\n{\n  IF(<MISSING LINE>)\n  {\n    count ← count + 1\n  }\n}\nDISPLAY(count)",
+        "question": "Practice Test 1, Question 6: The code should count how many even numbers are in the list. Which line should replace <MISSING LINE>?",
         "choices": [
           "n MOD 2 = 1",
           "n > count",
@@ -108,10 +110,11 @@ export const practiceTests = [
         "correctAnswer": 2,
         "explanation": "A number is even when the remainder after dividing by 2 is 0.",
         "unit": 3,
-        "id": "T1-Q06"
+        "id": "T1-Q06",
+        "code": "numbers ← [3, 8, 10, 5, 2]\ncount ← 0\nFOR EACH n IN numbers\n{\n  IF(<MISSING LINE>)\n  {\n    count ← count + 1\n  }\n}\nDISPLAY(count)"
       },
       {
-        "question": "Practice Test 1, Question 7: PROCEDURE TRACE: What is displayed?\n\nPROCEDURE scoreBonus(score, late)\n{\n  IF(late)\n  {\n    RETURN(score - 5)\n  }\n  IF(score ≥ 90)\n  {\n    RETURN(score + 10)\n  }\n  ELSE\n  {\n    RETURN(score)\n  }\n}\nDISPLAY(scoreBonus(92, false))",
+        "question": "Practice Test 1, Question 7: What is displayed?",
         "choices": [
           "87",
           "92",
@@ -121,10 +124,11 @@ export const practiceTests = [
         "correctAnswer": 3,
         "explanation": "late is false, score is at least 90, so the procedure returns 92 + 10 = 102.",
         "unit": 3,
-        "id": "T1-Q07"
+        "id": "T1-Q07",
+        "code": "PROCEDURE scoreBonus(score, late)\n{\n  IF(late)\n  {\n    RETURN(score - 5)\n  }\n  IF(score ≥ 90)\n  {\n    RETURN(score + 10)\n  }\n  ELSE\n  {\n    RETURN(score)\n  }\n}\nDISPLAY(scoreBonus(92, false))"
       },
       {
-        "question": "Practice Test 1, Question 8: ROBOT SAFETY CODE: A robot should move forward only when the square ahead is open. Which code avoids a program-terminating blocked move?",
+        "question": "Practice Test 1, Question 8: A robot should move forward only when the square ahead is open. Which code avoids a program-terminating blocked move?",
         "choices": [
           "IF(CAN_MOVE(forward))\n{\n  MOVE_FORWARD()\n}",
           "MOVE_FORWARD()",
@@ -137,7 +141,7 @@ export const practiceTests = [
         "id": "T1-Q08"
       },
       {
-        "question": "Practice Test 1, Question 9: LIST TRACE: What is displayed?\n\nnums ← [2, 4, 6]\nAPPEND(nums, 8)\nINSERT(nums, 2, 3)\nREMOVE(nums, 4)\nDISPLAY(nums[2] + LENGTH(nums))",
+        "question": "Practice Test 1, Question 9: What is displayed?",
         "choices": [
           "5",
           "6",
@@ -147,10 +151,11 @@ export const practiceTests = [
         "correctAnswer": 2,
         "explanation": "The list becomes [2, 3, 4, 8], so nums[2] is 3 and LENGTH(nums) is 4; 3 + 4 = 7.",
         "unit": 3,
-        "id": "T1-Q09"
+        "id": "T1-Q09",
+        "code": "nums ← [2, 4, 6]\nAPPEND(nums, 8)\nINSERT(nums, 2, 3)\nREMOVE(nums, 4)\nDISPLAY(nums[2] + LENGTH(nums))"
       },
       {
-        "question": "Practice Test 1, Question 10: REPEAT UNTIL TRACE: What is displayed?\n\nx ← 1\nsum ← 0\nREPEAT UNTIL(x > 5)\n{\n  sum ← sum + x\n  x ← x + 1\n}\nDISPLAY(sum)",
+        "question": "Practice Test 1, Question 10: What is displayed?",
         "choices": [
           "10",
           "15",
@@ -160,10 +165,11 @@ export const practiceTests = [
         "correctAnswer": 1,
         "explanation": "The loop adds 1 + 2 + 3 + 4 + 5 before x becomes 6, so the sum is 15.",
         "unit": 3,
-        "id": "T1-Q10"
+        "id": "T1-Q10",
+        "code": "x ← 1\nsum ← 0\nREPEAT UNTIL(x > 5)\n{\n  sum ← sum + x\n  x ← x + 1\n}\nDISPLAY(sum)"
       },
       {
-        "question": "Practice Test 1, Question 11: ROBOT SEQUENCE QUESTION: A robot is facing up/north. The square directly ahead is blocked, the square to the right/east is open, and the goal is one square east. Which sequence reaches the goal without hitting the blocked square?",
+        "question": "Practice Test 1, Question 11: A robot is facing up/north. The square directly ahead is blocked, the square to the right/east is open, and the goal is one square east. Which sequence reaches the goal without hitting the blocked square?",
         "choices": [
           "MOVE_FORWARD()",
           "ROTATE_RIGHT()\nMOVE_FORWARD()",
@@ -176,7 +182,7 @@ export const practiceTests = [
         "id": "T1-Q11"
       },
       {
-        "question": "Practice Test 1, Question 12: BOOLEAN CODE QUESTION: What is displayed?\n\nhasTicket ← false\nisMember ← true\nIF(hasTicket OR isMember)\n{\n  DISPLAY(\"enter\")\n}\nELSE\n{\n  DISPLAY(\"wait\")\n}",
+        "question": "Practice Test 1, Question 12: What is displayed?",
         "choices": [
           "wait",
           "true",
@@ -186,10 +192,11 @@ export const practiceTests = [
         "correctAnswer": 3,
         "explanation": "OR is true when at least one condition is true, and isMember is true.",
         "unit": 3,
-        "id": "T1-Q12"
+        "id": "T1-Q12",
+        "code": "hasTicket ← false\nisMember ← true\nIF(hasTicket OR isMember)\n{\n  DISPLAY(\"enter\")\n}\nELSE\n{\n  DISPLAY(\"wait\")\n}"
       },
       {
-        "question": "Practice Test 1, Question 13: BINARY CONVERSION: What decimal value is represented by 111001?",
+        "question": "Practice Test 1, Question 13: What decimal value is represented by 111001?",
         "choices": [
           "49",
           "55",
@@ -202,7 +209,7 @@ export const practiceTests = [
         "id": "T1-Q13"
       },
       {
-        "question": "Practice Test 1, Question 14: BINARY CONVERSION: What is decimal 34 in binary?",
+        "question": "Practice Test 1, Question 14: What is decimal 34 in binary?",
         "choices": [
           "100010",
           "100100",
@@ -215,7 +222,7 @@ export const practiceTests = [
         "id": "T1-Q14"
       },
       {
-        "question": "Practice Test 1, Question 15: LONGER CODE TRACE: What is displayed?\n\nvalues ← [1, 4, 7, 10]\nanswer ← 0\nFOR EACH item IN values\n{\n  IF(item > 5)\n  {\n    answer ← answer + item\n  }\n  ELSE\n  {\n    answer ← answer + 1\n  }\n}\nDISPLAY(answer)",
+        "question": "Practice Test 1, Question 15: What is displayed?",
         "choices": [
           "14",
           "16",
@@ -225,7 +232,8 @@ export const practiceTests = [
         "correctAnswer": 2,
         "explanation": "For 1 and 4, the program adds 1 each; for 7 and 10, it adds those values, giving 1 + 1 + 7 + 10 = 19.",
         "unit": 3,
-        "id": "T1-Q15"
+        "id": "T1-Q15",
+        "code": "values ← [1, 4, 7, 10]\nanswer ← 0\nFOR EACH item IN values\n{\n  IF(item > 5)\n  {\n    answer ← answer + item\n  }\n  ELSE\n  {\n    answer ← answer + 1\n  }\n}\nDISPLAY(answer)"
       },
       {
         "question": "Practice Test 1, Question 16: A prototype of a study timer app is shown to a few users before the final version is built. What is the best reason to do this?",
@@ -254,7 +262,7 @@ export const practiceTests = [
         "id": "T1-Q17"
       },
       {
-        "question": "Practice Test 1, Question 18: CODE QUESTION: What is the final value of total?\n\ntotal ← 0\nREPEAT 4 TIMES\n{\n  total ← total + 3\n}",
+        "question": "Practice Test 1, Question 18: What is the final value of total?",
         "choices": [
           "3",
           "4",
@@ -264,7 +272,8 @@ export const practiceTests = [
         "correctAnswer": 3,
         "explanation": "The loop adds 3 four times, so total becomes 12.",
         "unit": 3,
-        "id": "T1-Q18"
+        "id": "T1-Q18",
+        "code": "total ← 0\nREPEAT 4 TIMES\n{\n  total ← total + 3\n}"
       },
       {
         "question": "Practice Test 1, Question 19: In an email system, fault tolerance is important. Which design best supports fault tolerance?",
@@ -319,7 +328,7 @@ export const practiceTests = [
         "id": "T1-Q22"
       },
       {
-        "question": "Practice Test 1, Question 23: CODE QUESTION: What is displayed by this list code?\n\nnums ← [5, 10, 15, 20]\nDISPLAY(nums[2])",
+        "question": "Practice Test 1, Question 23: What is displayed by this list code?",
         "choices": [
           "5",
           "15",
@@ -329,7 +338,8 @@ export const practiceTests = [
         "correctAnswer": 3,
         "explanation": "AP CSP lists start at index 1, so nums[2] is the second item, 10.",
         "unit": 3,
-        "id": "T1-Q23"
+        "id": "T1-Q23",
+        "code": "nums ← [5, 10, 15, 20]\nDISPLAY(nums[2])"
       },
       {
         "question": "Practice Test 1, Question 24: Why are open protocols important for a classroom Wi-Fi network?",
@@ -384,7 +394,7 @@ export const practiceTests = [
         "id": "T1-Q27"
       },
       {
-        "question": "Practice Test 1, Question 28: CODE QUESTION: Which statement should replace <MISSING LINE> to add 12 to the end of the list?\n\nvalues ← [3, 6, 9]\n<MISSING LINE>",
+        "question": "Practice Test 1, Question 28: Which statement should replace <MISSING LINE> to add 12 to the end of the list?",
         "choices": [
           "APPEND(values, 12)",
           "INSERT(values, 12, 4)",
@@ -394,7 +404,8 @@ export const practiceTests = [
         "correctAnswer": 0,
         "explanation": "APPEND(list, value) adds the value to the end of a list.",
         "unit": 3,
-        "id": "T1-Q28"
+        "id": "T1-Q28",
+        "code": "values ← [3, 6, 9]\n<MISSING LINE>"
       },
       {
         "question": "Practice Test 1, Question 29: A router involved in a search engine request has which main responsibility?",
@@ -449,7 +460,7 @@ export const practiceTests = [
         "id": "T1-Q32"
       },
       {
-        "question": "Practice Test 1, Question 33: CODE QUESTION: What does this procedure return?\n\nPROCEDURE doubleAndAddOne(n)\n{\n  result ← n * 2\n  RETURN(result + 1)\n}\n\nanswer ← doubleAndAddOne(6)",
+        "question": "Practice Test 1, Question 33: What does this procedure return?",
         "choices": [
           "6",
           "7",
@@ -459,7 +470,8 @@ export const practiceTests = [
         "correctAnswer": 3,
         "explanation": "The procedure doubles 6 to get 12, then returns 12 + 1, which is 13.",
         "unit": 3,
-        "id": "T1-Q33"
+        "id": "T1-Q33",
+        "code": "PROCEDURE doubleAndAddOne(n)\n{\n  result ← n * 2\n  RETURN(result + 1)\n}\n\nanswer ← doubleAndAddOne(6)"
       },
       {
         "question": "Practice Test 1, Question 34: A task for a multiplayer quiz is divided across many computers at the same time. This is an example of what concept?",
@@ -514,7 +526,7 @@ export const practiceTests = [
         "id": "T1-Q37"
       },
       {
-        "question": "Practice Test 1, Question 38: CODE QUESTION: What is displayed by this traversal?\n\nwords ← [\"AP\", \"CSP\", \"Exam\"]\ncount ← 0\nFOR EACH item IN words\n{\n  count ← count + 1\n}\nDISPLAY(count)",
+        "question": "Practice Test 1, Question 38: What is displayed by this traversal?",
         "choices": [
           "3",
           "0",
@@ -524,7 +536,8 @@ export const practiceTests = [
         "correctAnswer": 0,
         "explanation": "The list has three items, so the loop runs three times and count becomes 3.",
         "unit": 3,
-        "id": "T1-Q38"
+        "id": "T1-Q38",
+        "code": "words ← [\"AP\", \"CSP\", \"Exam\"]\ncount ← 0\nFOR EACH item IN words\n{\n  count ← count + 1\n}\nDISPLAY(count)"
       },
       {
         "question": "Practice Test 1, Question 39: Which statement about bandwidth is most relevant to a remote backup system?",
@@ -579,7 +592,7 @@ export const practiceTests = [
         "id": "T1-Q42"
       },
       {
-        "question": "Practice Test 1, Question 43: CODE QUESTION: The code should count only values greater than 10. Which change fixes the error?\n\ncount ← 0\nFOR EACH value IN scores\n{\n  IF(value > 10)\n  {\n    DISPLAY(value)\n  }\n  count ← count + 1\n}",
+        "question": "Practice Test 1, Question 43: The code should count only values greater than 10. Which change fixes the error?",
         "choices": [
           "Change value > 10 to value < 10",
           "Remove the FOR EACH loop",
@@ -589,7 +602,8 @@ export const practiceTests = [
         "correctAnswer": 3,
         "explanation": "The counter must increase only when the condition is true, so it belongs inside the IF block.",
         "unit": 3,
-        "id": "T1-Q43"
+        "id": "T1-Q43",
+        "code": "count ← 0\nFOR EACH value IN scores\n{\n  IF(value > 10)\n  {\n    DISPLAY(value)\n  }\n  count ← count + 1\n}"
       },
       {
         "question": "Practice Test 1, Question 44: During a map directions app, data is split into smaller pieces that may travel across different routes. What are these pieces usually called?",
@@ -644,7 +658,7 @@ export const practiceTests = [
         "id": "T1-Q47"
       },
       {
-        "question": "Practice Test 1, Question 48: CODE QUESTION: What value is displayed?\n\na ← 5\nb ← 9\nIF(a < b AND b < 12)\n{\n  DISPLAY(\"yes\")\n}\nELSE\n{\n  DISPLAY(\"no\")\n}",
+        "question": "Practice Test 1, Question 48: What value is displayed?",
         "choices": [
           "no",
           "5",
@@ -654,7 +668,8 @@ export const practiceTests = [
         "correctAnswer": 3,
         "explanation": "Both a < b and b < 12 are true, so the AND condition is true and yes is displayed.",
         "unit": 3,
-        "id": "T1-Q48"
+        "id": "T1-Q48",
+        "code": "a ← 5\nb ← 9\nIF(a < b AND b < 12)\n{\n  DISPLAY(\"yes\")\n}\nELSE\n{\n  DISPLAY(\"no\")\n}"
       },
       {
         "question": "Practice Test 1, Question 49: For a video call, DNS is used before a connection is made. What does DNS mainly do?",
@@ -709,7 +724,7 @@ export const practiceTests = [
         "id": "T1-Q52"
       },
       {
-        "question": "Practice Test 1, Question 53: ROBOT SEQUENCE QUESTION: A robot starts on S facing right/east. The goal G is three open squares straight ahead.\n\nGrid: S  _  _  G\n\nWhich sequence moves the robot from S to G?",
+        "question": "Practice Test 1, Question 53: A robot starts on S facing right/east. The goal G is three open squares straight ahead. Which sequence moves the robot from S to G?",
         "choices": [
           "ROTATE_RIGHT()\nMOVE_FORWARD()\nMOVE_FORWARD()",
           "MOVE_FORWARD()\nMOVE_FORWARD()\nMOVE_FORWARD()",
@@ -719,7 +734,8 @@ export const practiceTests = [
         "correctAnswer": 1,
         "explanation": "Because the robot is already facing the goal, it only needs to move forward three times.",
         "unit": 3,
-        "id": "T1-Q53"
+        "id": "T1-Q53",
+        "code": "S  _  _  G"
       },
       {
         "question": "Practice Test 1, Question 54: In an online game match, fault tolerance is important. Which design best supports fault tolerance?",
@@ -774,7 +790,7 @@ export const practiceTests = [
         "id": "T1-Q57"
       },
       {
-        "question": "Practice Test 1, Question 58: CODE QUESTION: What is the final value of n?\n\nn ← 1\nREPEAT UNTIL(n > 20)\n{\n  n ← n * 2\n}",
+        "question": "Practice Test 1, Question 58: What is the final value of n?",
         "choices": [
           "16",
           "20",
@@ -784,7 +800,8 @@ export const practiceTests = [
         "correctAnswer": 2,
         "explanation": "The values are 2, 4, 8, 16, and then 32; the loop stops once n > 20 is true.",
         "unit": 3,
-        "id": "T1-Q58"
+        "id": "T1-Q58",
+        "code": "n ← 1\nREPEAT UNTIL(n > 20)\n{\n  n ← n * 2\n}"
       },
       {
         "question": "Practice Test 1, Question 59: Which protocol is mainly responsible for making sure every packet of a message arrives and is put back in order?",
@@ -839,7 +856,7 @@ export const practiceTests = [
         "id": "T1-Q62"
       },
       {
-        "question": "Practice Test 1, Question 63: ROBOT SEQUENCE QUESTION: A robot starts facing up/north. The goal is one square to the robot's right/east.\n\nWhich sequence reaches the goal?",
+        "question": "Practice Test 1, Question 63: A robot starts facing up/north. The goal is one square to the robot's right/east.\n\nWhich sequence reaches the goal?",
         "choices": [
           "MOVE_FORWARD()\nROTATE_RIGHT()",
           "ROTATE_LEFT()\nMOVE_FORWARD()",
@@ -904,7 +921,7 @@ export const practiceTests = [
         "id": "T1-Q67"
       },
       {
-        "question": "Practice Test 1, Question 68: CODE QUESTION: A robot is facing forward. Which code avoids terminating the program when the square ahead is blocked?\n\nThe robot commands available include MOVE_FORWARD() and CAN_MOVE(forward).",
+        "question": "Practice Test 1, Question 68: A robot is facing forward. Which code avoids terminating the program when the square ahead is blocked?",
         "choices": [
           "MOVE_FORWARD()",
           "REPEAT 10 TIMES { MOVE_FORWARD() }",
@@ -914,7 +931,8 @@ export const practiceTests = [
         "correctAnswer": 3,
         "explanation": "Checking CAN_MOVE(forward) before moving prevents the robot from trying to move into a blocked square.",
         "unit": 3,
-        "id": "T1-Q68"
+        "id": "T1-Q68",
+        "code": "The robot commands available include MOVE_FORWARD() and CAN_MOVE(forward)."
       },
       {
         "question": "Practice Test 1, Question 69: A task for a messaging app is divided across many computers at the same time. This is an example of what concept?",
@@ -950,7 +968,7 @@ export const practiceTests = [
     "description": "A 70-question AP CSP practice exam covering all five units, with early robot path MCQs, binary conversion, Boolean logic, loops, lists, procedures, and longer code tracing.",
     "questions": [
       {
-        "question": "Practice Test 2, Question 1: ROBOT SEQUENCE QUESTION: A robot starts facing right/east. The goal is one square below/south of the robot. Which sequence reaches the goal?",
+        "question": "Practice Test 2, Question 1: A robot starts facing right/east. The goal is one square below/south of the robot. Which sequence reaches the goal?",
         "choices": [
           "ROTATE_LEFT()\nMOVE_FORWARD()",
           "MOVE_FORWARD()\nROTATE_RIGHT()",
@@ -963,7 +981,7 @@ export const practiceTests = [
         "id": "T2-Q01"
       },
       {
-        "question": "Practice Test 2, Question 2: BINARY CONVERSION: What decimal value is represented by 100101?",
+        "question": "Practice Test 2, Question 2: What decimal value is represented by 100101?",
         "choices": [
           "35",
           "37",
@@ -976,7 +994,7 @@ export const practiceTests = [
         "id": "T2-Q02"
       },
       {
-        "question": "Practice Test 2, Question 3: BINARY CONVERSION: What is decimal 27 in binary?",
+        "question": "Practice Test 2, Question 3: What is decimal 27 in binary?",
         "choices": [
           "11011",
           "10111",
@@ -989,7 +1007,7 @@ export const practiceTests = [
         "id": "T2-Q03"
       },
       {
-        "question": "Practice Test 2, Question 4: BOOLEAN TRACE: What is displayed?\n\nx ← 5\ny ← 8\nDISPLAY((x > 3) AND NOT(y < 8))",
+        "question": "Practice Test 2, Question 4: What is displayed?",
         "choices": [
           "true",
           "false",
@@ -999,10 +1017,11 @@ export const practiceTests = [
         "correctAnswer": 0,
         "explanation": "x > 3 is true; y < 8 is false; NOT false is true; true AND true is true.",
         "unit": 3,
-        "id": "T2-Q04"
+        "id": "T2-Q04",
+        "code": "x ← 5\ny ← 8\nDISPLAY((x > 3) AND NOT(y < 8))"
       },
       {
-        "question": "Practice Test 2, Question 5: LOOP TRACE: What is displayed?\n\ncount ← 0\nREPEAT 3 TIMES\n{\n  count ← count + 2\n}\nREPEAT 2 TIMES\n{\n  count ← count * 2\n}\nDISPLAY(count)",
+        "question": "Practice Test 2, Question 5: What is displayed?",
         "choices": [
           "10",
           "12",
@@ -1012,10 +1031,11 @@ export const practiceTests = [
         "correctAnswer": 3,
         "explanation": "The first loop makes count 6, then the second loop doubles it twice: 12 then 24.",
         "unit": 3,
-        "id": "T2-Q05"
+        "id": "T2-Q05",
+        "code": "count ← 0\nREPEAT 3 TIMES\n{\n  count ← count + 2\n}\nREPEAT 2 TIMES\n{\n  count ← count * 2\n}\nDISPLAY(count)"
       },
       {
-        "question": "Practice Test 2, Question 6: MISSING LINE CODE QUESTION: The procedure should return true when num is between 10 and 20 inclusive. Which condition belongs in <MISSING LINE>?\n\nPROCEDURE inRange(num)\n{\n  IF(<MISSING LINE>)\n  {\n    RETURN(true)\n  }\n  RETURN(false)\n}",
+        "question": "Practice Test 2, Question 6: The procedure should return true when num is between 10 and 20 inclusive. Which condition belongs in <MISSING LINE>?",
         "choices": [
           "num ≥ 10 AND num ≤ 20",
           "num > 10 OR num < 20",
@@ -1025,10 +1045,11 @@ export const practiceTests = [
         "correctAnswer": 0,
         "explanation": "Inclusive range checks require num ≥ 10 and num ≤ 20 at the same time.",
         "unit": 3,
-        "id": "T2-Q06"
+        "id": "T2-Q06",
+        "code": "PROCEDURE inRange(num)\n{\n  IF(<MISSING LINE>)\n  {\n    RETURN(true)\n  }\n  RETURN(false)\n}"
       },
       {
-        "question": "Practice Test 2, Question 7: LIST AND LOOP TRACE: What is displayed?\n\nwords ← [\"a\", \"bb\", \"ccc\", \"dddd\"]\ntotal ← 0\nFOR EACH w IN words\n{\n  IF(LENGTH(w) > 2)\n  {\n    total ← total + LENGTH(w)\n  }\n}\nDISPLAY(total)",
+        "question": "Practice Test 2, Question 7: What is displayed?",
         "choices": [
           "4",
           "5",
@@ -1038,10 +1059,11 @@ export const practiceTests = [
         "correctAnswer": 2,
         "explanation": "Only \"ccc\" and \"dddd\" have length greater than 2, so 3 + 4 = 7.",
         "unit": 3,
-        "id": "T2-Q07"
+        "id": "T2-Q07",
+        "code": "words ← [\"a\", \"bb\", \"ccc\", \"dddd\"]\ntotal ← 0\nFOR EACH w IN words\n{\n  IF(LENGTH(w) > 2)\n  {\n    total ← total + LENGTH(w)\n  }\n}\nDISPLAY(total)"
       },
       {
-        "question": "Practice Test 2, Question 8: ROBOT SEQUENCE QUESTION: A robot starts facing up/north. The goal is two squares above and then one square left/west. Which sequence reaches the goal?",
+        "question": "Practice Test 2, Question 8: A robot starts facing up/north. The goal is two squares above and then one square left/west. Which sequence reaches the goal?",
         "choices": [
           "MOVE_FORWARD()\nROTATE_LEFT()\nMOVE_FORWARD()\nMOVE_FORWARD()",
           "ROTATE_LEFT()\nMOVE_FORWARD()\nMOVE_FORWARD()\nMOVE_FORWARD()",
@@ -1054,7 +1076,7 @@ export const practiceTests = [
         "id": "T2-Q08"
       },
       {
-        "question": "Practice Test 2, Question 9: PROCEDURE TRACE: What is displayed?\n\nPROCEDURE mystery(a, b)\n{\n  result ← 0\n  REPEAT b TIMES\n  {\n    result ← result + a\n  }\n  RETURN(result)\n}\nDISPLAY(mystery(4, 3))",
+        "question": "Practice Test 2, Question 9: What is displayed?",
         "choices": [
           "7",
           "12",
@@ -1064,10 +1086,11 @@ export const practiceTests = [
         "correctAnswer": 1,
         "explanation": "The procedure adds 4 three times, so it returns 12.",
         "unit": 3,
-        "id": "T2-Q09"
+        "id": "T2-Q09",
+        "code": "PROCEDURE mystery(a, b)\n{\n  result ← 0\n  REPEAT b TIMES\n  {\n    result ← result + a\n  }\n  RETURN(result)\n}\nDISPLAY(mystery(4, 3))"
       },
       {
-        "question": "Practice Test 2, Question 10: REPEAT UNTIL TRACE: What is displayed?\n\nx ← 20\nsteps ← 0\nREPEAT UNTIL(x < 3)\n{\n  x ← x / 2\n  steps ← steps + 1\n}\nDISPLAY(steps)",
+        "question": "Practice Test 2, Question 10: What is displayed?",
         "choices": [
           "2",
           "3",
@@ -1077,10 +1100,11 @@ export const practiceTests = [
         "correctAnswer": 1,
         "explanation": "x becomes 10, 5, then 2.5, so the loop runs 3 times before x < 3 is true.",
         "unit": 3,
-        "id": "T2-Q10"
+        "id": "T2-Q10",
+        "code": "x ← 20\nsteps ← 0\nREPEAT UNTIL(x < 3)\n{\n  x ← x / 2\n  steps ← steps + 1\n}\nDISPLAY(steps)"
       },
       {
-        "question": "Practice Test 2, Question 11: BINARY CONVERSION: A color value uses the binary number 01111111. What is its decimal value?",
+        "question": "Practice Test 2, Question 11: A color value uses the binary number 01111111. What is its decimal value?",
         "choices": [
           "63",
           "100",
@@ -1093,7 +1117,7 @@ export const practiceTests = [
         "id": "T2-Q11"
       },
       {
-        "question": "Practice Test 2, Question 12: DECIMAL TO BINARY: Which binary number represents decimal 45?",
+        "question": "Practice Test 2, Question 12: Which binary number represents decimal 45?",
         "choices": [
           "101101",
           "101011",
@@ -1106,7 +1130,7 @@ export const practiceTests = [
         "id": "T2-Q12"
       },
       {
-        "question": "Practice Test 2, Question 13: LONGER CODE TRACE WITH BOOLEAN: What is displayed?\n\nscore ← 76\nmissing ← 1\nIF(score ≥ 70 AND missing = 0)\n{\n  DISPLAY(\"pass\")\n}\nELSE\n{\n  IF(score ≥ 70 AND missing ≤ 2)\n  {\n    DISPLAY(\"review\")\n  }\n  ELSE\n  {\n    DISPLAY(\"redo\")\n  }\n}",
+        "question": "Practice Test 2, Question 13: What is displayed?",
         "choices": [
           "pass",
           "redo",
@@ -1116,10 +1140,11 @@ export const practiceTests = [
         "correctAnswer": 2,
         "explanation": "The first condition is false because missing is not 0, but the nested condition is true because 76 ≥ 70 and 1 ≤ 2.",
         "unit": 3,
-        "id": "T2-Q13"
+        "id": "T2-Q13",
+        "code": "score ← 76\nmissing ← 1\nIF(score ≥ 70 AND missing = 0)\n{\n  DISPLAY(\"pass\")\n}\nELSE\n{\n  IF(score ≥ 70 AND missing ≤ 2)\n  {\n    DISPLAY(\"review\")\n  }\n  ELSE\n  {\n    DISPLAY(\"redo\")\n  }\n}"
       },
       {
-        "question": "Practice Test 2, Question 14: MISSING LINE CODE QUESTION: Which line should replace <MISSING LINE> so the list becomes [5, 10, 15, 20]?\n\nnums ← [5, 10, 20]\n<MISSING LINE>",
+        "question": "Practice Test 2, Question 14: Which line should replace <MISSING LINE> so the list becomes [5, 10, 15, 20]?",
         "choices": [
           "APPEND(nums, 15)",
           "INSERT(nums, 3, 15)",
@@ -1129,7 +1154,8 @@ export const practiceTests = [
         "correctAnswer": 1,
         "explanation": "INSERT(nums, 3, 15) puts 15 at index 3 and shifts 20 to index 4.",
         "unit": 3,
-        "id": "T2-Q14"
+        "id": "T2-Q14",
+        "code": "nums ← [5, 10, 20]\n<MISSING LINE>"
       },
       {
         "question": "Practice Test 2, Question 15: ROBOT WITH CAN_MOVE: Which code makes the robot turn left if it cannot move forward, otherwise move forward?",
@@ -1171,7 +1197,7 @@ export const practiceTests = [
         "id": "T2-Q17"
       },
       {
-        "question": "Practice Test 2, Question 18: CODE QUESTION: What is displayed by this code?\n\nx ← 4\ny ← 10\nIF(NOT(x > y))\n{\n  DISPLAY(\"true path\")\n}\nELSE\n{\n  DISPLAY(\"false path\")\n}",
+        "question": "Practice Test 2, Question 18: What is displayed by this code?",
         "choices": [
           "false path",
           "4",
@@ -1181,7 +1207,8 @@ export const practiceTests = [
         "correctAnswer": 3,
         "explanation": "x > y is false, and NOT false is true, so the IF block runs.",
         "unit": 3,
-        "id": "T2-Q18"
+        "id": "T2-Q18",
+        "code": "x ← 4\ny ← 10\nIF(NOT(x > y))\n{\n  DISPLAY(\"true path\")\n}\nELSE\n{\n  DISPLAY(\"false path\")\n}"
       },
       {
         "question": "Practice Test 2, Question 19: A router involved in a classroom Wi-Fi network has which main responsibility?",
@@ -1236,7 +1263,7 @@ export const practiceTests = [
         "id": "T2-Q22"
       },
       {
-        "question": "Practice Test 2, Question 23: CODE QUESTION: The procedure should return the average of two numbers. Which line is correct?\n\nPROCEDURE average(a, b)\n{\n  <MISSING LINE>\n}",
+        "question": "Practice Test 2, Question 23: The procedure should return the average of two numbers. Which line is correct?",
         "choices": [
           "RETURN(a + b / 2)",
           "DISPLAY((a + b) / 2)",
@@ -1246,7 +1273,8 @@ export const practiceTests = [
         "correctAnswer": 2,
         "explanation": "Parentheses are needed so the sum of a and b is divided by 2, and RETURN sends the value back.",
         "unit": 3,
-        "id": "T2-Q23"
+        "id": "T2-Q23",
+        "code": "PROCEDURE average(a, b)\n{\n  <MISSING LINE>\n}"
       },
       {
         "question": "Practice Test 2, Question 24: A task for a search engine request is divided across many computers at the same time. This is an example of what concept?",
@@ -1301,7 +1329,7 @@ export const practiceTests = [
         "id": "T2-Q27"
       },
       {
-        "question": "Practice Test 2, Question 28: CODE QUESTION: What is displayed?\n\nsum ← 0\nnums ← [1, 3, 5]\nFOR EACH n IN nums\n{\n  sum ← sum + n\n}\nDISPLAY(sum)",
+        "question": "Practice Test 2, Question 28: What is displayed?",
         "choices": [
           "3",
           "5",
@@ -1311,7 +1339,8 @@ export const practiceTests = [
         "correctAnswer": 2,
         "explanation": "The traversal adds 1 + 3 + 5, so sum is 9.",
         "unit": 3,
-        "id": "T2-Q28"
+        "id": "T2-Q28",
+        "code": "sum ← 0\nnums ← [1, 3, 5]\nFOR EACH n IN nums\n{\n  sum ← sum + n\n}\nDISPLAY(sum)"
       },
       {
         "question": "Practice Test 2, Question 29: A message sent over the internet is split into packets. Which statement is true?",
@@ -1366,7 +1395,7 @@ export const practiceTests = [
         "id": "T2-Q32"
       },
       {
-        "question": "Practice Test 2, Question 33: CODE QUESTION: Which line correctly replaces the second item in scores with 100?\n\nscores ← [70, 80, 90]\n<MISSING LINE>",
+        "question": "Practice Test 2, Question 33: Which line correctly replaces the second item in scores with 100?",
         "choices": [
           "scores[1] ← 100",
           "APPEND(scores, 2, 100)",
@@ -1376,7 +1405,8 @@ export const practiceTests = [
         "correctAnswer": 2,
         "explanation": "AP CSP list index 2 refers to the second element, so scores[2] ← 100 updates the 80.",
         "unit": 3,
-        "id": "T2-Q33"
+        "id": "T2-Q33",
+        "code": "scores ← [70, 80, 90]\n<MISSING LINE>"
       },
       {
         "question": "Practice Test 2, Question 34: During a remote backup system, data is split into smaller pieces that may travel across different routes. What are these pieces usually called?",
@@ -1431,7 +1461,7 @@ export const practiceTests = [
         "id": "T2-Q37"
       },
       {
-        "question": "Practice Test 2, Question 38: CODE QUESTION: What is displayed after this code runs?\n\ncount ← 1\nREPEAT UNTIL(count = 4)\n{\n  DISPLAY(count)\n  count ← count + 1\n}",
+        "question": "Practice Test 2, Question 38: What is displayed after this code runs?",
         "choices": [
           "1 2 3",
           "1 2 3 4",
@@ -1441,7 +1471,8 @@ export const practiceTests = [
         "correctAnswer": 0,
         "explanation": "The loop displays 1, 2, and 3, then stops when count becomes 4.",
         "unit": 3,
-        "id": "T2-Q38"
+        "id": "T2-Q38",
+        "code": "count ← 1\nREPEAT UNTIL(count = 4)\n{\n  DISPLAY(count)\n  count ← count + 1\n}"
       },
       {
         "question": "Practice Test 2, Question 39: For a map directions app, DNS is used before a connection is made. What does DNS mainly do?",
@@ -1496,7 +1527,7 @@ export const practiceTests = [
         "id": "T2-Q42"
       },
       {
-        "question": "Practice Test 2, Question 43: CODE QUESTION: What is the purpose of this procedure?\n\nPROCEDURE hasLongWord(words)\n{\n  FOR EACH w IN words\n  {\n    IF(LENGTH(w) > 8)\n    {\n      RETURN(true)\n    }\n  }\n  RETURN(false)\n}",
+        "question": "Practice Test 2, Question 43: What is the purpose of this procedure?",
         "choices": [
           "It counts all words in the list",
           "It removes words with more than 8 characters",
@@ -1506,7 +1537,8 @@ export const practiceTests = [
         "correctAnswer": 3,
         "explanation": "The procedure returns true immediately when it finds a word whose length is greater than 8.",
         "unit": 3,
-        "id": "T2-Q43"
+        "id": "T2-Q43",
+        "code": "PROCEDURE hasLongWord(words)\n{\n  FOR EACH w IN words\n  {\n    IF(LENGTH(w) > 8)\n    {\n      RETURN(true)\n    }\n  }\n  RETURN(false)\n}"
       },
       {
         "question": "Practice Test 2, Question 44: In a video call, fault tolerance is important. Which design best supports fault tolerance?",
@@ -1561,7 +1593,7 @@ export const practiceTests = [
         "id": "T2-Q47"
       },
       {
-        "question": "Practice Test 2, Question 48: CODE QUESTION: Which code correctly swaps the values of a and b using temp?",
+        "question": "Practice Test 2, Question 48: Which code correctly swaps the values of a and b using temp?",
         "choices": [
           "temp ← a; a ← b; b ← temp",
           "a ← b; b ← a",
@@ -1626,7 +1658,7 @@ export const practiceTests = [
         "id": "T2-Q52"
       },
       {
-        "question": "Practice Test 2, Question 53: ROBOT SEQUENCE QUESTION: A robot starts at the lower-left square facing up/north. The goal is two squares above the start and then one square to the right.\n\nWhich sequence reaches the goal?",
+        "question": "Practice Test 2, Question 53: A robot starts at the lower-left square facing up/north. The goal is two squares above the start and then one square to the right.\n\nWhich sequence reaches the goal?",
         "choices": [
           "ROTATE_RIGHT()\nMOVE_FORWARD()\nMOVE_FORWARD()\nMOVE_FORWARD()",
           "MOVE_FORWARD()\nROTATE_LEFT()\nMOVE_FORWARD()\nMOVE_FORWARD()",
@@ -1691,7 +1723,7 @@ export const practiceTests = [
         "id": "T2-Q57"
       },
       {
-        "question": "Practice Test 2, Question 58: CODE QUESTION: Which line should replace <MISSING LINE> to count how many values are negative?\n\ncount ← 0\nFOR EACH value IN nums\n{\n  IF(value < 0)\n  {\n    <MISSING LINE>\n  }\n}",
+        "question": "Practice Test 2, Question 58: Which line should replace <MISSING LINE> to count how many values are negative?",
         "choices": [
           "count ← value",
           "count ← count + 1",
@@ -1701,7 +1733,8 @@ export const practiceTests = [
         "correctAnswer": 1,
         "explanation": "Each time a negative value is found, the counter should increase by 1.",
         "unit": 3,
-        "id": "T2-Q58"
+        "id": "T2-Q58",
+        "code": "count ← 0\nFOR EACH value IN nums\n{\n  IF(value < 0)\n  {\n    <MISSING LINE>\n  }\n}"
       },
       {
         "question": "Practice Test 2, Question 59: A task for a file download is divided across many computers at the same time. This is an example of what concept?",
@@ -1756,7 +1789,7 @@ export const practiceTests = [
         "id": "T2-Q62"
       },
       {
-        "question": "Practice Test 2, Question 63: ROBOT SEQUENCE QUESTION: A robot starts facing right/east. The goal is one square below the robot.\n\nWhich sequence reaches the goal?",
+        "question": "Practice Test 2, Question 63: A robot starts facing right/east. The goal is one square below the robot.\n\nWhich sequence reaches the goal?",
         "choices": [
           "ROTATE_LEFT()\nMOVE_FORWARD()",
           "MOVE_FORWARD()\nROTATE_RIGHT()",
@@ -1821,7 +1854,7 @@ export const practiceTests = [
         "id": "T2-Q67"
       },
       {
-        "question": "Practice Test 2, Question 68: CODE QUESTION: What is displayed?\n\na ← [10, 20, 30, 40]\nREMOVE(a, 2)\nDISPLAY(a[2])",
+        "question": "Practice Test 2, Question 68: What is displayed?",
         "choices": [
           "10",
           "20",
@@ -1831,7 +1864,8 @@ export const practiceTests = [
         "correctAnswer": 2,
         "explanation": "Removing index 2 removes 20 and shifts 30 into index 2.",
         "unit": 3,
-        "id": "T2-Q68"
+        "id": "T2-Q68",
+        "code": "a ← [10, 20, 30, 40]\nREMOVE(a, 2)\nDISPLAY(a[2])"
       },
       {
         "question": "Practice Test 2, Question 69: During a cloud document, data is split into smaller pieces that may travel across different routes. What are these pieces usually called?",
@@ -1867,7 +1901,7 @@ export const practiceTests = [
     "description": "A 70-question AP CSP practice exam covering all five units, with early robot path MCQs, binary conversion, Boolean logic, loops, lists, procedures, and longer code tracing.",
     "questions": [
       {
-        "question": "Practice Test 3, Question 1: ROBOT SEQUENCE QUESTION: A robot starts facing down/south. The goal is one square to the robot's right/west. Which sequence reaches the goal?",
+        "question": "Practice Test 3, Question 1: A robot starts facing down/south. The goal is one square to the robot's right/west. Which sequence reaches the goal?",
         "choices": [
           "ROTATE_LEFT()\nMOVE_FORWARD()",
           "ROTATE_RIGHT()\nMOVE_FORWARD()",
@@ -1880,7 +1914,7 @@ export const practiceTests = [
         "id": "T3-Q01"
       },
       {
-        "question": "Practice Test 3, Question 2: BINARY CONVERSION: What decimal value is represented by 110010?",
+        "question": "Practice Test 3, Question 2: What decimal value is represented by 110010?",
         "choices": [
           "48",
           "50",
@@ -1893,7 +1927,7 @@ export const practiceTests = [
         "id": "T3-Q02"
       },
       {
-        "question": "Practice Test 3, Question 3: BINARY CONVERSION: What is decimal 58 in binary?",
+        "question": "Practice Test 3, Question 3: What is decimal 58 in binary?",
         "choices": [
           "111010",
           "110110",
@@ -1906,7 +1940,7 @@ export const practiceTests = [
         "id": "T3-Q03"
       },
       {
-        "question": "Practice Test 3, Question 4: BOOLEAN AND LOOP TRACE: What is displayed?\n\nx ← 1\ncount ← 0\nREPEAT 6 TIMES\n{\n  IF(x MOD 2 = 1 OR x = 6)\n  {\n    count ← count + 1\n  }\n  x ← x + 1\n}\nDISPLAY(count)",
+        "question": "Practice Test 3, Question 4: What is displayed?",
         "choices": [
           "3",
           "4",
@@ -1916,10 +1950,11 @@ export const practiceTests = [
         "correctAnswer": 1,
         "explanation": "The condition is true for x = 1, 3, 5, and 6, so count is 4.",
         "unit": 3,
-        "id": "T3-Q04"
+        "id": "T3-Q04",
+        "code": "x ← 1\ncount ← 0\nREPEAT 6 TIMES\n{\n  IF(x MOD 2 = 1 OR x = 6)\n  {\n    count ← count + 1\n  }\n  x ← x + 1\n}\nDISPLAY(count)"
       },
       {
-        "question": "Practice Test 3, Question 5: LONGER CODE TRACE: What is displayed?\n\nlist ← [2, 5, 8, 11]\nvalue ← 0\nFOR EACH item IN list\n{\n  IF(item MOD 2 = 0)\n  {\n    value ← value + item\n  }\n  ELSE\n  {\n    value ← value - 1\n  }\n}\nDISPLAY(value)",
+        "question": "Practice Test 3, Question 5: What is displayed?",
         "choices": [
           "7",
           "8",
@@ -1929,10 +1964,11 @@ export const practiceTests = [
         "correctAnswer": 1,
         "explanation": "The even values 2 and 8 are added, and two odd values subtract 1 each, so 2 + 8 - 1 - 1 = 8.",
         "unit": 3,
-        "id": "T3-Q05"
+        "id": "T3-Q05",
+        "code": "list ← [2, 5, 8, 11]\nvalue ← 0\nFOR EACH item IN list\n{\n  IF(item MOD 2 = 0)\n  {\n    value ← value + item\n  }\n  ELSE\n  {\n    value ← value - 1\n  }\n}\nDISPLAY(value)"
       },
       {
-        "question": "Practice Test 3, Question 6: MISSING LINE CODE QUESTION: The code should stop when x is at least 10. Which condition belongs in REPEAT UNTIL?\n\nx ← 1\nREPEAT UNTIL(<MISSING LINE>)\n{\n  x ← x * 2\n}\nDISPLAY(x)",
+        "question": "Practice Test 3, Question 6: The code should stop when x is at least 10. Which condition belongs in REPEAT UNTIL?",
         "choices": [
           "x < 10",
           "x ≥ 10",
@@ -1942,10 +1978,11 @@ export const practiceTests = [
         "correctAnswer": 1,
         "explanation": "REPEAT UNTIL stops once the condition is true, so x ≥ 10 is the correct stopping condition.",
         "unit": 3,
-        "id": "T3-Q06"
+        "id": "T3-Q06",
+        "code": "x ← 1\nREPEAT UNTIL(<MISSING LINE>)\n{\n  x ← x * 2\n}\nDISPLAY(x)"
       },
       {
-        "question": "Practice Test 3, Question 7: PROCEDURE TRACE: What is displayed?\n\nPROCEDURE update(n)\n{\n  IF(n MOD 3 = 0)\n  {\n    RETURN(n / 3)\n  }\n  ELSE\n  {\n    RETURN(n + 2)\n  }\n}\nDISPLAY(update(update(12)))",
+        "question": "Practice Test 3, Question 7: What is displayed?",
         "choices": [
           "4",
           "6",
@@ -1955,10 +1992,11 @@ export const practiceTests = [
         "correctAnswer": 1,
         "explanation": "update(12) returns 4, then update(4) returns 6 because 4 is not divisible by 3.",
         "unit": 3,
-        "id": "T3-Q07"
+        "id": "T3-Q07",
+        "code": "PROCEDURE update(n)\n{\n  IF(n MOD 3 = 0)\n  {\n    RETURN(n / 3)\n  }\n  ELSE\n  {\n    RETURN(n + 2)\n  }\n}\nDISPLAY(update(update(12)))"
       },
       {
-        "question": "Practice Test 3, Question 8: ROBOT SEQUENCE QUESTION: A robot starts facing up/north. It must go around a blocked square directly ahead. The right/east square is open, and the goal is one square east and one square north from the start. Which sequence reaches the goal?",
+        "question": "Practice Test 3, Question 8: A robot starts facing up/north. It must go around a blocked square directly ahead. The right/east square is open, and the goal is one square east and one square north from the start. Which sequence reaches the goal?",
         "choices": [
           "MOVE_FORWARD()\nROTATE_RIGHT()\nMOVE_FORWARD()",
           "ROTATE_LEFT()\nMOVE_FORWARD()\nROTATE_RIGHT()\nMOVE_FORWARD()",
@@ -1971,7 +2009,7 @@ export const practiceTests = [
         "id": "T3-Q08"
       },
       {
-        "question": "Practice Test 3, Question 9: LIST INDEX QUESTION: In AP CSP lists, the first item is at index 1. What is displayed?\n\ncolors ← [\"red\", \"green\", \"blue\"]\nDISPLAY(colors[2])",
+        "question": "Practice Test 3, Question 9: In AP CSP lists, the first item is at index 1. What is displayed?",
         "choices": [
           "red",
           "green",
@@ -1981,10 +2019,11 @@ export const practiceTests = [
         "correctAnswer": 1,
         "explanation": "AP CSP list indexing starts at 1, so colors[2] is \"green\".",
         "unit": 3,
-        "id": "T3-Q09"
+        "id": "T3-Q09",
+        "code": "colors ← [\"red\", \"green\", \"blue\"]\nDISPLAY(colors[2])"
       },
       {
-        "question": "Practice Test 3, Question 10: MISSING LINE CODE QUESTION: The procedure should return the largest value in a nonempty list. Which line belongs at <MISSING LINE>?\n\nPROCEDURE maxValue(nums)\n{\n  biggest ← nums[1]\n  FOR EACH n IN nums\n  {\n    IF(n > biggest)\n    {\n      <MISSING LINE>\n    }\n  }\n  RETURN(biggest)\n}",
+        "question": "Practice Test 3, Question 10: The procedure should return the largest value in a nonempty list. Which line belongs at <MISSING LINE>?",
         "choices": [
           "biggest ← n",
           "n ← biggest",
@@ -1994,10 +2033,11 @@ export const practiceTests = [
         "correctAnswer": 0,
         "explanation": "When a larger item is found, biggest must be updated to that item.",
         "unit": 3,
-        "id": "T3-Q10"
+        "id": "T3-Q10",
+        "code": "PROCEDURE maxValue(nums)\n{\n  biggest ← nums[1]\n  FOR EACH n IN nums\n  {\n    IF(n > biggest)\n    {\n      <MISSING LINE>\n    }\n  }\n  RETURN(biggest)\n}"
       },
       {
-        "question": "Practice Test 3, Question 11: BINARY CONVERSION: What decimal value is represented by 10000000?",
+        "question": "Practice Test 3, Question 11: What decimal value is represented by 10000000?",
         "choices": [
           "64",
           "100",
@@ -2010,7 +2050,7 @@ export const practiceTests = [
         "id": "T3-Q11"
       },
       {
-        "question": "Practice Test 3, Question 12: DECIMAL TO BINARY: Which binary number represents decimal 73?",
+        "question": "Practice Test 3, Question 12: Which binary number represents decimal 73?",
         "choices": [
           "1001001",
           "1000101",
@@ -2023,7 +2063,7 @@ export const practiceTests = [
         "id": "T3-Q12"
       },
       {
-        "question": "Practice Test 3, Question 13: LONGER CODE TRACE WITH LIST CHANGES: What is displayed?\n\nitems ← [4, 6, 8]\nREMOVE(items, 2)\nAPPEND(items, 10)\nINSERT(items, 2, 5)\nDISPLAY(items[1] + items[2] + items[3])",
+        "question": "Practice Test 3, Question 13: What is displayed?",
         "choices": [
           "15",
           "17",
@@ -2033,10 +2073,11 @@ export const practiceTests = [
         "correctAnswer": 1,
         "explanation": "The list becomes [4, 5, 8, 10], so the first three items sum to 17.",
         "unit": 3,
-        "id": "T3-Q13"
+        "id": "T3-Q13",
+        "code": "items ← [4, 6, 8]\nREMOVE(items, 2)\nAPPEND(items, 10)\nINSERT(items, 2, 5)\nDISPLAY(items[1] + items[2] + items[3])"
       },
       {
-        "question": "Practice Test 3, Question 14: BOOLEAN EXPRESSION: Which expression is true only when age is at least 13 and hasPermission is true?",
+        "question": "Practice Test 3, Question 14: Which expression is true only when age is at least 13 and hasPermission is true?",
         "choices": [
           "age ≥ 13 AND hasPermission",
           "age ≥ 13 OR hasPermission",
@@ -2049,7 +2090,7 @@ export const practiceTests = [
         "id": "T3-Q14"
       },
       {
-        "question": "Practice Test 3, Question 15: ROBOT LOOP QUESTION: A robot is facing an open hallway with the goal four squares ahead. Which code reaches the goal with the fewest repeated command lines?",
+        "question": "Practice Test 3, Question 15: A robot is facing an open hallway with the goal four squares ahead. Which code reaches the goal with the fewest repeated command lines?",
         "choices": [
           "MOVE_FORWARD()",
           "MOVE_FORWARD()\nMOVE_FORWARD()\nMOVE_FORWARD()\nMOVE_FORWARD()",
@@ -2088,7 +2129,7 @@ export const practiceTests = [
         "id": "T3-Q17"
       },
       {
-        "question": "Practice Test 3, Question 18: CODE QUESTION: Which condition is true when x is outside the range 1 through 10?",
+        "question": "Practice Test 3, Question 18: Which condition is true when x is outside the range 1 through 10?",
         "choices": [
           "x < 1 OR x > 10",
           "x ≥ 1 AND x ≤ 10",
@@ -2153,7 +2194,7 @@ export const practiceTests = [
         "id": "T3-Q22"
       },
       {
-        "question": "Practice Test 3, Question 23: CODE QUESTION: What does the algorithm display?\n\nnums ← [2, 7, 4, 9]\nfound ← false\nFOR EACH n IN nums\n{\n  IF(n = 4)\n  {\n    found ← true\n  }\n}\nDISPLAY(found)",
+        "question": "Practice Test 3, Question 23: What does the algorithm display?",
         "choices": [
           "true",
           "false",
@@ -2163,7 +2204,8 @@ export const practiceTests = [
         "correctAnswer": 0,
         "explanation": "The traversal finds 4 in the list and sets found to true.",
         "unit": 3,
-        "id": "T3-Q23"
+        "id": "T3-Q23",
+        "code": "nums ← [2, 7, 4, 9]\nfound ← false\nFOR EACH n IN nums\n{\n  IF(n = 4)\n  {\n    found ← true\n  }\n}\nDISPLAY(found)"
       },
       {
         "question": "Practice Test 3, Question 24: During a multiplayer quiz, data is split into smaller pieces that may travel across different routes. What are these pieces usually called?",
@@ -2218,7 +2260,7 @@ export const practiceTests = [
         "id": "T3-Q27"
       },
       {
-        "question": "Practice Test 3, Question 28: CODE QUESTION: Which statement best describes why this procedure uses abstraction?\n\nPROCEDURE addTax(price, rate)\n{\n  RETURN(price + price * rate)\n}",
+        "question": "Practice Test 3, Question 28: Which statement best describes why this procedure uses abstraction?",
         "choices": [
           "It removes all inputs from the program",
           "It hides the tax calculation behind a reusable procedure name",
@@ -2228,7 +2270,8 @@ export const practiceTests = [
         "correctAnswer": 1,
         "explanation": "A procedure is an abstraction because callers can use addTax without rewriting or focusing on its internal calculation.",
         "unit": 3,
-        "id": "T3-Q28"
+        "id": "T3-Q28",
+        "code": "PROCEDURE addTax(price, rate)\n{\n  RETURN(price + price * rate)\n}"
       },
       {
         "question": "Practice Test 3, Question 29: For a remote backup system, DNS is used before a connection is made. What does DNS mainly do?",
@@ -2283,7 +2326,7 @@ export const practiceTests = [
         "id": "T3-Q32"
       },
       {
-        "question": "Practice Test 3, Question 33: CODE QUESTION: What is displayed?\n\nletters ← [\"A\", \"B\", \"C\"]\nletters[1] ← letters[3]\nDISPLAY(letters[1])",
+        "question": "Practice Test 3, Question 33: What is displayed?",
         "choices": [
           "C",
           "A",
@@ -2293,7 +2336,8 @@ export const practiceTests = [
         "correctAnswer": 0,
         "explanation": "letters[3] is C, and assigning it to letters[1] makes the first item C.",
         "unit": 3,
-        "id": "T3-Q33"
+        "id": "T3-Q33",
+        "code": "letters ← [\"A\", \"B\", \"C\"]\nletters[1] ← letters[3]\nDISPLAY(letters[1])"
       },
       {
         "question": "Practice Test 3, Question 34: In a map directions app, fault tolerance is important. Which design best supports fault tolerance?",
@@ -2348,7 +2392,7 @@ export const practiceTests = [
         "id": "T3-Q37"
       },
       {
-        "question": "Practice Test 3, Question 38: CODE QUESTION: Which missing line makes the loop eventually stop?\n\nn ← 0\nREPEAT UNTIL(n = 5)\n{\n  DISPLAY(n)\n  <MISSING LINE>\n}",
+        "question": "Practice Test 3, Question 38: Which missing line makes the loop eventually stop?",
         "choices": [
           "n ← 0",
           "DISPLAY(5)",
@@ -2358,7 +2402,8 @@ export const practiceTests = [
         "correctAnswer": 2,
         "explanation": "Increasing n by 1 each time eventually makes n equal 5, so the loop stops.",
         "unit": 3,
-        "id": "T3-Q38"
+        "id": "T3-Q38",
+        "code": "n ← 0\nREPEAT UNTIL(n = 5)\n{\n  DISPLAY(n)\n  <MISSING LINE>\n}"
       },
       {
         "question": "Practice Test 3, Question 39: Why does moving from IPv4 to IPv6 matter as more devices go online?",
@@ -2413,7 +2458,7 @@ export const practiceTests = [
         "id": "T3-Q42"
       },
       {
-        "question": "Practice Test 3, Question 43: CODE QUESTION: The program should display \"match\" if code is either 101 or 202. Which condition is correct?",
+        "question": "Practice Test 3, Question 43: The program should display \"match\" if code is either 101 or 202. Which condition is correct?",
         "choices": [
           "code = 101 AND code = 202",
           "NOT code = 101",
@@ -2478,7 +2523,7 @@ export const practiceTests = [
         "id": "T3-Q47"
       },
       {
-        "question": "Practice Test 3, Question 48: CODE QUESTION: What is displayed?\n\nnums ← [8, 6, 7]\nINSERT(nums, 1, 5)\nREMOVE(nums, 3)\nDISPLAY(nums[2])",
+        "question": "Practice Test 3, Question 48: What is displayed?",
         "choices": [
           "5",
           "8",
@@ -2488,7 +2533,8 @@ export const practiceTests = [
         "correctAnswer": 1,
         "explanation": "After inserting 5, the list is [5,8,6,7]; removing index 3 removes 6, leaving index 2 as 8.",
         "unit": 3,
-        "id": "T3-Q48"
+        "id": "T3-Q48",
+        "code": "nums ← [8, 6, 7]\nINSERT(nums, 1, 5)\nREMOVE(nums, 3)\nDISPLAY(nums[2])"
       },
       {
         "question": "Practice Test 3, Question 49: A task for a school website is divided across many computers at the same time. This is an example of what concept?",
@@ -2543,7 +2589,7 @@ export const practiceTests = [
         "id": "T3-Q52"
       },
       {
-        "question": "Practice Test 3, Question 53: ROBOT SEQUENCE QUESTION: A robot starts facing up/north. It must move around a blocked square directly ahead. The square to the right is open, and the goal is one square to the right and one square up from the start.\n\nWhich sequence avoids the blocked square and reaches the goal?",
+        "question": "Practice Test 3, Question 53: A robot starts facing up/north. It must move around a blocked square directly ahead. The square to the right is open, and the goal is one square to the right and one square up from the start.\n\nWhich sequence avoids the blocked square and reaches the goal?",
         "choices": [
           "MOVE_FORWARD()\nROTATE_RIGHT()\nMOVE_FORWARD()",
           "ROTATE_LEFT()\nMOVE_FORWARD()\nROTATE_RIGHT()\nMOVE_FORWARD()",
@@ -2608,7 +2654,7 @@ export const practiceTests = [
         "id": "T3-Q57"
       },
       {
-        "question": "Practice Test 3, Question 58: CODE QUESTION: What is displayed by this procedure call?\n\nPROCEDURE firstItem(aList)\n{\n  RETURN(aList[1])\n}\n\nDISPLAY(firstItem([\"cat\", \"dog\", \"bird\"]))",
+        "question": "Practice Test 3, Question 58: What is displayed by this procedure call?",
         "choices": [
           "dog",
           "bird",
@@ -2618,7 +2664,8 @@ export const practiceTests = [
         "correctAnswer": 3,
         "explanation": "AP CSP lists start at index 1, so the first item of the list is cat.",
         "unit": 3,
-        "id": "T3-Q58"
+        "id": "T3-Q58",
+        "code": "PROCEDURE firstItem(aList)\n{\n  RETURN(aList[1])\n}\n\nDISPLAY(firstItem([\"cat\", \"dog\", \"bird\"]))"
       },
       {
         "question": "Practice Test 3, Question 59: During a messaging app, data is split into smaller pieces that may travel across different routes. What are these pieces usually called?",
@@ -2673,7 +2720,7 @@ export const practiceTests = [
         "id": "T3-Q62"
       },
       {
-        "question": "Practice Test 3, Question 63: CODE QUESTION: Which code segment finds the maximum value in a nonempty list nums?",
+        "question": "Practice Test 3, Question 63: Which code segment finds the maximum value in a nonempty list nums?",
         "choices": [
           "max ← 0; FOR EACH n IN nums { max ← max + n }",
           "max ← nums[1]; FOR EACH n IN nums { IF(n > max) { max ← n } }",
@@ -2738,7 +2785,7 @@ export const practiceTests = [
         "id": "T3-Q67"
       },
       {
-        "question": "Practice Test 3, Question 68: ROBOT SEQUENCE QUESTION: A robot starts facing left/west. The goal is two squares behind the robot, which means the goal is two squares to the east.\n\nWhich sequence reaches the goal?",
+        "question": "Practice Test 3, Question 68: A robot starts facing left/west. The goal is two squares behind the robot, which means the goal is two squares to the east.\n\nWhich sequence reaches the goal?",
         "choices": [
           "ROTATE_RIGHT()\nMOVE_FORWARD()\nMOVE_FORWARD()",
           "ROTATE_RIGHT()\nROTATE_RIGHT()\nMOVE_FORWARD()\nMOVE_FORWARD()",

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { navigate, useApp } from "../App.jsx";
 import { api } from "../lib/api.js";
+import { CodeView } from "./ExamTools.jsx";
 
 // Tiny, safe Markdown: fenced code, inline code, **bold**, bullet lists, paragraphs.
 // Builds React elements (no innerHTML), so model output can't inject HTML.
@@ -27,7 +28,7 @@ export function Markdown({ text }) {
   const chunks = text.split(/```[a-zA-Z]*\n?/);
   chunks.forEach((chunk, ci) => {
     if (ci % 2 === 1) {
-      blocks.push(<pre className="code-block small" key={`c${ci}`}>{chunk.replace(/\n$/, "")}</pre>);
+      blocks.push(<CodeView key={`c${ci}`} className="small" code={chunk.replace(/\n$/, "")} />);
       return;
     }
     chunk.split(/\n{2,}/).forEach((para, pi) => {

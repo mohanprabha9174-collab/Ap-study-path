@@ -10,7 +10,47 @@ export const HIGHLIGHT_COLORS = {
 // ---------------------------------------------------------------- highlighting
 // Renders plain text with saved highlight ranges. When `active`, selecting text adds a highlight.
 // Clicking an existing highlight removes it.
-export function HighlightText({ text, ranges = [], active, color = "yellow", onChange, as: Tag = "p", className = "" }) {
+// ---------------------------------------------------------------- code view
+// Java and AP pseudocode words to colour, so structure is easy to see at a glance.
+const KEYWORDS = new Set([
+  "public", "private", "protected", "static", "final", "void", "int", "double", "boolean", "char", "long", "String",
+  "class", "new", "return", "if", "else", "for", "while", "do", "break", "continue", "this", "super", "extends",
+  "implements", "interface", "abstract", "true", "false", "null", "import", "try", "catch", "throw", "throws",
+  "PROCEDURE", "RETURN", "IF", "ELSE", "REPEAT", "TIMES", "UNTIL", "FOR", "EACH", "IN", "NOT", "AND", "OR", "MOD",
+  "true", "false"
+]);
+const BUILTINS = new Set(["DISPLAY", "INPUT", "APPEND", "INSERT", "REMOVE", "LENGTH", "RANDOM", "MOVE_FORWARD",
+  "ROTATE_LEFT", "ROTATE_RIGHT", "CAN_MOVE", "System", "Math", "ArrayList", "Integer", "Double", "Object"]);
+const TOKEN = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(\/\/.*$)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][A-Za-z0-9_]*)|(←|==|!=|<=|>=|&&|\|\||[{}])/gm;
+
+/** Split text into coloured spans. The text itself is unchanged, so highlight offsets stay correct. */
+function colorize(text, keyBase) {
+  const out = [];
+  let last = 0;
+  let m;
+  TOKEN.lastIndex = 0;
+  while ((m = TOKEN.exec(text))) {
+    let cls = null;
+    if (m[1]) cls = "tk-str";
+    else if (m[2]) cls = "tk-com";
+    else if (m[3]) cls = "tk-num";
+    else if (m[4]) cls = KEYWORDS.has(m[4]) ? "tk-key" : BUILTINS.has(m[4]) ? "tk-fn" : null;
+    else if (m[5]) cls = m[5] === "{" || m[5] === "}" ? "tk-brace" : "tk-op";
+    if (!cls) continue;
+    if (m.index > last) out.push(text.slice(last, m.index));
+    out.push(<span key={`${keyBase}-${m.index}`} className={cls}>{m[0]}</span>);
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
+/** Read-only code with line numbers, indent guides and colours (no highlighter). */
+export function CodeView({ code, className = "" }) {
+  return <HighlightText as="pre" code text={code} className={`code-block ${className}`} />;
+}
+
+export function HighlightText({ text, ranges = [], active, color = "yellow", onChange, as: Tag = "p", className = "", code = false }) {
   const ref = useRef(null);
   // Set when a drag just made a highlight, so the click that follows the drag doesn't remove it.
   const justSelected = useRef(false);
@@ -53,6 +93,62 @@ export function HighlightText({ text, ranges = [], active, color = "yellow", onC
     if (pos < text.length) out.push({ text: text.slice(pos) });
     return out;
   }, [text, ranges]);
+
+  const markFor = (p, i, children) => (
+    <mark
+      key={i}
+      className="hl"
+      style={{ background: HIGHLIGHT_COLORS[p.range.c] || HIGHLIGHT_COLORS.yellow }}
+      title={active ? "Click to remove highlight" : undefined}
+      onClick={() => {
+        if (!active || justSelected.current) return;
+        const sel = window.getSelection();
+        if (sel && !sel.isCollapsed) return;
+        onChange(ranges.filter((r) => r !== p.range));
+      }}
+    >
+      {children}
+    </mark>
+  );
+
+  if (code) {
+    // One row per line: CSS draws the line number, the leading spaces get indent guides and
+    // extra width, and the rest is coloured. Every character of the text is still in the DOM
+    // (the newline sits in a hidden span), so highlight offsets match the plain text.
+    const lines = [];
+    let start = 0;
+    text.split("\n").forEach((line, n, all) => {
+      const end = start + line.length;
+      const indent = line.match(/^ */)[0].length;
+      const pieces = [];
+      let at = 0;
+      parts.forEach((p, i) => {
+        const ps = at;
+        const pe = at + p.text.length;
+        at = pe;
+        const a = Math.max(ps, start);
+        const b = Math.min(pe, end);
+        if (b <= a) return;
+        const segs = [];
+        const indentEnd = start + indent;
+        if (a < indentEnd) segs.push(<span key="i" className="ind" style={{ "--n": Math.min(b, indentEnd) - a }}>{text.slice(a, Math.min(b, indentEnd))}</span>);
+        if (b > indentEnd) segs.push(...colorize(text.slice(Math.max(a, indentEnd), b), `${n}-${i}`));
+        pieces.push(p.range ? markFor(p, `${n}-${i}`, segs) : <span key={`${n}-${i}`}>{segs}</span>);
+      });
+      lines.push(
+        <span className="cl" key={n} data-indent={indent / 2}>
+          {pieces}
+          {n < all.length - 1 && <span className="nl">{"\n"}</span>}
+        </span>
+      );
+      start = end + 1;
+    });
+    return (
+      <Tag ref={ref} className={`${className} code-view ${active ? "highlighting" : ""}`} onMouseUp={onMouseUp} onTouchEnd={onMouseUp} tabIndex={0}>
+        <code>{lines}</code>
+      </Tag>
+    );
+  }
 
   return (
     <Tag ref={ref} className={`${className} ${active ? "highlighting" : ""}`} onMouseUp={onMouseUp} onTouchEnd={onMouseUp}>
