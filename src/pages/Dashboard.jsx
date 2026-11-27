@@ -67,7 +67,10 @@ export default function Dashboard() {
 }
 
 function CourseSummary({ course, attempts, frqs }) {
-  const best = attempts.reduce((m, a) => Math.max(m, a.score / a.total), 0);
+  // Full practice exams and short custom quizzes are counted separately.
+  const exams = attempts.filter((a) => a.testId !== "custom");
+  const quizzes = attempts.length - exams.length;
+  const best = exams.reduce((m, a) => Math.max(m, a.score / a.total), 0);
   const recent = attempts.slice(0, 5);
   const avg = recent.length ? recent.reduce((s, a) => s + a.score / a.total, 0) / recent.length : 0;
 
@@ -88,8 +91,9 @@ function CourseSummary({ course, attempts, frqs }) {
     <article className={`card dash-card accent-${course.accent}`}>
       <h2>{course.name}</h2>
       <div className="dash-stats">
-        <div><strong>{attempts.length}</strong><span>exams and quizzes</span></div>
-        <div><strong>{attempts.length ? `${Math.round(best * 100)}%` : "—"}</strong><span>best score</span></div>
+        <div><strong>{exams.length}</strong><span>practice exams</span></div>
+        <div><strong>{quizzes}</strong><span>custom quizzes</span></div>
+        <div><strong>{exams.length ? `${Math.round(best * 100)}%` : "—"}</strong><span>best exam score</span></div>
         <div><strong>{recent.length ? `${Math.round(avg * 100)}%` : "—"}</strong><span>recent avg</span></div>
         <div><strong>{frqAvg === null ? "—" : `${Math.round(frqAvg * 100)}%`}</strong><span>FRQ avg</span></div>
       </div>

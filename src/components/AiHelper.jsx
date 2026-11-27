@@ -69,8 +69,23 @@ export default function AiHelper({ open, onClose, course, context, starters = []
   const canUse = Boolean(user && backend.available && backend.aiGrading);
 
   useEffect(() => {
-    if (open && canUse) api("/ai/usage").then(setUsage).catch(() => {});
+    if (open && canUse) {
+      api("/ai/usage").then((u) => {
+        setUsage(u);
+        // Keep other counters on the page (like the FRQ banner) in step.
+        window.dispatchEvent(new CustomEvent("ap-usage", { detail: u }));
+      }).catch(() => {});
+    }
   }, [open, canUse, messages.length]);
+  const outOfRequests = usage?.remaining === 0;
+
+  // Stop the page behind the drawer from scrolling while it is open.
+  useEffect(() => {
+    if (!open) return undefined;
+    const before = document.body.style.overflowY;
+    document.body.style.overflowY = "hidden";
+    return () => { document.body.style.overflowY = before; };
+  }, [open]);
 
   const drawerRef = useRef(null);
   const closeRef = useRef(onClose);
@@ -107,10 +122,10 @@ export default function AiHelper({ open, onClose, course, context, starters = []
 
   useEffect(() => { setError(""); }, [context.key]);
 
-  async function send(text) {
+  async function send(text, base = messages) {
     const content = text.trim();
-    if (!content || busy) return;
-    const history = [...messages, { role: "user", content }];
+    if (!content || busy || outOfRequests) return;
+    const history = [...base, { role: "user", content }];
     setThreads((t) => ({ ...t, [context.key]: history }));
     setInput("");
     setError("");
@@ -128,7 +143,9 @@ export default function AiHelper({ open, onClose, course, context, starters = []
           draft: context.draft,
           graded: context.graded,
           ppr: context.ppr,
-          pprFiles: context.pprFiles,
+          // Uploaded project files go with the first message of a chat only; later turns
+          // still include the project code text, which keeps each request small.
+          pprFiles: history.length <= 1 ? context.pprFiles : [],
           history
         }
       });
@@ -158,7 +175,7 @@ export default function AiHelper({ open, onClose, course, context, starters = []
             <div className="ai-intro">
               <p>Ask anything about {context.label ? <strong>{context.label}</strong> : `${course.short}`}. Pick a starter or type your own question.</p>
               <div className="ai-starters">
-                {starters.map((s) => <button key={s} className="starter-chip" onClick={() => send(s)}>{s}</button>)}
+                {starters.map((s) => <button key={s} className="starter-chip" disabled={outOfRequests} onClick={() => send(s)}>{s}</button>)}
               </div>
             </div>
           )}
@@ -168,9 +185,19 @@ export default function AiHelper({ open, onClose, course, context, starters = []
             </div>
           ))}
           {busy && <div className="ai-msg assistant typing" aria-label="AI is thinking"><span /><span /><span /></div>}
-          {error && <div className="error-box">{error}</div>}
+          {error && (
+            <div className="error-box" role="alert">
+              {error}
+              {messages[messages.length - 1]?.role === "user" && !outOfRequests && (
+                <button className="link-btn inline" onClick={() => send(messages[messages.length - 1].content, messages.slice(0, -1))}>Try again</button>
+              )}
+            </div>
+          )}
+          {outOfRequests && (
+            <div className="info-box">You've used all {usage.limit} AI requests for today. They reset tomorrow; until then you can still practice and score FRQs with the rubric.</div>
+          )}
         </div>
-        {messages.length > 0 && starters.length > 0 && !busy && (
+        {messages.length > 0 && starters.length > 0 && !busy && !outOfRequests && (
           <div className="ai-starters compact">
             {starters.slice(0, 3).map((s) => <button key={s} className="starter-chip" onClick={() => send(s)}>{s}</button>)}
           </div>
@@ -185,8 +212,10 @@ export default function AiHelper({ open, onClose, course, context, starters = []
             rows={2}
             maxLength={2000}
             tabIndex={open ? 0 : -1}
+            disabled={outOfRequests}
+            aria-label="Your question for the AI helper"
           />
-          <button className="primary-btn" type="submit" disabled={busy || !input.trim()}>Send</button>
+          <button className="primary-btn" type="submit" disabled={busy || !input.trim() || outOfRequests}>Send</button>
         </form>
         <p className="ai-footnote">
           {usage && <strong>{usage.remaining} of {usage.limit} AI requests left today. </strong>}

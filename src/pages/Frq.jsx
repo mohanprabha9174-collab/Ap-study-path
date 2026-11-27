@@ -16,19 +16,22 @@ function FrqToolbar({ course, frqId }) {
   const [refOpen, setRefOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [left, setLeft] = useState(FRQ_MINUTES[course.id] * 60);
-  useEffect(() => { setRunning(false); setLeft(FRQ_MINUTES[course.id] * 60); }, [frqId, course.id]);
+  // One timer per course: switching FRQs keeps it running (CSP's 30 minutes cover several prompts).
+  useEffect(() => { setRunning(false); setLeft(FRQ_MINUTES[course.id] * 60); }, [course.id]);
   useEffect(() => {
     if (!running) return undefined;
     const id = setInterval(() => setLeft((t) => (t <= 1 ? (setRunning(false), 0) : t - 1)), 1000);
     return () => clearInterval(id);
   }, [running]);
+  const full = FRQ_MINUTES[course.id] * 60;
   const reference = references[course.id];
   return (
     <div className="frq-toolbar">
       <div className="frq-timer">
-        {prefs.showTimer ? <span className={`exam-timer ${left <= 300 && running ? "low" : ""}`}>{formatTime(left)}</span> : <span className="exam-timer hidden-timer">Timer hidden</span>}
-        <button className="bar-btn" onClick={() => setRunning(!running)}>{running ? "Pause" : left === FRQ_MINUTES[course.id] * 60 ? `Start ${FRQ_MINUTES[course.id]}-minute timer` : "Resume"}</button>
-        {left !== FRQ_MINUTES[course.id] * 60 && <button className="bar-btn" onClick={() => { setRunning(false); setLeft(FRQ_MINUTES[course.id] * 60); }}>Reset</button>}
+        {left === 0 ? <span className="exam-timer low" role="status">Time's up</span>
+          : prefs.showTimer ? <span className={`exam-timer ${left <= 300 && running ? "low" : ""}`}>{formatTime(left)}</span> : <span className="exam-timer hidden-timer">Timer hidden</span>}
+        {left > 0 && <button className="bar-btn" onClick={() => setRunning(!running)}>{running ? "Pause" : left === full ? `Start ${FRQ_MINUTES[course.id]}-minute timer` : "Resume"}</button>}
+        {left !== full && <button className="bar-btn" onClick={() => { setRunning(false); setLeft(full); }}>{left === 0 ? "Start again" : "Reset"}</button>}
         <button className="bar-btn" onClick={() => setPrefs({ showTimer: !prefs.showTimer })}>{prefs.showTimer ? "Hide" : "Show"}</button>
       </div>
       {reference && <button className="tool-btn" onClick={() => setRefOpen(true)}>Reference</button>}
@@ -37,10 +40,11 @@ function FrqToolbar({ course, frqId }) {
   );
 }
 
-export function FrqTab({ course }) {
+export function FrqTab({ course, frqParam }) {
   const { user, backend, store } = useApp();
-  const [selectedId, setSelectedId] = useState(course.frqs[0]?.id);
-  const frq = course.frqs.find((f) => f.id === selectedId) || course.frqs[0];
+  // The open FRQ lives in the URL (#/csa/frq/<id>) so reloads and links keep it.
+  const frq = course.frqs.find((f) => f.id === frqParam) || course.frqs[0];
+  const setSelectedId = (id) => navigate(`/${course.id}/frq/${id}`);
   const [response, setResponse] = useState(() => loadDraft(`frq:${frq.id}`));
   const [project, setProject] = useProject();
   const [noProjectWarning, setNoProjectWarning] = useState(false);
@@ -53,6 +57,7 @@ export function FrqTab({ course }) {
   const [showRubric, setShowRubric] = useState(false);
   const [history, setHistory] = useState([]);
   const [aiOpen, setAiOpen] = useState(false);
+  const [usage, setUsage] = useState(null);
 
   const aiAvailable = backend.available && backend.aiGrading;
   const canUseServer = backend.available && Boolean(user);
@@ -60,8 +65,21 @@ export function FrqTab({ course }) {
   useEffect(() => {
     setResponse(loadDraft(`frq:${frq.id}`));
     setShowSolution(false);
+    setShowRubric(false);
+    setNoProjectWarning(false);
     setError("");
   }, [frq.id]);
+
+  useEffect(() => {
+    if (aiAvailable && canUseServer) api("/ai/usage").then(setUsage).catch(() => {});
+    else setUsage(null);
+  }, [aiAvailable, canUseServer, results]);
+  useEffect(() => {
+    const onUsage = (e) => setUsage(e.detail);
+    window.addEventListener("ap-usage", onUsage);
+    return () => window.removeEventListener("ap-usage", onUsage);
+  }, []);
+  const aiLeft = !(aiAvailable && canUseServer) || !usage || usage.remaining > 0;
 
   useEffect(() => {
     store.listFrqHistory().then((list) => setHistory(list.filter((h) => h.course === course.id))).catch(() => setHistory([]));
@@ -92,7 +110,7 @@ export function FrqTab({ course }) {
         result = { ...gradeWithRubric({ frq, response }), solution: frq.solution || null };
         await store.addFrqResult({ course: course.id, frqId: frq.id, score: result.score, total: result.total, grader: result.grader });
       }
-      setResults((prev) => ({ ...prev, [frq.id]: result }));
+      setResults((prev) => ({ ...prev, [frq.id]: { ...result, gradedText: response } }));
       setTimeout(() => document.getElementById("frq-result")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     } catch (err) {
       setError(err.message);
@@ -107,11 +125,28 @@ export function FrqTab({ course }) {
 
   return (
     <div className="frq-page">
-      <GradingBanner course={course} aiAvailable={aiAvailable} canUseServer={canUseServer} backendAvailable={backend.available} refreshKey={Object.keys(results).length + history.length} />
+      <GradingBanner aiAvailable={aiAvailable} canUseServer={canUseServer} backendAvailable={backend.available} usage={usage} />
 
-      {course.id === "csp" && <ProjectUpload project={{ ...project, code: ppr }} onChange={(next) => { setProject(next); saveDraft("ppr:csp", next.code); }} checklist={course.pprChecklist} />}
+      {course.id === "csp" && (
+        <>
+          {!(aiAvailable && canUseServer) && (
+            <p className="info-box">Your uploaded project is used when AI grading is on{aiAvailable ? ". Sign in to turn it on" : ""}. Until then it's saved on this device and the keyword estimate doesn't read it.</p>
+          )}
+          <ProjectUpload project={{ ...project, code: ppr }} onChange={(next) => { setProject(next); saveDraft("ppr:csp", next.code); }} checklist={course.pprChecklist} />
+        </>
+      )}
 
       <div className="frq-layout">
+        <label className="frq-picker">
+          <span>FRQ</span>
+          <select value={frq.id} onChange={(e) => setSelectedId(e.target.value)}>
+            {groups.map((group) => (
+              <optgroup key={group} label={group}>
+                {course.frqs.filter((f) => f.category === group).map((f) => <option key={f.id} value={f.id}>{f.title}</option>)}
+              </optgroup>
+            ))}
+          </select>
+        </label>
         <aside className="card frq-sidebar">
           <h2>Choose an FRQ</h2>
           {groups.map((group) => (
@@ -157,9 +192,9 @@ export function FrqTab({ course }) {
           )}
 
           <ol className="frq-steps" aria-label="How to practice this FRQ">
-            {frq.usesPpr && <li className={hasProject ? "done" : "now"}>Upload your Create Task project at the top of this page</li>}
+            {frq.usesPpr && canUseServer && aiAvailable && <li className={hasProject ? "done" : "now"}>Upload your Create Task project at the top of this page</li>}
             <li className={response.trim() ? "done" : "now"}>Read the prompt and write your answer below</li>
-            <li className={result ? "done" : response.trim() ? "now" : ""}>Click {canUseServer && aiAvailable ? "Grade with AI" : "Score with rubric"} to see your points</li>
+            <li className={result ? "done" : response.trim() ? "now" : ""}>Click {canUseServer && aiAvailable && aiLeft ? "Grade with AI" : "Score with rubric"} to see your points</li>
             <li className={result ? "now" : ""}>Fix what the feedback points out, then grade again</li>
           </ol>
 
@@ -225,7 +260,7 @@ export function FrqTab({ course }) {
           )}
           <div className="button-row">
             <button className="primary-btn" onClick={() => grade()} disabled={busy}>
-              {busy ? (canUseServer && aiAvailable ? "AI is grading…" : "Scoring…") : canUseServer && aiAvailable ? "Grade with AI" : "Score with rubric"}
+              {busy ? (canUseServer && aiAvailable && aiLeft ? "AI is grading…" : "Scoring…") : canUseServer && aiAvailable && aiLeft ? "Grade with AI" : "Score with rubric"}
             </button>
             <button className="secondary-btn ai-btn" onClick={() => setAiOpen(true)}><span className="ai-badge">AI</span> Get help</button>
             <button className="ghost-btn" onClick={() => { if (!response.trim() || window.confirm("Erase your whole answer? This can't be undone.")) onResponseChange(""); }}>Clear</button>
@@ -234,6 +269,9 @@ export function FrqTab({ course }) {
             )}
           </div>
 
+          {result && result.gradedText !== undefined && result.gradedText !== response && (
+            <p className="info-box" role="status">You've changed your answer since this grade. Grade again to update it.</p>
+          )}
           {result && <GradeCard result={result} onAsk={() => setAiOpen(true)} />}
 
           {showSolution && frq.solution && (
@@ -273,11 +311,14 @@ function frqStarters(graded) {
     : ["What is this question asking?", "Give me a hint for the first part", "Check my draft against the rubric (no answers)", "How should I start?"];
 }
 
-function GradingBanner({ aiAvailable, canUseServer, backendAvailable, refreshKey }) {
-  const [usage, setUsage] = useState(null);
-  useEffect(() => {
-    if (aiAvailable && canUseServer) api("/ai/usage").then(setUsage).catch(() => {});
-  }, [aiAvailable, canUseServer, refreshKey]);
+function GradingBanner({ aiAvailable, canUseServer, backendAvailable, usage }) {
+  if (aiAvailable && canUseServer && usage?.remaining === 0) {
+    return (
+      <div className="card grading-banner">
+        <span><strong>You've used today's {usage.limit} AI requests.</strong> Grading falls back to the keyword rubric estimate until they reset tomorrow.</span>
+      </div>
+    );
+  }
   if (aiAvailable && canUseServer) {
     return (
       <div className="card grading-banner ai">
