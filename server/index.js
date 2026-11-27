@@ -9,7 +9,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { openDatabase } from "./db.js";
-import { aiEnabled, aiProvider, gradeWithAI, gradeWithRubric } from "./grader.js";
+import { aiEnabled, aiProvider, gradeWithAI, gradeWithRubric, rubricTotal } from "./grader.js";
 import { aiSettingsSeen, estimateCostUsd, onUsage } from "./ai.js";
 import { courses } from "../src/data/courses.js";
 import { tutorReply } from "./tutor.js";
@@ -22,11 +22,35 @@ if (!JWT_SECRET) {
   console.error("JWT_SECRET must be set in production.");
   process.exit(1);
 }
+if (IS_PROD && JWT_SECRET.length < 32) {
+  console.warn("JWT_SECRET is shorter than 32 characters. Use a long random value so sign-in tokens can't be guessed.");
+}
 
 const db = await openDatabase();
 const app = express();
 app.set("trust proxy", 1);
-app.use(helmet({ contentSecurityPolicy: false }));
+// Content Security Policy: the page may only load its own scripts, styles and fonts, so even if
+// some text ever slipped through as HTML it couldn't load or run outside code.
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: false,
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      fontSrc: ["'self'", "data:"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: IS_PROD ? [] : null
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  referrerPolicy: { policy: "no-referrer" }
+}));
 // Most requests are small; the two AI routes may carry an uploaded project (PDF/images).
 const smallJson = express.json({ limit: "200kb" });
 const bigJson = express.json({ limit: "14mb" });
@@ -48,6 +72,11 @@ function hashPassword(password) {
   const hash = crypto.scryptSync(password, salt, 64).toString("hex");
   return `scrypt$${salt}$${hash}`;
 }
+// Long enough for any passphrase, short enough that hashing can't be used to overload the server.
+const MAX_PASSWORD = 200;
+const tooLong = (pw) => String(pw || "").length > MAX_PASSWORD;
+// Used when an email has no account, so a wrong email takes as long as a wrong password.
+const DUMMY_HASH = hashPassword(crypto.randomBytes(16).toString("hex"));
 function verifyPassword(password, stored) {
   const [, salt, hash] = String(stored).split("$");
   if (!salt || !hash) return false;
@@ -74,13 +103,13 @@ async function requireAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: "Please sign in." });
   let payload;
   try {
-    payload = jwt.verify(token, JWT_SECRET);
+    payload = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
   } catch {
     return res.status(401).json({ error: "Your session expired. Please sign in again." });
   }
   try {
     const user = await db.get("SELECT id, password_hash FROM users WHERE id = ?", [payload.sub]);
-    if (!user || (payload.pv && payload.pv !== passwordVersion(user))) {
+    if (!user || !payload.pv || payload.pv !== passwordVersion(user)) {
       return res.status(401).json({ error: "Your session expired. Please sign in again." });
     }
     req.userId = user.id;
@@ -181,6 +210,25 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many wrong passwords for this email. Wait 15 minutes and try again." }
 });
+// Also limit wrong passwords per email from any network, so many machines can't take turns guessing.
+const accountLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 30,
+  skipSuccessfulRequests: true,
+  keyGenerator: (req) => `acct|${String(req.body?.email || "").trim().toLowerCase()}`,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many wrong passwords for this email. Wait an hour, or reset your password with your recovery code." }
+});
+// Saves (exam progress, scores, imports) per student, so one account can't flood the database.
+const writeLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 90,
+  keyGenerator: (req) => req.userId || ipKeyGenerator(req.ip),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many saves at once. Wait a minute and try again." }
+});
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   limit: 60,
@@ -277,8 +325,11 @@ app.post("/api/auth/forgot", resetLimiter, wrap(async (req, res) => {
   res.json(sent); // same answer either way, so it can't be used to check who has an account
 }));
 
-app.post("/api/auth/reset-password", resetLimiter, wrap(async (req, res) => {
+app.post("/api/auth/reset-password", resetLimiter, accountLimiter, wrap(async (req, res) => {
   const newPassword = String(req.body.newPassword || "");
+  if (tooLong(newPassword) || String(req.body.recoveryCode || "").length > 40 || String(req.body.token || "").length > 100) {
+    return res.status(400).json({ error: `Password can be at most ${MAX_PASSWORD} characters.` });
+  }
   let user = null;
   if (req.body.token) {
     const row = await db.get("SELECT * FROM password_resets WHERE token_hash = ?", [sha(req.body.token)]);
@@ -312,7 +363,7 @@ app.get("/api/auth/recovery-code", requireAuth, wrap(async (req, res) => {
 
 app.post("/api/auth/recovery-code", requireAuth, passwordLimiter, wrap(async (req, res) => {
   const user = await db.get("SELECT * FROM users WHERE id = ?", [req.userId]);
-  if (!user || !verifyPassword(String(req.body.password || ""), user.password_hash)) {
+  if (!user || tooLong(req.body.password) || !verifyPassword(String(req.body.password || ""), user.password_hash)) {
     return res.status(400).json({ error: "Password is incorrect." });
   }
   res.json({ recoveryCode: await setRecoveryCode(user.id) });
@@ -324,6 +375,9 @@ app.post("/api/auth/register", registerLimiter, wrap(async (req, res) => {
   const name = String(req.body.name || "").trim().slice(0, 60);
   if (!EMAIL_RE.test(email)) return res.status(400).json({ error: "Enter a valid email address." });
   if (password.trim().length < 8) return res.status(400).json({ error: "Password must be at least 8 characters (not counting spaces at the ends)." });
+  if (tooLong(password)) return res.status(400).json({ error: `Password can be at most ${MAX_PASSWORD} characters.` });
+  if (req.body.agreed !== true) return res.status(400).json({ error: "Confirm you're 13 or older and agree to the terms to create an account." });
+  if (email.length > 254) return res.status(400).json({ error: "Enter a valid email address." });
   if (await db.get("SELECT id FROM users WHERE email = ?", [email])) {
     return res.status(409).json({ error: "An account with this email already exists. Sign in instead." });
   }
@@ -334,11 +388,13 @@ app.post("/api/auth/register", registerLimiter, wrap(async (req, res) => {
   res.status(201).json({ token: issueToken(user), user: publicUser(user), recoveryCode });
 }));
 
-app.post("/api/auth/login", loginLimiter, wrap(async (req, res) => {
+app.post("/api/auth/login", loginLimiter, accountLimiter, wrap(async (req, res) => {
   const email = String(req.body.email || "").trim().toLowerCase();
   const password = String(req.body.password || "");
+  if (tooLong(password)) return res.status(401).json({ error: "Email or password is incorrect." });
   const user = await db.get("SELECT * FROM users WHERE email = ?", [email]);
-  if (!user || !verifyPassword(password, user.password_hash)) {
+  const good = verifyPassword(password, user ? user.password_hash : DUMMY_HASH);
+  if (!user || !good) {
     return res.status(401).json({ error: "Email or password is incorrect." });
   }
   res.json({ token: issueToken(user), user: publicUser(user) });
@@ -352,6 +408,7 @@ app.get("/api/auth/me", requireAuth, wrap(async (req, res) => {
 
 app.post("/api/auth/change-password", requireAuth, passwordLimiter, wrap(async (req, res) => {
   const { currentPassword = "", newPassword = "" } = req.body;
+  if (tooLong(currentPassword) || tooLong(newPassword)) return res.status(400).json({ error: `Passwords can be at most ${MAX_PASSWORD} characters.` });
   const user = await db.get("SELECT * FROM users WHERE id = ?", [req.userId]);
   if (!user || !verifyPassword(String(currentPassword), user.password_hash)) {
     // 400, not 401: a wrong current password must not look like an expired session.
@@ -363,6 +420,35 @@ app.post("/api/auth/change-password", requireAuth, passwordLimiter, wrap(async (
   await db.run("UPDATE users SET password_hash = ? WHERE id = ?", [passwordHash, user.id]);
   // Old sessions stop working; this device gets a fresh token.
   res.json({ ok: true, token: issueToken({ ...user, password_hash: passwordHash }) });
+}));
+
+// ---------- your data: download or delete ----------
+app.get("/api/account/export", requireAuth, wrap(async (req, res) => {
+  const user = await db.get("SELECT * FROM users WHERE id = ?", [req.userId]);
+  const attempts = await db.all("SELECT course, test_id, title, score, total, unit_breakdown, created_at FROM attempts WHERE user_id = ? ORDER BY created_at", [req.userId]);
+  const frqs = await db.all("SELECT course, frq_id, response, score, total, grader, feedback, created_at FROM frq_submissions WHERE user_id = ? ORDER BY created_at", [req.userId]);
+  const progress = await db.all("SELECT test_key, state, updated_at FROM test_progress WHERE user_id = ?", [req.userId]);
+  const parse = (t) => { try { return JSON.parse(t); } catch { return null; } };
+  res.setHeader("content-disposition", 'attachment; filename="ap-study-path-my-data.json"');
+  res.json({
+    exportedAt: now(),
+    account: publicUser(user),
+    examsAndQuizzes: attempts.map((a) => ({ ...a, unit_breakdown: parse(a.unit_breakdown) })),
+    frqs: frqs.map((f) => ({ ...f, feedback: parse(f.feedback) })),
+    savedExams: progress.map((p) => ({ ...p, state: parse(p.state) }))
+  });
+}));
+
+app.post("/api/account/delete", requireAuth, passwordLimiter, wrap(async (req, res) => {
+  const user = await db.get("SELECT * FROM users WHERE id = ?", [req.userId]);
+  if (!user || tooLong(req.body.password) || !verifyPassword(String(req.body.password || ""), user.password_hash)) {
+    return res.status(400).json({ error: "Password is incorrect." });
+  }
+  for (const table of ["attempts", "frq_submissions", "test_progress", "ai_usage", "ai_quota", "recovery_codes", "password_resets"]) {
+    await db.run(`DELETE FROM ${table} WHERE user_id = ?`, [user.id]);
+  }
+  await db.run("DELETE FROM users WHERE id = ?", [user.id]);
+  res.json({ ok: true });
 }));
 
 // ---------- in-progress test state ----------
@@ -381,8 +467,12 @@ app.get("/api/progress", requireAuth, wrap(async (req, res) => {
   res.json({ progress: out });
 }));
 
-app.put("/api/progress/:key", requireAuth, wrap(async (req, res) => {
+const MAX_SAVED_EXAMS = 300;
+app.put("/api/progress/:key", requireAuth, writeLimiter, wrap(async (req, res) => {
   if (!KEY_RE.test(req.params.key)) return res.status(400).json({ error: "Bad key" });
+  const existing = await db.get("SELECT COUNT(*) AS n FROM test_progress WHERE user_id = ?", [req.userId]);
+  const has = await db.get("SELECT 1 AS x FROM test_progress WHERE user_id = ? AND test_key = ?", [req.userId, req.params.key]);
+  if (!has && Number(existing?.n || 0) >= MAX_SAVED_EXAMS) return res.status(400).json({ error: "Too many saved exams. Finish or restart some first." });
   const state = JSON.stringify(req.body.state ?? null);
   // Refuse oversized saves instead of cutting them, which would store broken JSON.
   if (state.length > 200000) return res.status(413).json({ error: "This saved exam is too large. Remove some highlights and try again." });
@@ -398,7 +488,7 @@ app.delete("/api/progress/:key", requireAuth, wrap(async (req, res) => {
 }));
 
 // ---------- completed attempts ----------
-app.post("/api/attempts", requireAuth, wrap(async (req, res) => {
+app.post("/api/attempts", requireAuth, writeLimiter, wrap(async (req, res) => {
   const { course, testId, title, score, total, unitBreakdown } = req.body;
   if (!courseFor(course)) return res.status(400).json({ error: "Unknown course" });
   const cleanTotal = Math.min(500, Math.max(1, Number(total) | 0));
@@ -566,13 +656,14 @@ app.post("/api/ai/help", requireAuth, helpLimiter, wrap(async (req, res) => {
 
 // A guest's rubric-scored FRQs move into the account they create. Only rubric estimates can be
 // added this way (an AI grade has to come from the grader itself).
-app.post("/api/frq/import", requireAuth, wrap(async (req, res) => {
+app.post("/api/frq/import", requireAuth, writeLimiter, wrap(async (req, res) => {
   const list = Array.isArray(req.body.entries) ? req.body.entries.slice(0, 200) : [];
   let added = 0;
   for (const e of list) {
     const frq = e && findFrq(e.course, e.frqId);
     if (!frq) continue;
-    const total = Number(e.total);
+    // The total always comes from the rubric, never from the browser.
+    const total = rubricTotal(frq);
     const score = Number(e.score);
     if (!(total > 0) || !Number.isFinite(score)) continue;
     const created = new Date(e.createdAt);

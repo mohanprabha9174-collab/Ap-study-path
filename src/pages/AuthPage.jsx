@@ -9,6 +9,7 @@ export default function AuthPage({ initialMode = "login" }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -43,10 +44,14 @@ export default function AuthPage({ initialMode = "login" }) {
       setError("Passwords don't match.");
       return;
     }
+    if (mode === "register" && !agreed) {
+      setError("Check the box to confirm you're 13 or older and agree to the terms.");
+      return;
+    }
     setBusy(true);
     try {
       const path = mode === "register" ? "/auth/register" : "/auth/login";
-      const data = await api(path, { method: "POST", auth: false, body: { email, password, name } });
+      const data = await api(path, { method: "POST", auth: false, body: { email, password, name, agreed } });
       await signIn(data.token, data.user, data.recoveryCode);
       navigate("/dashboard");
     } catch (err) {
@@ -84,6 +89,10 @@ export default function AuthPage({ initialMode = "login" }) {
             <>
               <label htmlFor="auth-confirm">Confirm password</label>
               <input id="auth-confirm" type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
+              <label className="agree-row">
+                <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
+                <span>I'm 13 or older and I agree to the <a href="#/terms" target="_blank" rel="noopener">terms of use</a> and <a href="#/privacy" target="_blank" rel="noopener">privacy policy</a>.</span>
+              </label>
             </>
           )}
           {mode === "login" && (

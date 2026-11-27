@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=JetBrains+Mono:wght@400;600&display=swap");
 
 /* ---------- tokens ---------- */
 :root {
@@ -23,7 +22,7 @@
   --u4: #c9730a;
   --u5: #b03a7a;
 
-  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --display: "Bricolage Grotesque Variable", "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --body: "Atkinson Hyperlegible", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
 
@@ -980,3 +979,23 @@ html { scroll-padding-top: 84px; }
     linear-gradient(to left, rgba(143, 211, 255, 0.28), rgba(143, 211, 255, 0)) right center / 16px 100% no-repeat scroll,
     #142038;
 }
+
+/* ---------- legal pages, consent, account data ---------- */
+.legal-card { max-width: 760px; margin: 0 auto; padding: clamp(1.3rem, 4vw, 2.4rem); }
+.legal-card h1 { margin-bottom: 0.2rem; }
+.legal-card h2 { font-size: 1.2rem; margin: 1.6rem 0 0.4rem; }
+.legal-card p, .legal-card li { line-height: 1.65; max-width: 68ch; }
+.legal-card ul { padding-left: 1.2rem; display: grid; gap: 0.4rem; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; margin-top: 0.5rem; }
+.footer-links a { color: var(--pencil); font-size: 0.92rem; min-height: 44px; display: inline-flex; align-items: center; }
+.footer-links a:hover { color: var(--ink); }
+.agree-row { display: flex; gap: 0.6rem; align-items: flex-start; font-weight: 400; margin: 0.4rem 0; line-height: 1.5; cursor: pointer; }
+.agree-row input { width: 1.15rem; height: 1.15rem; margin-top: 0.2rem; flex: none; accent-color: var(--pen); }
+.danger-btn { background: var(--bad); color: #fff; border: 1px solid var(--bad); border-radius: var(--r-sm); padding: 0.7rem 1.1rem; font-weight: 700; min-height: 44px; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), filter 160ms ease; }
+.danger-btn:hover:not(:disabled) { filter: brightness(0.92); }
+.danger-btn:active:not(:disabled) { transform: scale(0.97); }
+.danger-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.danger-btn:focus-visible { outline: 3px solid var(--bad); outline-offset: 2px; }
+.link-btn.danger-link { color: var(--bad); }
+.login-form .agree-row, .login-form .agree-row span { font-weight: 400; }
+.agree-row a, .legal-card a { color: var(--pen); font-weight: 700; }
