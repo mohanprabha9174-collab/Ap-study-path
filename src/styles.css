@@ -803,3 +803,35 @@ main:focus { outline: none; }
 .error-box .link-btn.inline { margin-left: 0.5rem; }
 .frq-picker { min-width: 0; }
 .frq-picker select { width: 100%; min-width: 0; max-width: 100%; }
+
+/* ---------- code view: line numbers, indent guides, colours ---------- */
+.code-view { --gutter: 3.2ch; --guide: rgba(227, 233, 246, 0.16); counter-reset: ln; padding: 0.9rem 1.1rem 0.9rem 0; line-height: 1.7; tab-size: 4; }
+.code-view code { display: block; min-width: max-content; font: inherit; }
+.code-view .cl { display: block; min-height: 1.7em; padding-left: calc(var(--gutter) + 1.4ch); position: relative; white-space: pre; }
+.code-view .cl::before {
+  counter-increment: ln; content: counter(ln);
+  position: absolute; left: 0; width: var(--gutter); text-align: right;
+  color: rgba(227, 233, 246, 0.38); user-select: none; -webkit-user-select: none;
+}
+.code-view .nl { display: none; }
+/* Each 2-space step shows as 4 characters wide, with a faint guide line at every level. */
+.code-view .ind {
+  letter-spacing: 1ch;
+  background-image: linear-gradient(to right, var(--guide) 0 1px, transparent 1px);
+  background-size: 4ch 100%;
+  background-repeat: repeat-x;
+}
+.code-view .cl:hover { background: rgba(255, 255, 255, 0.04); }
+.code-view:focus-visible { outline: 3px solid var(--focus, #7aa7ff); outline-offset: 2px; }
+.code-view .tk-key { color: #ff9ec7; }
+.code-view .tk-fn { color: #8fd3ff; }
+.code-view .tk-str { color: #b8e68a; }
+.code-view .tk-num { color: #ffcf8a; }
+.code-view .tk-com { color: #8b98b3; font-style: italic; }
+.code-view .tk-op { color: #7fe0c9; }
+.code-view .tk-brace { color: #9aa8c4; }
+.code-view mark.hl .tk-key, .code-view mark.hl .tk-fn, .code-view mark.hl .tk-str, .code-view mark.hl .tk-num,
+.code-view mark.hl .tk-com, .code-view mark.hl .tk-op, .code-view mark.hl .tk-brace { color: inherit; }
+/* Choices that are code keep their spacing. */
+.choice-btn.mono span, .choice-review.mono span { white-space: pre-wrap; }
+@media (max-width: 600px) { .code-view { --gutter: 2.4ch; font-size: 0.8rem; } }

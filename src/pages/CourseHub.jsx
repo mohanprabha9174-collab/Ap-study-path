@@ -3,6 +3,7 @@ import { navigate, useApp } from "../App.jsx";
 import { QuizTab, TestsTab } from "./Tests.jsx";
 import { FrqTab } from "./Frq.jsx";
 import AiHelper from "../components/AiHelper.jsx";
+import { CodeView } from "../components/ExamTools.jsx";
 
 const TABS = [
   { id: "tests", label: "Practice Exams" },
@@ -147,7 +148,7 @@ function TipsTab({ course }) {
             <div className="tip" key={tip.title}>
               <h3>{tip.title}</h3>
               <p>{tip.text}</p>
-              {tip.example && <pre className="code-block small">{tip.example}</pre>}
+              {tip.example && <CodeView code={tip.example} className="small" />}
             </div>
           ))}
         </article>
