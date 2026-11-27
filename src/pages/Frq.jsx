@@ -478,7 +478,7 @@ function GradingBanner({ aiAvailable, canUseServer, backendAvailable, usage, csp
   if (aiAvailable && canUseServer && grades?.remaining === 0) {
     return (
       <div className="card grading-banner">
-        <span><strong>You've used today's {grades.limit} AI grades.</strong> Grading falls back to the keyword rubric estimate until they reset tomorrow. Grading the same answer again is free.</span>
+        <span><strong>You've used today's {grades.limit} AI grades.</strong> Grading falls back to the keyword rubric estimate until they reset at midnight Eastern time. Grading the same answer again is free.</span>
       </div>
     );
   }

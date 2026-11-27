@@ -45,6 +45,16 @@ async function carryOverGuestWork() {
 const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 export const scrollBehavior = () => (reducedMotion() ? "auto" : "smooth");
 
+// Exam progress of a signed-in student also lives on the server; the local copy is removed on
+// sign-out or session expiry so the next person on a shared computer doesn't inherit it.
+function clearLocalProgress() {
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith("ap-study-path:progress:"))
+      .forEach((k) => localStorage.removeItem(k));
+  } catch { /* ignore */ }
+}
+
 export function navigate(path) {
   window.location.hash = path.startsWith("/") ? path : `/${path}`;
   window.scrollTo({ top: 0, behavior: scrollBehavior() });
@@ -59,6 +69,7 @@ export default function App() {
 
   useEffect(() => {
     const expired = () => {
+      clearLocalProgress();
       setUser(null);
       setNotice("Your session ended, so you've been signed out. Sign in again to keep saving to your account.");
     };
@@ -127,11 +138,7 @@ export default function App() {
       setToken(null);
       // Exam progress is also kept on the server; remove the local copy here so the next person
       // on a shared or school computer doesn't see them.
-      try {
-        Object.keys(localStorage)
-          .filter((k) => k.startsWith("ap-study-path:progress:"))
-          .forEach((k) => localStorage.removeItem(k));
-      } catch { /* ignore */ }
+      clearLocalProgress();
       setUser(null);
       navigate("/");
     }

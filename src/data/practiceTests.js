@@ -921,7 +921,7 @@ export const practiceTests = [
         "id": "T1-Q67"
       },
       {
-        "question": "Practice Test 1, Question 68: A robot is facing forward. Which code avoids terminating the program when the square ahead is blocked?",
+        "question": "Practice Test 1, Question 68: A robot is facing forward. The robot commands available include MOVE_FORWARD() and CAN_MOVE(forward). Which code avoids terminating the program when the square ahead is blocked?",
         "choices": [
           "MOVE_FORWARD()",
           "REPEAT 10 TIMES { MOVE_FORWARD() }",
@@ -931,8 +931,7 @@ export const practiceTests = [
         "correctAnswer": 3,
         "explanation": "Checking CAN_MOVE(forward) before moving prevents the robot from trying to move into a blocked square.",
         "unit": 3,
-        "id": "T1-Q68",
-        "code": "The robot commands available include MOVE_FORWARD() and CAN_MOVE(forward)."
+        "id": "T1-Q68"
       },
       {
         "question": "Practice Test 1, Question 69: A task for a messaging app is divided across many computers at the same time. This is an example of what concept?",

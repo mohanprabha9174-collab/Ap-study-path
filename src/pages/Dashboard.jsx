@@ -10,9 +10,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     const valid = (list) => (Array.isArray(list) ? list : []).filter((a) =>
-      a && Number(a.total) > 0 && Number.isFinite(Number(a.score)) && !Number.isNaN(new Date(a.createdAt).getTime()));
+      a && Number(a.total) > 0 && Number.isFinite(Number(a.score)) && Number(a.score) <= Number(a.total)
+      && !Number.isNaN(new Date(a.createdAt).getTime()))
+      .map((a) => ({
+        ...a,
+        // Skip damaged unit rows so one bad save can't break this page.
+        unitBreakdown: Object.fromEntries(Object.entries(a.unitBreakdown && typeof a.unitBreakdown === "object" ? a.unitBreakdown : {})
+          .filter(([, u]) => u && typeof u === "object" && Number(u.total) > 0))
+      }));
     store.listAttempts().then((list) => setAttempts(valid(list))).catch(() => setAttempts([]));
-    store.listFrqHistory().then((list) => setFrqs(Array.isArray(list) ? list.filter((f) => f && f.course) : [])).catch(() => setFrqs([]));
+    store.listFrqHistory().then((list) => setFrqs(Array.isArray(list) ? list.filter((f) => f && f.course && Number(f.total) > 0 && Number.isFinite(Number(f.score))) : [])).catch(() => setFrqs([]));
   }, [store]);
 
   if (attempts === null) return <section className="page"><div className="card loading-card">Loading your progress…</div></section>;

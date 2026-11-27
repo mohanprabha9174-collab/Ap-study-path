@@ -58,9 +58,11 @@ function renderLines(lines, key) {
       const ordered = NUMBER.test(line);
       const re = ordered ? NUMBER : BULLET;
       const items = [];
+      const first = ordered ? parseInt(line, 10) : 1;
       while (i < lines.length && re.test(lines[i])) items.push(lines[i++].replace(re, ""));
       const List = ordered ? "ol" : "ul";
-      out.push(<List key={`${key}-l${i}`}>{items.map((it, li) => <li key={li}>{renderInline(it, `${key}-li${i}-${li}`)}</li>)}</List>);
+      // Numbered lists split by blank lines keep counting (3. stays 3.).
+      out.push(<List key={`${key}-l${i}`} start={ordered && first > 1 ? first : undefined}>{items.map((it, li) => <li key={li}>{renderInline(it, `${key}-li${i}-${li}`)}</li>)}</List>);
     } else {
       const para = [];
       while (i < lines.length && !/^\s*#{1,6}\s/.test(lines[i]) && !TABLE_ROW.test(lines[i]) && !BULLET.test(lines[i]) && !NUMBER.test(lines[i])) {
@@ -74,7 +76,7 @@ function renderLines(lines, key) {
 
 export function Markdown({ text }) {
   const blocks = [];
-  const chunks = text.split(/```[a-zA-Z]*\n?/);
+  const chunks = text.split(/```[\w+#.-]*\n?/);
   chunks.forEach((chunk, ci) => {
     if (ci % 2 === 1) {
       blocks.push(<CodeView key={`c${ci}`} className="small" code={chunk.replace(/\n$/, "")} />);
@@ -93,15 +95,26 @@ export function Markdown({ text }) {
  * context: { key, label, kind: "mcq"|"frq"|"general", questionId?, studentChoice?, answered?, frqId?, draft?, graded?, ppr? }
  * starters: quick prompts shown as buttons.
  */
+const threadCache = {};
+
 export default function AiHelper({ open, onClose, course, context, starters = [], autoAsk = "", onAutoAsked }) {
   const { user, backend } = useApp();
-  const [threads, setThreads] = useState({});
+  // Chats are shared by every helper on the page (e.g. the quiz and its review screen),
+  // so a conversation about a question is still there when it's opened from somewhere else.
+  const [threads, setThreadsState] = useState(() => ({ ...threadCache }));
+  const setThreads = (update) => setThreadsState((t) => {
+    const next = typeof update === "function" ? update({ ...threadCache, ...t }) : update;
+    Object.assign(threadCache, next);
+    return next;
+  });
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const listRef = useRef(null);
   const inputRef = useRef(null);
   const messages = threads[context.key] || [];
+  // Don't offer a follow-up the student already asked.
+  const followUps = starters.filter((s) => !messages.some((m) => m.role === "user" && m.content === s));
   const [usage, setUsage] = useState(null);
   const canUse = Boolean(user && backend.available && backend.aiGrading);
 
@@ -171,7 +184,9 @@ export default function AiHelper({ open, onClose, course, context, starters = []
   async function send(text, base = messages) {
     const content = text.trim();
     if (!content || busy || outOfRequests) return;
-    const history = [...base, { role: "user", content }];
+    // A question that failed earlier and was never answered is replaced by the new one.
+    const trimmed = base[base.length - 1]?.role === "user" ? base.slice(0, -1) : base;
+    const history = [...trimmed, { role: "user", content }];
     setThreads((t) => ({ ...t, [context.key]: history }));
     setInput("");
     setError("");
@@ -231,7 +246,7 @@ export default function AiHelper({ open, onClose, course, context, starters = []
             </div>
           ))}
           {busy && <div className="ai-msg assistant typing" aria-label="AI is thinking"><span /><span /><span /></div>}
-          {error && (
+          {error && !outOfRequests && (
             <div className="error-box" role="alert">
               {error}
               {messages[messages.length - 1]?.role === "user" && !outOfRequests && (
@@ -240,12 +255,12 @@ export default function AiHelper({ open, onClose, course, context, starters = []
             </div>
           )}
           {outOfRequests && (
-            <div className="info-box">You've used all {chats.limit} AI helper messages for today. They reset tomorrow; until then you can still practice and grade FRQs.</div>
+            <div className="info-box">You've used all {chats.limit} AI helper messages for today. They reset at midnight Eastern time; until then you can still practice and grade FRQs.</div>
           )}
         </div>
-        {messages.length > 0 && starters.length > 0 && !busy && !outOfRequests && (
+        {messages.length > 0 && followUps.length > 0 && !busy && !outOfRequests && (
           <div className="ai-starters compact">
-            {starters.slice(0, 3).map((s) => <button key={s} className="starter-chip" onClick={() => send(s)}>{s}</button>)}
+            {followUps.slice(0, 3).map((s) => <button key={s} className="starter-chip" onClick={() => send(s)}>{s}</button>)}
           </div>
         )}
         <form className="ai-input" onSubmit={(e) => { e.preventDefault(); send(input); }}>
@@ -278,7 +293,7 @@ export default function AiHelper({ open, onClose, course, context, starters = []
         <div className="drawer-head">
           <h2><span className="ai-badge">AI</span> Study helper</h2>
           <div className="button-row">
-            {messages.length > 0 && <button className="bar-btn" onClick={() => setThreads((t) => ({ ...t, [context.key]: [] }))}>New chat</button>}
+            {messages.length > 0 && <button className="bar-btn" onClick={() => { setThreads((t) => ({ ...t, [context.key]: [] })); setError(""); requestAnimationFrame(() => inputRef.current?.focus()); }}>New chat</button>}
             <button className="icon-btn" onClick={onClose} aria-label="Close AI helper">✕</button>
           </div>
         </div>
