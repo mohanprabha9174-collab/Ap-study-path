@@ -698,28 +698,28 @@ export const practiceTests = [
         "id": "T1-Q50"
       },
       {
-        "question": "Practice Test 1, Question 51: A prototype of a science fair registration page is shown to a few users before the final version is built. What is the best reason to do this?",
+        "question": "Practice Test 1, Question 51: A student's program will not run, and the programming environment reports a missing closing brace on line 14. What type of error is this?",
         "choices": [
-          "To make the source code impossible to copy",
-          "To collect feedback while changes are still easier to make",
-          "To prove the app has no privacy concerns",
-          "To avoid documenting the project"
+          "A syntax error",
+          "A logic error",
+          "A run-time error",
+          "An overflow error"
         ],
-        "correctAnswer": 1,
-        "explanation": "Early prototypes help developers learn from users before investing too much time in the wrong design.",
+        "correctAnswer": 0,
+        "explanation": "Breaking the rules of the programming language, such as leaving out a closing brace, is a syntax error, so the program cannot run until it is fixed.",
         "unit": 1,
         "id": "T1-Q51"
       },
       {
-        "question": "Practice Test 1, Question 52: In online store click data, the decimal value 19 must be stored in binary. Which statement is true about binary representation?",
+        "question": "Practice Test 1, Question 52: What is the largest whole number that can be represented using 7 bits?",
         "choices": [
-          "Binary uses only 0s and 1s to represent information",
-          "Binary stores every number using exactly two bits",
-          "Binary prevents all data from being copied",
-          "Binary can represent text but not numbers"
+          "128",
+          "127",
+          "255",
+          "64"
         ],
-        "correctAnswer": 0,
-        "explanation": "Computers represent all digital information using patterns of bits, which are 0s and 1s.",
+        "correctAnswer": 1,
+        "explanation": "Seven bits give 2^7 = 128 different values, from 0 up to 127.",
         "unit": 2,
         "id": "T1-Q52"
       },
@@ -738,15 +738,15 @@ export const practiceTests = [
         "code": "S  _  _  G"
       },
       {
-        "question": "Practice Test 1, Question 54: In an online game match, fault tolerance is important. Which design best supports fault tolerance?",
+        "question": "Practice Test 1, Question 54: In a small network, the direct connections are A–B, B–C, A–C, and C–D. If exactly one connection fails, which failure would stop A from communicating with D?",
         "choices": [
-          "Having multiple possible paths or backup systems if one component fails",
-          "Using exactly one server with no backup",
-          "Making every password the same",
-          "Deleting all network protocols"
+          "A–B",
+          "A–C",
+          "C–D",
+          "B–C"
         ],
-        "correctAnswer": 0,
-        "explanation": "Fault tolerance keeps systems working by using redundancy and alternate paths when failures occur.",
+        "correctAnswer": 2,
+        "explanation": "Every path from A to D must use the C–D connection, so losing it disconnects D, while any other single failure leaves another route.",
         "unit": 4,
         "id": "T1-Q54"
       },
@@ -764,28 +764,28 @@ export const practiceTests = [
         "id": "T1-Q55"
       },
       {
-        "question": "Practice Test 1, Question 56: A team is building a bus arrival notifier. Which action best shows iterative development?",
+        "question": "Practice Test 1, Question 56: A fitness app counts steps using the phone's motion sensor and shows the running total on the screen. Which is an example of program input in this app?",
         "choices": [
-          "Writing every feature once and never changing it",
-          "Letting one student make all design choices without review",
-          "Skipping planning so the final product is finished faster",
-          "Building a small version, testing it with users, and improving it based on feedback"
+          "The step total shown on the screen",
+          "The variable name used to store the step total",
+          "The comments explaining how steps are counted",
+          "The readings sent from the motion sensor to the app"
         ],
         "correctAnswer": 3,
-        "explanation": "Iterative development means creating, testing, receiving feedback, and refining through repeated cycles.",
+        "explanation": "Input is data sent to a program from outside it, such as sensor readings; the displayed total is output.",
         "unit": 1,
         "id": "T1-Q56"
       },
       {
-        "question": "Practice Test 1, Question 57: A graph created from a fitness tracker dataset makes a sudden spike easy to see. What is the main advantage of visualization?",
+        "question": "Practice Test 1, Question 57: What is the result of adding the binary numbers 0110 and 0011?",
         "choices": [
-          "It helps people identify patterns, trends, and unusual values",
-          "It removes outliers from the dataset",
-          "It always proves the data is correct",
-          "It changes analog data into digital data automatically"
+          "0111",
+          "1010",
+          "1001",
+          "1000"
         ],
-        "correctAnswer": 0,
-        "explanation": "Visualizations can make patterns and outliers easier to notice than raw tables alone.",
+        "correctAnswer": 2,
+        "explanation": "0110 is 6 and 0011 is 3, and their sum, 9, is written in binary as 1001.",
         "unit": 2,
         "id": "T1-Q57"
       },
@@ -830,28 +830,29 @@ export const practiceTests = [
         "id": "T1-Q60"
       },
       {
-        "question": "Practice Test 1, Question 61: Before coding a student planner app, the team writes user stories and sketches screen layouts. What is the main purpose of this planning?",
+        "question": "Practice Test 1, Question 61: The procedure is supposed to return the sum of the values in nums, but sumList([3, 5, 2]) returns 2. Which change fixes the error?",
         "choices": [
-          "To guarantee there will be no errors",
-          "To remove the need for testing later",
-          "To clarify goals, users, and features before implementation",
-          "To make the program run faster on every device"
+          "Change total ← total + n to total ← n",
+          "Move RETURN(total) inside the FOR EACH loop",
+          "Move total ← 0 so it runs once before the FOR EACH loop",
+          "Change the loop to REPEAT LENGTH(nums) TIMES"
         ],
         "correctAnswer": 2,
-        "explanation": "Planning helps developers understand requirements and design decisions before they begin writing code.",
+        "explanation": "Because total is reset to 0 on every pass, only the last value survives; setting it to 0 once before the loop lets the values accumulate.",
         "unit": 1,
-        "id": "T1-Q61"
+        "id": "T1-Q61",
+        "code": "PROCEDURE sumList(nums)\n{\n  FOR EACH n IN nums\n  {\n    total ← 0\n    total ← total + n\n  }\n  RETURN(total)\n}"
       },
       {
-        "question": "Practice Test 1, Question 62: A file made from weather sensor readings is compressed by replacing repeated values with shorter codes. What is the likely benefit?",
+        "question": "Practice Test 1, Question 62: Which of the following is best described as analog data?",
         "choices": [
-          "The file changes from digital to analog",
-          "The file no longer contains data",
-          "The file becomes impossible to open",
-          "The file may require less storage or bandwidth"
+          "A list of test scores stored in a spreadsheet",
+          "The number of text messages sent today",
+          "A pixel's color stored as three 8-bit values",
+          "The continuously changing air pressure of a sound wave"
         ],
         "correctAnswer": 3,
-        "explanation": "Compression reduces file size by representing data more efficiently.",
+        "explanation": "Analog data changes smoothly over a continuous range of values, like a sound wave, while the others are already discrete digital values.",
         "unit": 2,
         "id": "T1-Q62"
       },
@@ -869,15 +870,15 @@ export const practiceTests = [
         "id": "T1-Q63"
       },
       {
-        "question": "Practice Test 1, Question 64: A router involved in a file download has which main responsibility?",
+        "question": "Practice Test 1, Question 64: In which unit is the bandwidth of a network connection usually measured?",
         "choices": [
-          "Writing JavaScript code for the browser",
-          "Creating intellectual property licenses",
-          "Forwarding packets toward their destinations",
-          "Sampling analog sound"
+          "Bits per second",
+          "Seconds per packet",
+          "Number of routers",
+          "Bytes of storage"
         ],
-        "correctAnswer": 2,
-        "explanation": "Routers inspect addressing information and forward packets across networks.",
+        "correctAnswer": 0,
+        "explanation": "Bandwidth is the maximum amount of data that can be sent in a fixed amount of time, so it is measured in bits per second.",
         "unit": 4,
         "id": "T1-Q64"
       },
@@ -895,28 +896,28 @@ export const practiceTests = [
         "id": "T1-Q65"
       },
       {
-        "question": "Practice Test 1, Question 66: A bug in a recycling reminder website happens only when a user enters a blank value. Which testing approach is most likely to find this bug?",
+        "question": "Practice Test 1, Question 66: Before designing an app for a school nurse's office, a team interviews the nurse and observes how student visits are currently recorded. What is the main goal of this step?",
         "choices": [
-          "Deleting comments from the program",
-          "Testing edge cases such as empty, very small, or very large inputs",
-          "Only testing the most common valid input",
-          "Changing the app colors before release"
+          "To test whether the finished program contains errors",
+          "To understand the users' needs and the constraints the program must meet",
+          "To decide which programming language runs the fastest",
+          "To write the user manual for the final version"
         ],
         "correctAnswer": 1,
-        "explanation": "Edge-case testing checks unusual or boundary inputs that often reveal hidden errors.",
+        "explanation": "Investigating through interviews and observation helps the team learn what users actually need before any design decisions are made.",
         "unit": 1,
         "id": "T1-Q66"
       },
       {
-        "question": "Practice Test 1, Question 67: When using school survey responses, which question is most directly about data privacy?",
+        "question": "Practice Test 1, Question 67: For a digital photo, which of the following is metadata rather than the image data itself?",
         "choices": [
-          "Who can access the data and how will it be protected?",
-          "Which programming language was used?",
-          "What color should the chart use?",
-          "How many pixels are in the app icon?"
+          "The color values of each pixel",
+          "The shapes and objects visible in the picture",
+          "The date, time, and camera settings recorded with the photo",
+          "The brightness of the pixels in the top row"
         ],
-        "correctAnswer": 0,
-        "explanation": "Privacy focuses on the collection, access, sharing, and protection of personal or sensitive data.",
+        "correctAnswer": 2,
+        "explanation": "Metadata is data about the data, such as when and how the photo was taken, while pixel values make up the image itself.",
         "unit": 2,
         "id": "T1-Q67"
       },
@@ -934,28 +935,28 @@ export const practiceTests = [
         "id": "T1-Q68"
       },
       {
-        "question": "Practice Test 1, Question 69: A task for a messaging app is divided across many computers at the same time. This is an example of what concept?",
+        "question": "Practice Test 1, Question 69: The internet is described as scalable. What does this mean?",
         "choices": [
-          "Phishing",
-          "Single-factor authentication",
-          "Binary overflow",
-          "Distributed computing"
+          "It sends every message along the same fixed route",
+          "It is managed by one central computer that approves all traffic",
+          "It works only with devices made by one manufacturer",
+          "It can keep working well as many more devices and networks are added"
         ],
         "correctAnswer": 3,
-        "explanation": "Distributed computing uses multiple connected computers to work on parts of a task.",
+        "explanation": "Scalability is the ability of a system to grow in size and use without needing to be redesigned.",
         "unit": 4,
         "id": "T1-Q69"
       },
       {
-        "question": "Practice Test 1, Question 70: A harmful bias in social media recommendation feeds is discovered after launch. What is the best next step?",
+        "question": "Practice Test 1, Question 70: A student gets an email that appears to be from the school's tech office. It warns that the student's account will be closed within an hour unless they click a link and enter their password. What is this most likely an example of?",
         "choices": [
-          "Investigate the data and design choices, then revise and retest the system",
-          "Ignore it because all computing innovations are neutral",
-          "Increase the font size only",
-          "Delete all documentation"
+          "A phishing attempt to steal login information",
+          "A routine security update from the school",
+          "A distributed denial-of-service attack",
+          "An example of multifactor authentication"
         ],
         "correctAnswer": 0,
-        "explanation": "Responsible computing includes identifying harmful impacts, revising systems, and testing improvements.",
+        "explanation": "Phishing uses a trusted-looking message and false urgency to trick people into handing over passwords or other private information.",
         "unit": 5,
         "id": "T1-Q70"
       }
@@ -967,15 +968,15 @@ export const practiceTests = [
     "description": "A 70-question AP CSP practice exam covering all five units, with early robot path MCQs, binary conversion, Boolean logic, loops, lists, procedures, and longer code tracing.",
     "questions": [
       {
-        "question": "Practice Test 2, Question 1: A robot starts facing right/east. The goal is one square below/south of the robot. Which sequence reaches the goal?",
+        "question": "Practice Test 2, Question 1: Which condition must be true of a list before a binary search can be used to find a value in it?",
         "choices": [
-          "ROTATE_LEFT()\nMOVE_FORWARD()",
-          "MOVE_FORWARD()\nROTATE_RIGHT()",
-          "ROTATE_RIGHT()\nROTATE_RIGHT()\nMOVE_FORWARD()",
-          "ROTATE_RIGHT()\nMOVE_FORWARD()"
+          "The list must be sorted",
+          "The list must contain only unique values",
+          "The list must have an even number of elements",
+          "The list must contain fewer than 100 elements"
         ],
-        "correctAnswer": 3,
-        "explanation": "Facing east, a right turn points the robot south, then MOVE_FORWARD reaches the square below.",
+        "correctAnswer": 0,
+        "explanation": "Binary search repeatedly discards half of the list based on comparisons, which only works when the values are in sorted order.",
         "unit": 3,
         "id": "T2-Q01"
       },
@@ -1170,28 +1171,28 @@ export const practiceTests = [
         "id": "T2-Q15"
       },
       {
-        "question": "Practice Test 2, Question 16: Before coding a club event calendar, the team writes user stories and sketches screen layouts. What is the main purpose of this planning?",
+        "question": "Practice Test 2, Question 16: A ticket app should give a senior discount to anyone who is 65 or older. Which set of test ages would best check the boundary of this condition?",
         "choices": [
-          "To make the program run faster on every device",
-          "To guarantee there will be no errors",
-          "To remove the need for testing later",
-          "To clarify goals, users, and features before implementation"
+          "10, 30, and 50",
+          "65, 75, and 85",
+          "0, 100, and 200",
+          "64, 65, and 66"
         ],
         "correctAnswer": 3,
-        "explanation": "Planning helps developers understand requirements and design decisions before they begin writing code.",
+        "explanation": "Testing just below, at, and just above 65 checks exactly where the condition switches, which is where mistakes like using > instead of ≥ appear.",
         "unit": 1,
         "id": "T2-Q16"
       },
       {
-        "question": "Practice Test 2, Question 17: A file made from restaurant review ratings is compressed by replacing repeated values with shorter codes. What is the likely benefit?",
+        "question": "Practice Test 2, Question 17: A photographer wants the smallest possible files for an online gallery and does not need to restore the original images exactly from those copies. Which approach fits best?",
         "choices": [
-          "The file no longer contains data",
-          "The file may require less storage or bandwidth",
-          "The file becomes impossible to open",
-          "The file changes from digital to analog"
+          "Lossy compression, because it usually produces smaller files",
+          "Lossless compression, because it always produces the smallest files",
+          "No compression, because any compression lowers an image's resolution",
+          "Lossless compression, because lossy images cannot be displayed online"
         ],
-        "correctAnswer": 1,
-        "explanation": "Compression reduces file size by representing data more efficiently.",
+        "correctAnswer": 0,
+        "explanation": "Lossy compression gives up some detail to achieve much smaller files, which suits a case where exact reconstruction is not required.",
         "unit": 2,
         "id": "T2-Q17"
       },
@@ -1210,15 +1211,15 @@ export const practiceTests = [
         "code": "x ← 4\ny ← 10\nIF(NOT(x > y))\n{\n  DISPLAY(\"true path\")\n}\nELSE\n{\n  DISPLAY(\"false path\")\n}"
       },
       {
-        "question": "Practice Test 2, Question 19: A router involved in a classroom Wi-Fi network has which main responsibility?",
+        "question": "Practice Test 2, Question 19: A player has a high-bandwidth connection but still notices a delay between pressing a button and seeing the result in an online game. Which term best describes this delay?",
         "choices": [
-          "Forwarding packets toward their destinations",
-          "Writing JavaScript code for the browser",
-          "Creating intellectual property licenses",
-          "Sampling analog sound"
+          "Bandwidth",
+          "Latency",
+          "Redundancy",
+          "Scalability"
         ],
-        "correctAnswer": 0,
-        "explanation": "Routers inspect addressing information and forward packets across networks.",
+        "correctAnswer": 1,
+        "explanation": "Latency is the time it takes for data to travel from sender to receiver, which is separate from how much data can be sent per second.",
         "unit": 4,
         "id": "T2-Q19"
       },
@@ -1236,28 +1237,28 @@ export const practiceTests = [
         "id": "T2-Q20"
       },
       {
-        "question": "Practice Test 2, Question 21: A bug in a homework tracker happens only when a user enters a blank value. Which testing approach is most likely to find this bug?",
+        "question": "Practice Test 2, Question 21: Why can a development team whose members have different backgrounds and experiences produce a better program?",
         "choices": [
-          "Only testing the most common valid input",
-          "Changing the app colors before release",
-          "Testing edge cases such as empty, very small, or very large inputs",
-          "Deleting comments from the program"
+          "They can skip user testing because the team already represents every user",
+          "They will always reach agreement on design decisions more quickly",
+          "They are more likely to notice needs and problems that affect a wider range of users",
+          "They make the program run faster on more kinds of devices"
         ],
         "correctAnswer": 2,
-        "explanation": "Edge-case testing checks unusual or boundary inputs that often reveal hidden errors.",
+        "explanation": "Diverse perspectives help a team anticipate how different people will use a program, reducing blind spots and bias in the design.",
         "unit": 1,
         "id": "T2-Q21"
       },
       {
-        "question": "Practice Test 2, Question 22: When using sports team statistics, which question is most directly about data privacy?",
+        "question": "Practice Test 2, Question 22: A music library lets users sort songs by artist, genre, and release year. How does metadata help make this possible?",
         "choices": [
-          "Which programming language was used?",
-          "What color should the chart use?",
-          "How many pixels are in the app icon?",
-          "Who can access the data and how will it be protected?"
+          "It compresses the audio so that more songs fit on a device",
+          "It converts the analog sound of each song into binary",
+          "It encrypts the songs so that only the owner can play them",
+          "It describes each song so files can be searched and organized without changing the audio"
         ],
         "correctAnswer": 3,
-        "explanation": "Privacy focuses on the collection, access, sharing, and protection of personal or sensitive data.",
+        "explanation": "Artist, genre, and year are metadata that describe each file, which lets the library organize and find songs while the audio data stays the same.",
         "unit": 2,
         "id": "T2-Q22"
       },
@@ -1276,28 +1277,28 @@ export const practiceTests = [
         "code": "PROCEDURE average(a, b)\n{\n  <MISSING LINE>\n}"
       },
       {
-        "question": "Practice Test 2, Question 24: A task for a search engine request is divided across many computers at the same time. This is an example of what concept?",
+        "question": "Practice Test 2, Question 24: Four independent tasks take 40, 30, 20, and 10 seconds. Two processors run them in parallel, and each task must stay on one processor. What is the minimum total time to finish all four tasks?",
         "choices": [
-          "Phishing",
-          "Distributed computing",
-          "Binary overflow",
-          "Single-factor authentication"
+          "50 seconds",
+          "40 seconds",
+          "60 seconds",
+          "100 seconds"
         ],
-        "correctAnswer": 1,
-        "explanation": "Distributed computing uses multiple connected computers to work on parts of a task.",
+        "correctAnswer": 0,
+        "explanation": "Pairing 40 with 10 and 30 with 20 gives each processor 50 seconds of work, and no split can do better because the total of 100 seconds must be shared by two processors.",
         "unit": 4,
         "id": "T2-Q24"
       },
       {
-        "question": "Practice Test 2, Question 25: A harmful bias in automated license-plate readers is discovered after launch. What is the best next step?",
+        "question": "Practice Test 2, Question 25: Malware installed on a library computer secretly records every key that users press. What is the greatest risk to someone who uses that computer?",
         "choices": [
-          "Increase the font size only",
-          "Investigate the data and design choices, then revise and retest the system",
-          "Ignore it because all computing innovations are neutral",
-          "Delete all documentation"
+          "Their files will be compressed using a lossy method",
+          "Their passwords and other typed information could be captured by an attacker",
+          "The computer will run more slowly, but no data will be exposed",
+          "Their browsing history will be erased automatically"
         ],
         "correctAnswer": 1,
-        "explanation": "Responsible computing includes identifying harmful impacts, revising systems, and testing improvements.",
+        "explanation": "A keylogger captures everything typed, including passwords and account numbers, and can send it to the attacker.",
         "unit": 5,
         "id": "T2-Q25"
       },
@@ -1315,15 +1316,15 @@ export const practiceTests = [
         "id": "T2-Q26"
       },
       {
-        "question": "Practice Test 2, Question 27: Sound from public health case counts is captured many times per second and stored as numbers. What is this process called?",
+        "question": "Practice Test 2, Question 27: A dataset shows that towns with more ice cream sales also tend to have more sunburns. Which conclusion is best supported by this data?",
         "choices": [
-          "Sampling",
-          "Routing",
-          "Compiling",
-          "Phishing"
+          "Eating ice cream causes people to get sunburned",
+          "The two are correlated, but this data alone does not show that one causes the other",
+          "Getting sunburned causes people to buy more ice cream",
+          "The data must contain errors because the two values are unrelated"
         ],
-        "correctAnswer": 0,
-        "explanation": "Sampling records measurements of analog information at intervals so it can be represented digitally.",
+        "correctAnswer": 1,
+        "explanation": "A correlation shows the values rise together, but a third factor such as hot, sunny weather could explain both, so causation is not shown.",
         "unit": 2,
         "id": "T2-Q27"
       },
@@ -1355,15 +1356,15 @@ export const practiceTests = [
         "id": "T2-Q29"
       },
       {
-        "question": "Practice Test 2, Question 30: When evaluating generative AI tools, which pair best shows both a benefit and a harm?",
+        "question": "Practice Test 2, Question 30: At a coffee shop, a student sees two open Wi-Fi networks with nearly identical names. Why is joining the wrong one risky?",
         "choices": [
-          "More storage, but fewer file names",
-          "Improved convenience, but possible misuse or unequal impact",
-          "Better color choices, but larger fonts",
-          "Faster loops, but more syntax comments"
+          "The student's device would lose its IP address permanently",
+          "Every open network installs malware on connected devices",
+          "An attacker could run a fake access point and intercept the data sent through it",
+          "The device would be unable to use DNS on any future network"
         ],
-        "correctAnswer": 1,
-        "explanation": "AP CSP impact questions often require considering both positive effects and possible negative consequences.",
+        "correctAnswer": 2,
+        "explanation": "A rogue access point lets an attacker see or alter traffic from devices that connect to it, so look-alike networks are a common trap.",
         "unit": 5,
         "id": "T2-Q30"
       },
@@ -1408,54 +1409,54 @@ export const practiceTests = [
         "code": "scores ← [70, 80, 90]\n<MISSING LINE>"
       },
       {
-        "question": "Practice Test 2, Question 34: During a remote backup system, data is split into smaller pieces that may travel across different routes. What are these pieces usually called?",
+        "question": "Practice Test 2, Question 34: Task A takes 10 seconds. Task B takes 15 seconds and cannot start until A finishes. Task C takes 20 seconds and does not depend on the others. Using two processors, what is the minimum time to finish all three tasks?",
         "choices": [
-          "Packets",
-          "Pixels",
-          "Variables",
-          "Licenses"
+          "20 seconds",
+          "35 seconds",
+          "45 seconds",
+          "25 seconds"
         ],
-        "correctAnswer": 0,
-        "explanation": "Internet data is commonly divided into packets that can be routed independently across networks.",
+        "correctAnswer": 3,
+        "explanation": "One processor runs A and then B for 25 seconds while the other runs C for 20 seconds, so everything finishes after 25 seconds.",
         "unit": 4,
         "id": "T2-Q34"
       },
       {
-        "question": "Practice Test 2, Question 35: Which issue related to online voting discussions is an example of the digital divide?",
+        "question": "Practice Test 2, Question 35: A team is building a speech recognition app. Which step would best help it detect bias before the app is released?",
         "choices": [
-          "A router sends packets to another network",
-          "A compressed file becomes smaller",
-          "A variable changes value during execution",
-          "Some people cannot benefit because they lack reliable devices or internet access"
+          "Test the app with speakers of many accents and compare accuracy across groups",
+          "Test the app using only the developers' own voices",
+          "Make the app process speech more quickly",
+          "Remove the option for users to report recognition errors"
         ],
-        "correctAnswer": 3,
-        "explanation": "The digital divide refers to unequal access to computing technology, internet service, or digital skills.",
+        "correctAnswer": 0,
+        "explanation": "Comparing results across varied groups of users reveals whether the app works worse for some people, which is a sign of bias.",
         "unit": 5,
         "id": "T2-Q35"
       },
       {
-        "question": "Practice Test 2, Question 36: The team for a library book recommender keeps a written list of known bugs, assigned owners, and fix status. Why is this useful?",
+        "question": "Practice Test 2, Question 36: A program asks the user for the number of tickets to buy and crashes when the user types the word \"three\". Which change best prevents this?",
         "choices": [
-          "It automatically corrects syntax errors",
-          "It converts the program into binary code",
-          "It makes collaboration and debugging more organized",
-          "It prevents users from requesting new features"
+          "Add a comment in the code telling users to type only digits",
+          "Check that the input is a number and ask again if it is not",
+          "Store the input in a variable with a more descriptive name",
+          "Display the input back to the user after it is entered"
         ],
-        "correctAnswer": 2,
-        "explanation": "Tracking issues helps a team communicate what is broken, who is responsible, and what remains to be fixed.",
+        "correctAnswer": 1,
+        "explanation": "Validating input and re-prompting handles unexpected values instead of letting them crash the program; code comments are never seen by users.",
         "unit": 1,
         "id": "T2-Q36"
       },
       {
-        "question": "Practice Test 2, Question 37: A student notices that student attendance data includes missing values. What should the student consider before drawing conclusions?",
+        "question": "Practice Test 2, Question 37: A museum records the date and the number of visitors each day. The director wants to know whether a free-admission day attracts more visitors from out of town. What additional data is needed?",
         "choices": [
-          "Missing values prove the dataset is always useless",
-          "Missing values automatically improve accuracy",
-          "Missing values can bias analysis or make conclusions less reliable",
-          "Missing values are the same as binary overflow"
+          "The total number of exhibits in the museum",
+          "Where each visitor lives",
+          "The weather on each day",
+          "The price of admission on regular days"
         ],
-        "correctAnswer": 2,
-        "explanation": "Incomplete data can distort results, so analysts should consider how missing values affect conclusions.",
+        "correctAnswer": 1,
+        "explanation": "Daily visitor counts cannot separate local visitors from out-of-town visitors, so information about where visitors live is required.",
         "unit": 2,
         "id": "T2-Q37"
       },
@@ -1474,15 +1475,15 @@ export const practiceTests = [
         "code": "count ← 1\nREPEAT UNTIL(count = 4)\n{\n  DISPLAY(count)\n  count ← count + 1\n}"
       },
       {
-        "question": "Practice Test 2, Question 39: For a map directions app, DNS is used before a connection is made. What does DNS mainly do?",
+        "question": "Practice Test 2, Question 39: In the TCP/IP protocols, what is IP mainly responsible for?",
         "choices": [
-          "It translates a domain name into an IP address",
-          "It compresses images with lossy compression",
-          "It writes the program's source code",
-          "It prevents every cyberattack automatically"
+          "Resending any packets that were lost along the way",
+          "Addressing packets and routing them toward their destination",
+          "Translating domain names into numeric addresses",
+          "Displaying the contents of web pages in a browser"
         ],
-        "correctAnswer": 0,
-        "explanation": "DNS maps human-readable domain names to IP addresses used by computers on networks.",
+        "correctAnswer": 1,
+        "explanation": "The Internet Protocol gives devices addresses and moves packets across networks; reliability is handled by TCP and name lookups by DNS.",
         "unit": 4,
         "id": "T2-Q39"
       },
@@ -1500,28 +1501,28 @@ export const practiceTests = [
         "id": "T2-Q40"
       },
       {
-        "question": "Practice Test 2, Question 41: A prototype of a classroom quiz game is shown to a few users before the final version is built. What is the best reason to do this?",
+        "question": "Practice Test 2, Question 41: A program stores 5 names in a list and later tries to display the item at index 6. The program starts normally but stops partway through with an error message. What kind of error is this?",
         "choices": [
-          "To make the source code impossible to copy",
-          "To avoid documenting the project",
-          "To collect feedback while changes are still easier to make",
-          "To prove the app has no privacy concerns"
+          "A syntax error",
+          "A run-time error",
+          "An overflow error",
+          "A logic error that only shows a wrong name"
         ],
-        "correctAnswer": 2,
-        "explanation": "Early prototypes help developers learn from users before investing too much time in the wrong design.",
+        "correctAnswer": 1,
+        "explanation": "The code is written correctly, but accessing an index that does not exist fails while the program is executing, which is a run-time error.",
         "unit": 1,
         "id": "T2-Q41"
       },
       {
-        "question": "Practice Test 2, Question 42: In energy usage readings, the decimal value 19 must be stored in binary. Which statement is true about binary representation?",
+        "question": "Practice Test 2, Question 42: A school wants to give each of its 300 students a unique ID number using as few bits as possible. How many bits are needed?",
         "choices": [
-          "Binary can represent text but not numbers",
-          "Binary uses only 0s and 1s to represent information",
-          "Binary prevents all data from being copied",
-          "Binary stores every number using exactly two bits"
+          "8",
+          "10",
+          "9",
+          "300"
         ],
-        "correctAnswer": 1,
-        "explanation": "Computers represent all digital information using patterns of bits, which are 0s and 1s.",
+        "correctAnswer": 2,
+        "explanation": "Eight bits allow only 256 values, which is not enough, while 9 bits allow 512 values, enough for 300 students.",
         "unit": 2,
         "id": "T2-Q42"
       },
@@ -1540,15 +1541,15 @@ export const practiceTests = [
         "code": "PROCEDURE hasLongWord(words)\n{\n  FOR EACH w IN words\n  {\n    IF(LENGTH(w) > 8)\n    {\n      RETURN(true)\n    }\n  }\n  RETURN(false)\n}"
       },
       {
-        "question": "Practice Test 2, Question 44: In a video call, fault tolerance is important. Which design best supports fault tolerance?",
+        "question": "Practice Test 2, Question 44: Four routers are connected in a ring: W–X, X–Y, Y–Z, and Z–W. What is the minimum number of connections that must fail before W can no longer reach Y?",
         "choices": [
-          "Using exactly one server with no backup",
-          "Making every password the same",
-          "Having multiple possible paths or backup systems if one component fails",
-          "Deleting all network protocols"
+          "1",
+          "3",
+          "4",
+          "2"
         ],
-        "correctAnswer": 2,
-        "explanation": "Fault tolerance keeps systems working by using redundancy and alternate paths when failures occur.",
+        "correctAnswer": 3,
+        "explanation": "W can reach Y through X or through Z, so one connection on each of those two paths must fail to cut W off from Y.",
         "unit": 4,
         "id": "T2-Q44"
       },
@@ -1566,28 +1567,28 @@ export const practiceTests = [
         "id": "T2-Q45"
       },
       {
-        "question": "Practice Test 2, Question 46: A team is building a science fair registration page. Which action best shows iterative development?",
+        "question": "Practice Test 2, Question 46: In a drawing app, one block of code runs each time the user taps the Clear button; otherwise that code waits. Which description best fits how this part of the program works?",
         "choices": [
-          "Writing every feature once and never changing it",
-          "Letting one student make all design choices without review",
-          "Skipping planning so the final product is finished faster",
-          "Building a small version, testing it with users, and improving it based on feedback"
+          "It is event-driven, because code runs in response to a user action",
+          "It is sequential, because every statement runs once from top to bottom",
+          "It is distributed, because the work is split across several computers",
+          "It is recursive, because the code calls itself until the screen is clear"
         ],
-        "correctAnswer": 3,
-        "explanation": "Iterative development means creating, testing, receiving feedback, and refining through repeated cycles.",
+        "correctAnswer": 0,
+        "explanation": "Code that runs when an event such as a button tap occurs is event-driven programming.",
         "unit": 1,
         "id": "T2-Q46"
       },
       {
-        "question": "Practice Test 2, Question 47: A graph created from online store click data makes a sudden spike easy to see. What is the main advantage of visualization?",
+        "question": "Practice Test 2, Question 47: A program adds 0.1 and 0.2 and displays 0.30000000000000004. What best explains this result?",
         "choices": [
-          "It always proves the data is correct",
-          "It helps people identify patterns, trends, and unusual values",
-          "It changes analog data into digital data automatically",
-          "It removes outliers from the dataset"
+          "Many decimal fractions cannot be stored exactly in a fixed number of bits, so a round-off error occurs",
+          "The program contains a syntax error in the addition",
+          "The computer ran out of memory while adding the numbers",
+          "Lossy compression was applied to the numbers before adding"
         ],
-        "correctAnswer": 1,
-        "explanation": "Visualizations can make patterns and outliers easier to notice than raw tables alone.",
+        "correctAnswer": 0,
+        "explanation": "Computers store real numbers with a limited number of bits, so values like 0.1 are approximations and small round-off errors can appear.",
         "unit": 2,
         "id": "T2-Q47"
       },
@@ -1631,28 +1632,29 @@ export const practiceTests = [
         "id": "T2-Q50"
       },
       {
-        "question": "Practice Test 2, Question 51: Before coding a bus arrival notifier, the team writes user stories and sketches screen layouts. What is the main purpose of this planning?",
+        "question": "Practice Test 2, Question 51: This code is meant to display the numbers 1 through 5, but it displays only 1 2 3 4. Which change fixes it?",
         "choices": [
-          "To guarantee there will be no errors",
-          "To make the program run faster on every device",
-          "To remove the need for testing later",
-          "To clarify goals, users, and features before implementation"
-        ],
-        "correctAnswer": 3,
-        "explanation": "Planning helps developers understand requirements and design decisions before they begin writing code.",
-        "unit": 1,
-        "id": "T2-Q51"
-      },
-      {
-        "question": "Practice Test 2, Question 52: A file made from a fitness tracker dataset is compressed by replacing repeated values with shorter codes. What is the likely benefit?",
-        "choices": [
-          "The file changes from digital to analog",
-          "The file may require less storage or bandwidth",
-          "The file no longer contains data",
-          "The file becomes impossible to open"
+          "Change the first line to i ← 0",
+          "Change the condition to REPEAT UNTIL (i > 5)",
+          "Change the condition to REPEAT UNTIL (i = 4)",
+          "Swap the order of the two statements inside the loop"
         ],
         "correctAnswer": 1,
-        "explanation": "Compression reduces file size by representing data more efficiently.",
+        "explanation": "The loop stops as soon as i reaches 5, before 5 is displayed; stopping only when i is greater than 5 lets 5 be displayed too.",
+        "unit": 1,
+        "id": "T2-Q51",
+        "code": "i ← 1\nREPEAT UNTIL (i = 5)\n{\n  DISPLAY(i)\n  i ← i + 1\n}"
+      },
+      {
+        "question": "Practice Test 2, Question 52: Which statement is true about lossless compression?",
+        "choices": [
+          "It removes details that people are unlikely to notice",
+          "It always reduces a file's size by at least half",
+          "The original data can be reconstructed exactly from the compressed data",
+          "It can be used only on text files"
+        ],
+        "correctAnswer": 2,
+        "explanation": "Lossless compression reduces size without discarding information, so decompressing it restores the original exactly.",
         "unit": 2,
         "id": "T2-Q52"
       },
@@ -1670,15 +1672,15 @@ export const practiceTests = [
         "id": "T2-Q53"
       },
       {
-        "question": "Practice Test 2, Question 54: A router involved in a school website has which main responsibility?",
+        "question": "Practice Test 2, Question 54: A connection has a bandwidth of 20 megabits per second. Ignoring other delays, about how long does it take to send a 100-megabit file?",
         "choices": [
-          "Creating intellectual property licenses",
-          "Writing JavaScript code for the browser",
-          "Forwarding packets toward their destinations",
-          "Sampling analog sound"
+          "2 seconds",
+          "20 seconds",
+          "2,000 seconds",
+          "5 seconds"
         ],
-        "correctAnswer": 2,
-        "explanation": "Routers inspect addressing information and forward packets across networks.",
+        "correctAnswer": 3,
+        "explanation": "Dividing 100 megabits by 20 megabits per second gives 5 seconds.",
         "unit": 4,
         "id": "T2-Q54"
       },
@@ -1696,28 +1698,28 @@ export const practiceTests = [
         "id": "T2-Q55"
       },
       {
-        "question": "Practice Test 2, Question 56: A bug in a student planner app happens only when a user enters a blank value. Which testing approach is most likely to find this bug?",
+        "question": "Practice Test 2, Question 56: A team stores its code in a shared online system that records every change, when it was made, and who made it. How does this most help the team collaborate?",
         "choices": [
-          "Testing edge cases such as empty, very small, or very large inputs",
-          "Deleting comments from the program",
-          "Changing the app colors before release",
-          "Only testing the most common valid input"
+          "Teammates can see, review, and undo each other's changes when needed",
+          "The program is guaranteed to have no logic errors",
+          "Each teammate no longer needs to test the code they write",
+          "The program automatically runs faster after each change"
         ],
         "correctAnswer": 0,
-        "explanation": "Edge-case testing checks unusual or boundary inputs that often reveal hidden errors.",
+        "explanation": "A change history lets collaborators track who changed what and roll back a change that introduced a problem.",
         "unit": 1,
         "id": "T2-Q56"
       },
       {
-        "question": "Practice Test 2, Question 57: When using weather sensor readings, which question is most directly about data privacy?",
+        "question": "Practice Test 2, Question 57: A survey's state column contains \"FL\", \"Florida\", and \"florida\" for the same state. What should be done before counting responses by state?",
         "choices": [
-          "Which programming language was used?",
-          "How many pixels are in the app icon?",
-          "Who can access the data and how will it be protected?",
-          "What color should the chart use?"
+          "Delete every row that uses an abbreviation",
+          "Clean the data by changing all entries to one consistent format",
+          "Count each spelling as a separate state",
+          "Sort the column alphabetically and then count the rows"
         ],
-        "correctAnswer": 2,
-        "explanation": "Privacy focuses on the collection, access, sharing, and protection of personal or sensitive data.",
+        "correctAnswer": 1,
+        "explanation": "Cleaning makes the data uniform so that entries meaning the same thing are counted together instead of split into separate groups.",
         "unit": 2,
         "id": "T2-Q57"
       },
@@ -1736,28 +1738,28 @@ export const practiceTests = [
         "code": "count ← 0\nFOR EACH value IN nums\n{\n  IF(value < 0)\n  {\n    <MISSING LINE>\n  }\n}"
       },
       {
-        "question": "Practice Test 2, Question 59: A task for a file download is divided across many computers at the same time. This is an example of what concept?",
+        "question": "Practice Test 2, Question 59: A program takes 120 seconds to run sequentially and 40 seconds to run in parallel. What is the speedup of the parallel solution?",
         "choices": [
-          "Binary overflow",
-          "Phishing",
-          "Single-factor authentication",
-          "Distributed computing"
+          "80",
+          "0.33",
+          "3",
+          "160"
         ],
-        "correctAnswer": 3,
-        "explanation": "Distributed computing uses multiple connected computers to work on parts of a task.",
+        "correctAnswer": 2,
+        "explanation": "Speedup is the sequential time divided by the parallel time, and 120 divided by 40 is 3.",
         "unit": 4,
         "id": "T2-Q59"
       },
       {
-        "question": "Practice Test 2, Question 60: A harmful bias in AI resume screening is discovered after launch. What is the best next step?",
+        "question": "Practice Test 2, Question 60: In symmetric encryption, how are messages encrypted and decrypted?",
         "choices": [
-          "Investigate the data and design choices, then revise and retest the system",
-          "Delete all documentation",
-          "Ignore it because all computing innovations are neutral",
-          "Increase the font size only"
+          "A public key encrypts and a different private key decrypts",
+          "No key is needed because the algorithm itself is kept secret",
+          "The receiver's IP address is used as the key",
+          "The same secret key is used for both encrypting and decrypting"
         ],
-        "correctAnswer": 0,
-        "explanation": "Responsible computing includes identifying harmful impacts, revising systems, and testing improvements.",
+        "correctAnswer": 3,
+        "explanation": "Symmetric encryption uses one shared key for both steps, which is why that key must be kept secret by both parties.",
         "unit": 5,
         "id": "T2-Q60"
       },
@@ -1775,30 +1777,31 @@ export const practiceTests = [
         "id": "T2-Q61"
       },
       {
-        "question": "Practice Test 2, Question 62: Sound from school survey responses is captured many times per second and stored as numbers. What is this process called?",
+        "question": "Practice Test 2, Question 62: To estimate how many hours all students at a school spend playing video games, a student posts a survey only on the gaming club's message board. What is the main problem with this plan?",
         "choices": [
-          "Compiling",
-          "Routing",
-          "Phishing",
-          "Sampling"
+          "The survey will collect too many responses to analyze",
+          "Online surveys are unable to collect numeric answers",
+          "The sample is not representative, so the results will likely overestimate gaming time",
+          "Self-reported answers cannot be shown in any graph"
         ],
-        "correctAnswer": 3,
-        "explanation": "Sampling records measurements of analog information at intervals so it can be represented digitally.",
+        "correctAnswer": 2,
+        "explanation": "Gaming club members are not typical of all students, so data collected only from them is biased toward higher gaming hours.",
         "unit": 2,
         "id": "T2-Q62"
       },
       {
-        "question": "Practice Test 2, Question 63: A robot starts facing right/east. The goal is one square below the robot.\n\nWhich sequence reaches the goal?",
+        "question": "Practice Test 2, Question 63: What is displayed after the nested loops finish?",
         "choices": [
-          "ROTATE_LEFT()\nMOVE_FORWARD()",
-          "MOVE_FORWARD()\nROTATE_RIGHT()",
-          "ROTATE_RIGHT()\nMOVE_FORWARD()",
-          "ROTATE_RIGHT()\nROTATE_RIGHT()\nMOVE_FORWARD()"
+          "6",
+          "9",
+          "14",
+          "18"
         ],
         "correctAnswer": 2,
-        "explanation": "When facing east, rotating right makes the robot face south, so one forward move reaches the square below.",
+        "explanation": "Each value n is added n times, so total becomes 1 + (2 + 2) + (3 + 3 + 3) = 14.",
         "unit": 3,
-        "id": "T2-Q63"
+        "id": "T2-Q63",
+        "code": "total ← 0\nFOR EACH n IN [1, 2, 3]\n{\n  REPEAT n TIMES\n  {\n    total ← total + n\n  }\n}\nDISPLAY(total)"
       },
       {
         "question": "Practice Test 2, Question 64: Why is the internet described as fault tolerant?",
@@ -1814,15 +1817,15 @@ export const practiceTests = [
         "id": "T2-Q64"
       },
       {
-        "question": "Practice Test 2, Question 65: When evaluating social media recommendation feeds, which pair best shows both a benefit and a harm?",
+        "question": "Practice Test 2, Question 65: A student uses a popular song as background music in a video posted online and lists the artist's name in the description. Which statement is most accurate?",
         "choices": [
-          "Faster loops, but more syntax comments",
-          "More storage, but fewer file names",
-          "Improved convenience, but possible misuse or unequal impact",
-          "Better color choices, but larger fonts"
+          "Listing the artist's name makes any use of the song legal",
+          "Songs that can be streamed online are automatically in the public domain",
+          "Copyright applies only if the video earns money",
+          "Giving credit does not by itself grant permission, so the song is still protected by copyright"
         ],
-        "correctAnswer": 2,
-        "explanation": "AP CSP impact questions often require considering both positive effects and possible negative consequences.",
+        "correctAnswer": 3,
+        "explanation": "Copyright gives the owner control over how the work is used; attribution alone does not replace permission or a license that allows the use.",
         "unit": 5,
         "id": "T2-Q65"
       },
@@ -1867,28 +1870,28 @@ export const practiceTests = [
         "code": "a ← [10, 20, 30, 40]\nREMOVE(a, 2)\nDISPLAY(a[2])"
       },
       {
-        "question": "Practice Test 2, Question 69: During a cloud document, data is split into smaller pieces that may travel across different routes. What are these pieces usually called?",
+        "question": "Practice Test 2, Question 69: Data from a phone travels over Wi-Fi, then through copper cables, then through fiber-optic lines before reaching a server. Why can it still arrive correctly?",
         "choices": [
-          "Packets",
-          "Variables",
-          "Licenses",
-          "Pixels"
+          "Internet protocols work the same way regardless of the type of physical connection",
+          "Each type of connection converts the data into a different domain name",
+          "The full message is re-sent from the phone at each new type of connection",
+          "Only fiber-optic lines carry data that follows internet protocols"
         ],
         "correctAnswer": 0,
-        "explanation": "Internet data is commonly divided into packets that can be routed independently across networks.",
+        "explanation": "Internet protocols are independent of the hardware underneath, so data can move across many kinds of connections and still be understood.",
         "unit": 4,
         "id": "T2-Q69"
       },
       {
-        "question": "Practice Test 2, Question 70: Which issue related to digital payment apps is an example of the digital divide?",
+        "question": "Practice Test 2, Question 70: A developer releases a program under an open-source license. What does this typically allow other people to do?",
         "choices": [
-          "Some people cannot benefit because they lack reliable devices or internet access",
-          "A router sends packets to another network",
-          "A compressed file becomes smaller",
-          "A variable changes value during execution"
+          "Claim the program as their own original work",
+          "View, modify, and share the source code under the license's terms",
+          "Use the code with no conditions of any kind",
+          "Run the program without ever seeing its code"
         ],
-        "correctAnswer": 0,
-        "explanation": "The digital divide refers to unequal access to computing technology, internet service, or digital skills.",
+        "correctAnswer": 1,
+        "explanation": "Open-source licenses make the source code available to study, change, and redistribute, usually with conditions such as keeping credit.",
         "unit": 5,
         "id": "T2-Q70"
       }
@@ -2115,15 +2118,15 @@ export const practiceTests = [
         "id": "T3-Q16"
       },
       {
-        "question": "Practice Test 3, Question 17: Sound from sports team statistics is captured many times per second and stored as numbers. What is this process called?",
+        "question": "Practice Test 3, Question 17: A student wants to show how a city's population changed each year from 2000 to 2025. Which visualization is most appropriate?",
         "choices": [
-          "Sampling",
-          "Compiling",
-          "Routing",
-          "Phishing"
+          "A line graph with years on the horizontal axis",
+          "A pie chart with one slice for each year",
+          "A table cell that shows only the 2025 population",
+          "A word cloud of the city's neighborhood names"
         ],
         "correctAnswer": 0,
-        "explanation": "Sampling records measurements of analog information at intervals so it can be represented digitally.",
+        "explanation": "A line graph over time makes increases, decreases, and trends from year to year easy to see.",
         "unit": 2,
         "id": "T3-Q17"
       },
@@ -2154,15 +2157,15 @@ export const practiceTests = [
         "id": "T3-Q19"
       },
       {
-        "question": "Practice Test 3, Question 20: When evaluating automated license-plate readers, which pair best shows both a benefit and a harm?",
+        "question": "Practice Test 3, Question 20: Which is the best example of crowdsourcing?",
         "choices": [
-          "Improved convenience, but possible misuse or unequal impact",
-          "Faster loops, but more syntax comments",
-          "More storage, but fewer file names",
-          "Better color choices, but larger fonts"
+          "A company hires one consultant to design its website",
+          "A navigation app updates traffic delays using reports from thousands of drivers",
+          "A computer runs a simulation using several processor cores",
+          "A teacher grades every student's test by hand"
         ],
-        "correctAnswer": 0,
-        "explanation": "AP CSP impact questions often require considering both positive effects and possible negative consequences.",
+        "correctAnswer": 1,
+        "explanation": "Crowdsourcing gathers information or work from a large group of people, often online, as when many drivers report traffic.",
         "unit": 5,
         "id": "T3-Q20"
       },
@@ -2207,54 +2210,54 @@ export const practiceTests = [
         "code": "nums ← [2, 7, 4, 9]\nfound ← false\nFOR EACH n IN nums\n{\n  IF(n = 4)\n  {\n    found ← true\n  }\n}\nDISPLAY(found)"
       },
       {
-        "question": "Practice Test 3, Question 24: During a multiplayer quiz, data is split into smaller pieces that may travel across different routes. What are these pieces usually called?",
+        "question": "Practice Test 3, Question 24: A school adds extra cables and backup routers so its network has several paths between buildings. What is a likely drawback of this change?",
         "choices": [
-          "Variables",
-          "Licenses",
-          "Pixels",
-          "Packets"
+          "Data can no longer be divided into packets",
+          "The network becomes less fault tolerant",
+          "Higher cost and more equipment to maintain",
+          "Every device needs a new kind of IP address"
         ],
-        "correctAnswer": 3,
-        "explanation": "Internet data is commonly divided into packets that can be routed independently across networks.",
+        "correctAnswer": 2,
+        "explanation": "Redundancy improves reliability, but the additional hardware and connections cost money and require upkeep.",
         "unit": 4,
         "id": "T3-Q24"
       },
       {
-        "question": "Practice Test 3, Question 25: Which issue related to generative AI tools is an example of the digital divide?",
+        "question": "Practice Test 3, Question 25: Why is it important to install operating system updates promptly?",
         "choices": [
-          "A compressed file becomes smaller",
-          "Some people cannot benefit because they lack reliable devices or internet access",
-          "A router sends packets to another network",
-          "A variable changes value during execution"
+          "Updates always increase the computer's storage capacity",
+          "Updates remove the need to use passwords",
+          "Updates convert all files into a compressed format",
+          "Updates often fix security vulnerabilities that attackers could exploit"
         ],
-        "correctAnswer": 1,
-        "explanation": "The digital divide refers to unequal access to computing technology, internet service, or digital skills.",
+        "correctAnswer": 3,
+        "explanation": "Many updates patch known security flaws, and devices left unpatched remain open to attacks that use those flaws.",
         "unit": 5,
         "id": "T3-Q25"
       },
       {
-        "question": "Practice Test 3, Question 26: The team for a campus map app keeps a written list of known bugs, assigned owners, and fix status. Why is this useful?",
+        "question": "Practice Test 3, Question 26: A project plan for a cafeteria menu app states that the app must show today's menu within 2 seconds and must work on older phones. These statements are best described as what?",
         "choices": [
-          "It makes collaboration and debugging more organized",
-          "It converts the program into binary code",
-          "It automatically corrects syntax errors",
-          "It prevents users from requesting new features"
+          "Test results collected from users of the app",
+          "Documentation of the steps in the app's algorithms",
+          "Program requirements that describe what the program must do",
+          "Examples of logic errors found during testing"
         ],
-        "correctAnswer": 0,
-        "explanation": "Tracking issues helps a team communicate what is broken, who is responsible, and what remains to be fixed.",
+        "correctAnswer": 2,
+        "explanation": "Requirements describe how a program must behave and the constraints it must satisfy, and they guide design and testing.",
         "unit": 1,
         "id": "T3-Q26"
       },
       {
-        "question": "Practice Test 3, Question 27: A student notices that GPS coordinates from a delivery route includes missing values. What should the student consider before drawing conclusions?",
+        "question": "Practice Test 3, Question 27: The 8-bit sequence 01000001 could represent the number 65 or the letter A. What determines which one it means?",
         "choices": [
-          "Missing values can bias analysis or make conclusions less reliable",
-          "Missing values automatically improve accuracy",
-          "Missing values are the same as binary overflow",
-          "Missing values prove the dataset is always useless"
+          "Whether the bits were compressed with a lossy or lossless method",
+          "The number of 1s that appear in the sequence",
+          "How the program interprets the bits in that context",
+          "The speed of the processor that reads the bits"
         ],
-        "correctAnswer": 0,
-        "explanation": "Incomplete data can distort results, so analysts should consider how missing values affect conclusions.",
+        "correctAnswer": 2,
+        "explanation": "The same bits can stand for different things; their meaning depends on how a program is told to interpret them.",
         "unit": 2,
         "id": "T3-Q27"
       },
@@ -2273,15 +2276,15 @@ export const practiceTests = [
         "code": "PROCEDURE addTax(price, rate)\n{\n  RETURN(price + price * rate)\n}"
       },
       {
-        "question": "Practice Test 3, Question 29: For a remote backup system, DNS is used before a connection is made. What does DNS mainly do?",
+        "question": "Practice Test 3, Question 29: A climate research group splits a huge simulation into parts that run on thousands of computers in different places. What is the main benefit of this distributed approach?",
         "choices": [
-          "It translates a domain name into an IP address",
-          "It writes the program's source code",
-          "It compresses images with lossy compression",
-          "It prevents every cyberattack automatically"
+          "It guarantees that the results of the simulation are correct",
+          "It removes the need for any network communication",
+          "It can solve problems too large or slow for any single computer to handle",
+          "It makes each individual computer run faster"
         ],
-        "correctAnswer": 0,
-        "explanation": "DNS maps human-readable domain names to IP addresses used by computers on networks.",
+        "correctAnswer": 2,
+        "explanation": "Distributed computing combines the processing power and storage of many computers to handle work that one computer could not finish in a reasonable time.",
         "unit": 4,
         "id": "T3-Q29"
       },
@@ -2299,28 +2302,28 @@ export const practiceTests = [
         "id": "T3-Q30"
       },
       {
-        "question": "Practice Test 3, Question 31: A prototype of a library book recommender is shown to a few users before the final version is built. What is the best reason to do this?",
+        "question": "Practice Test 3, Question 31: A variable in a long program ends up with an unexpected value, and the programmer cannot tell which step causes it. Which strategy most directly helps locate the problem?",
         "choices": [
-          "To collect feedback while changes are still easier to make",
-          "To make the source code impossible to copy",
-          "To prove the app has no privacy concerns",
-          "To avoid documenting the project"
+          "Rename the variable so that its purpose is clearer to readers",
+          "Run the program again with the same input to confirm the result",
+          "Add temporary DISPLAY statements that show the variable's value after key steps",
+          "Rewrite the whole program using a different algorithm"
         ],
-        "correctAnswer": 0,
-        "explanation": "Early prototypes help developers learn from users before investing too much time in the wrong design.",
+        "correctAnswer": 2,
+        "explanation": "Displaying the variable at intermediate points shows exactly where its value first goes wrong, which narrows down the faulty step.",
         "unit": 1,
         "id": "T3-Q31"
       },
       {
-        "question": "Practice Test 3, Question 32: In student attendance data, the decimal value 19 must be stored in binary. Which statement is true about binary representation?",
+        "question": "Practice Test 3, Question 32: A system stores each value using 10 bits. If it is changed to use 11 bits, how does the number of different values it can represent change?",
         "choices": [
-          "Binary can represent text but not numbers",
-          "Binary prevents all data from being copied",
-          "Binary stores every number using exactly two bits",
-          "Binary uses only 0s and 1s to represent information"
+          "It increases by 1",
+          "It increases by about 10 percent",
+          "It increases by 11",
+          "It doubles"
         ],
         "correctAnswer": 3,
-        "explanation": "Computers represent all digital information using patterns of bits, which are 0s and 1s.",
+        "explanation": "Each added bit doubles the number of possible bit patterns, so 2^11 is twice 2^10.",
         "unit": 2,
         "id": "T3-Q32"
       },
@@ -2339,15 +2342,15 @@ export const practiceTests = [
         "code": "letters ← [\"A\", \"B\", \"C\"]\nletters[1] ← letters[3]\nDISPLAY(letters[1])"
       },
       {
-        "question": "Practice Test 3, Question 34: In a map directions app, fault tolerance is important. Which design best supports fault tolerance?",
+        "question": "Practice Test 3, Question 34: A live sports stream sends its video using UDP instead of TCP. What is the most likely reason?",
         "choices": [
-          "Deleting all network protocols",
-          "Using exactly one server with no backup",
-          "Having multiple possible paths or backup systems if one component fails",
-          "Making every password the same"
+          "UDP sends data quickly without waiting for lost packets to be resent, and small gaps are acceptable",
+          "UDP guarantees that every packet arrives in the correct order",
+          "UDP encrypts the video so that viewers cannot copy it",
+          "UDP translates domain names into IP addresses"
         ],
-        "correctAnswer": 2,
-        "explanation": "Fault tolerance keeps systems working by using redundancy and alternate paths when failures occur.",
+        "correctAnswer": 0,
+        "explanation": "UDP skips the checking and resending that TCP does, which keeps live video timely even if a few packets are lost.",
         "unit": 4,
         "id": "T3-Q34"
       },
@@ -2365,28 +2368,28 @@ export const practiceTests = [
         "id": "T3-Q35"
       },
       {
-        "question": "Practice Test 3, Question 36: A team is building a classroom quiz game. Which action best shows iterative development?",
+        "question": "Practice Test 3, Question 36: Which statement best describes the purpose of a program, as opposed to how it functions?",
         "choices": [
-          "Letting one student make all design choices without review",
-          "Writing every feature once and never changing it",
-          "Skipping planning so the final product is finished faster",
-          "Building a small version, testing it with users, and improving it based on feedback"
+          "The order in which its statements are executed",
+          "The problem it solves or the goal it helps its users reach",
+          "The types of data its variables are allowed to store",
+          "The specific procedures it calls while it runs"
         ],
-        "correctAnswer": 3,
-        "explanation": "Iterative development means creating, testing, receiving feedback, and refining through repeated cycles.",
+        "correctAnswer": 1,
+        "explanation": "A program's purpose is why it exists, the problem it addresses, while its function is how it behaves when it runs.",
         "unit": 1,
         "id": "T3-Q36"
       },
       {
-        "question": "Practice Test 3, Question 37: A graph created from energy usage readings makes a sudden spike easy to see. What is the main advantage of visualization?",
+        "question": "Practice Test 3, Question 37: A music producer increases the sampling rate used to record an analog sound. What is the most likely effect?",
         "choices": [
-          "It always proves the data is correct",
-          "It helps people identify patterns, trends, and unusual values",
-          "It removes outliers from the dataset",
-          "It changes analog data into digital data automatically"
+          "The recording takes less storage and sounds exactly the same",
+          "The digital recording represents the sound more accurately but takes more storage",
+          "The recording is stored as analog data instead of digital data",
+          "The recording can no longer be compressed"
         ],
         "correctAnswer": 1,
-        "explanation": "Visualizations can make patterns and outliers easier to notice than raw tables alone.",
+        "explanation": "Taking more samples per second captures the continuous sound wave more closely, but every extra sample adds to the file size.",
         "unit": 2,
         "id": "T3-Q37"
       },
@@ -2431,28 +2434,28 @@ export const practiceTests = [
         "id": "T3-Q40"
       },
       {
-        "question": "Practice Test 3, Question 41: Before coding a science fair registration page, the team writes user stories and sketches screen layouts. What is the main purpose of this planning?",
+        "question": "Practice Test 3, Question 41: A student finds a useful procedure in an online tutorial and includes it in a class project. What is the most appropriate thing to do?",
         "choices": [
-          "To remove the need for testing later",
-          "To guarantee there will be no errors",
-          "To make the program run faster on every device",
-          "To clarify goals, users, and features before implementation"
+          "Change the variable names so the code counts as original work",
+          "Use it without credit because code posted publicly has no owner",
+          "Credit the original author and source in the program's comments or documentation",
+          "Mention the source only if the teacher asks about that procedure"
         ],
-        "correctAnswer": 3,
-        "explanation": "Planning helps developers understand requirements and design decisions before they begin writing code.",
+        "correctAnswer": 2,
+        "explanation": "Code written by someone else should be acknowledged, with its author or source, wherever it is used in a program.",
         "unit": 1,
         "id": "T3-Q41"
       },
       {
-        "question": "Practice Test 3, Question 42: A file made from online store click data is compressed by replacing repeated values with shorter codes. What is the likely benefit?",
+        "question": "Practice Test 3, Question 42: A simple compression scheme replaces each run of repeated characters with a count, so AAAABBB becomes 4A3B. Which string would this scheme compress the least?",
         "choices": [
-          "The file becomes impossible to open",
-          "The file changes from digital to analog",
-          "The file no longer contains data",
-          "The file may require less storage or bandwidth"
+          "AAAAAAAA",
+          "AABBBBBB",
+          "CCCCDDDD",
+          "ABCDABCD"
         ],
         "correctAnswer": 3,
-        "explanation": "Compression reduces file size by representing data more efficiently.",
+        "explanation": "ABCDABCD has no repeated runs, so every character needs its own count and the encoded version is actually longer than the original.",
         "unit": 2,
         "id": "T3-Q42"
       },
@@ -2470,15 +2473,15 @@ export const practiceTests = [
         "id": "T3-Q43"
       },
       {
-        "question": "Practice Test 3, Question 44: A router involved in an online game match has which main responsibility?",
+        "question": "Practice Test 3, Question 44: Besides a piece of the actual data, what does a packet typically include?",
         "choices": [
-          "Creating intellectual property licenses",
-          "Writing JavaScript code for the browser",
-          "Forwarding packets toward their destinations",
-          "Sampling analog sound"
+          "Metadata such as the source and destination addresses and its place in the message",
+          "A complete copy of the whole message in case the packet is lost",
+          "The password of the user who sent the message",
+          "The physical location of every router it will pass through"
         ],
-        "correctAnswer": 2,
-        "explanation": "Routers inspect addressing information and forward packets across networks.",
+        "correctAnswer": 0,
+        "explanation": "Each packet carries metadata, like where it came from, where it is going, and how it fits into the message, so it can be routed and reassembled.",
         "unit": 4,
         "id": "T3-Q44"
       },
@@ -2496,28 +2499,28 @@ export const practiceTests = [
         "id": "T3-Q45"
       },
       {
-        "question": "Practice Test 3, Question 46: A bug in a bus arrival notifier happens only when a user enters a blank value. Which testing approach is most likely to find this bug?",
+        "question": "Practice Test 3, Question 46: Before running a set of tests, a programmer writes down the expected output for each test input. Why is this helpful?",
         "choices": [
-          "Only testing the most common valid input",
-          "Changing the app colors before release",
-          "Testing edge cases such as empty, very small, or very large inputs",
-          "Deleting comments from the program"
+          "It makes the program run faster while it is being tested",
+          "The actual output can be compared with the expected output to tell whether the program is correct",
+          "It prevents syntax errors from appearing in the code",
+          "It removes the need to test any unusual inputs"
         ],
-        "correctAnswer": 2,
-        "explanation": "Edge-case testing checks unusual or boundary inputs that often reveal hidden errors.",
+        "correctAnswer": 1,
+        "explanation": "Knowing the expected result in advance gives a clear standard for judging whether each test passes or reveals an error.",
         "unit": 1,
         "id": "T3-Q46"
       },
       {
-        "question": "Practice Test 3, Question 47: When using a fitness tracker dataset, which question is most directly about data privacy?",
+        "question": "Practice Test 3, Question 47: A spreadsheet holds one year of daily temperatures, with a date column and a temperature column. Which process finds the average temperature for July?",
         "choices": [
-          "What color should the chart use?",
-          "Which programming language was used?",
-          "How many pixels are in the app icon?",
-          "Who can access the data and how will it be protected?"
+          "Sort all rows by temperature, then take the middle value",
+          "Average the entire temperature column, then divide by 12",
+          "Filter the rows to keep only July dates, then average the temperature column",
+          "Count the July rows, then report the highest temperature"
         ],
-        "correctAnswer": 3,
-        "explanation": "Privacy focuses on the collection, access, sharing, and protection of personal or sensitive data.",
+        "correctAnswer": 2,
+        "explanation": "Filtering selects only the July data, and averaging those values gives the July average temperature.",
         "unit": 2,
         "id": "T3-Q47"
       },
@@ -2536,28 +2539,28 @@ export const practiceTests = [
         "code": "nums ← [8, 6, 7]\nINSERT(nums, 1, 5)\nREMOVE(nums, 3)\nDISPLAY(nums[2])"
       },
       {
-        "question": "Practice Test 3, Question 49: A task for a school website is divided across many computers at the same time. This is an example of what concept?",
+        "question": "Practice Test 3, Question 49: A task has 20 seconds of steps that must run in order and 30 seconds of work that can be split evenly among any number of processors. As more and more processors are added, what happens to the total running time?",
         "choices": [
-          "Single-factor authentication",
-          "Binary overflow",
-          "Distributed computing",
-          "Phishing"
+          "It approaches 0 seconds",
+          "It stays at 50 seconds",
+          "It approaches 30 seconds",
+          "It approaches 20 seconds but cannot go below it"
         ],
-        "correctAnswer": 2,
-        "explanation": "Distributed computing uses multiple connected computers to work on parts of a task.",
+        "correctAnswer": 3,
+        "explanation": "Extra processors shrink only the parallel part; the 20 seconds of sequential steps always remain, so the time can never drop below 20 seconds.",
         "unit": 4,
         "id": "T3-Q49"
       },
       {
-        "question": "Practice Test 3, Question 50: A harmful bias in smartphone location sharing is discovered after launch. What is the best next step?",
+        "question": "Practice Test 3, Question 50: When a browser connects to a bank's website over HTTPS, it checks a digital certificate issued by a certificate authority. What does this certificate help confirm?",
         "choices": [
-          "Increase the font size only",
-          "Investigate the data and design choices, then revise and retest the system",
-          "Delete all documentation",
-          "Ignore it because all computing innovations are neutral"
+          "That the site really belongs to the organization it claims to be",
+          "That the site's code contains no software bugs",
+          "That the user's password is strong enough",
+          "That the connection has enough bandwidth"
         ],
-        "correctAnswer": 1,
-        "explanation": "Responsible computing includes identifying harmful impacts, revising systems, and testing improvements.",
+        "correctAnswer": 0,
+        "explanation": "Certificate authorities verify who owns a website and issue certificates, so the browser can trust it is talking to the real site.",
         "unit": 5,
         "id": "T3-Q50"
       },
@@ -2575,15 +2578,15 @@ export const practiceTests = [
         "id": "T3-Q51"
       },
       {
-        "question": "Practice Test 3, Question 52: Sound from weather sensor readings is captured many times per second and stored as numbers. What is this process called?",
+        "question": "Practice Test 3, Question 52: A city has one dataset of daily bus ridership and another of daily rainfall, both organized by date. What is the main benefit of combining them?",
         "choices": [
-          "Phishing",
-          "Routing",
-          "Compiling",
-          "Sampling"
+          "It reduces the total number of bits needed to store both datasets",
+          "It makes it possible to investigate whether rainy days change ridership",
+          "It guarantees that any pattern found has a single cause",
+          "It removes the need to clean either dataset"
         ],
-        "correctAnswer": 3,
-        "explanation": "Sampling records measurements of analog information at intervals so it can be represented digitally.",
+        "correctAnswer": 1,
+        "explanation": "Linking the datasets by date lets the city look for relationships between weather and ridership that neither dataset shows alone.",
         "unit": 2,
         "id": "T3-Q52"
       },
@@ -2614,15 +2617,15 @@ export const practiceTests = [
         "id": "T3-Q54"
       },
       {
-        "question": "Practice Test 3, Question 55: When evaluating AI resume screening, which pair best shows both a benefit and a harm?",
+        "question": "Practice Test 3, Question 55: Many students in a rural district cannot finish online homework because they lack internet access at home. Which action most directly reduces this digital divide?",
         "choices": [
-          "Faster loops, but more syntax comments",
-          "More storage, but fewer file names",
-          "Better color choices, but larger fonts",
-          "Improved convenience, but possible misuse or unequal impact"
+          "Requiring that all homework be submitted online",
+          "Adding more online videos to each lesson",
+          "Lending students mobile hotspots and devices to use at home",
+          "Moving the school's website to a faster server"
         ],
-        "correctAnswer": 3,
-        "explanation": "AP CSP impact questions often require considering both positive effects and possible negative consequences.",
+        "correctAnswer": 2,
+        "explanation": "The divide here is unequal access, so providing devices and connections to students without them addresses the cause directly.",
         "unit": 5,
         "id": "T3-Q55"
       },
@@ -2667,54 +2670,55 @@ export const practiceTests = [
         "code": "PROCEDURE firstItem(aList)\n{\n  RETURN(aList[1])\n}\n\nDISPLAY(firstItem([\"cat\", \"dog\", \"bird\"]))"
       },
       {
-        "question": "Practice Test 3, Question 59: During a messaging app, data is split into smaller pieces that may travel across different routes. What are these pieces usually called?",
+        "question": "Practice Test 3, Question 59: Which situation depends most on high bandwidth rather than low latency?",
         "choices": [
-          "Licenses",
-          "Packets",
-          "Variables",
-          "Pixels"
+          "Sending a quick move in a fast-paced online game",
+          "Hearing an immediate reply during a live voice call",
+          "Pressing a button that must get an instant response from a server",
+          "Downloading a very large video file overnight"
         ],
-        "correctAnswer": 1,
-        "explanation": "Internet data is commonly divided into packets that can be routed independently across networks.",
+        "correctAnswer": 3,
+        "explanation": "A large overnight download is limited mainly by how much data can move per second, while the others depend on short delays.",
         "unit": 4,
         "id": "T3-Q59"
       },
       {
-        "question": "Practice Test 3, Question 60: Which issue related to social media recommendation feeds is an example of the digital divide?",
+        "question": "Practice Test 3, Question 60: A student posts a photo taken at home on a public profile, and the photo file includes GPS coordinates in its metadata. What is the main privacy risk?",
         "choices": [
-          "A router sends packets to another network",
-          "A compressed file becomes smaller",
-          "Some people cannot benefit because they lack reliable devices or internet access",
-          "A variable changes value during execution"
+          "Others could learn where the student lives from the location data",
+          "The photo will lose quality every time it is viewed",
+          "The location data makes the photo impossible to compress",
+          "The photo can only be opened on devices that have GPS"
         ],
-        "correctAnswer": 2,
-        "explanation": "The digital divide refers to unequal access to computing technology, internet service, or digital skills.",
+        "correctAnswer": 0,
+        "explanation": "Location metadata can reveal personal information such as a home address even when the picture itself does not show it.",
         "unit": 5,
         "id": "T3-Q60"
       },
       {
-        "question": "Practice Test 3, Question 61: The team for a school lunch ordering tool keeps a written list of known bugs, assigned owners, and fix status. Why is this useful?",
+        "question": "Practice Test 3, Question 61: The procedure should return \"A\" for scores of 90 or more, \"B\" for 80–89, \"C\" for 70–79, and \"F\" otherwise. What does letterGrade(95) return?",
         "choices": [
-          "It prevents users from requesting new features",
-          "It automatically corrects syntax errors",
-          "It makes collaboration and debugging more organized",
-          "It converts the program into binary code"
+          "\"C\", because the first condition is true and the procedure returns right away",
+          "\"A\", because 95 is greater than or equal to 90",
+          "\"B\", because 95 is greater than or equal to 80",
+          "\"F\", because none of the conditions match 95 exactly"
         ],
-        "correctAnswer": 2,
-        "explanation": "Tracking issues helps a team communicate what is broken, who is responsible, and what remains to be fixed.",
+        "correctAnswer": 0,
+        "explanation": "The checks are in the wrong order: 95 ≥ 70 is tested first, so RETURN(\"C\") ends the procedure before the higher grades are ever checked.",
         "unit": 1,
-        "id": "T3-Q61"
+        "id": "T3-Q61",
+        "code": "PROCEDURE letterGrade(score)\n{\n  IF (score ≥ 70)\n  {\n    RETURN(\"C\")\n  }\n  IF (score ≥ 80)\n  {\n    RETURN(\"B\")\n  }\n  IF (score ≥ 90)\n  {\n    RETURN(\"A\")\n  }\n  RETURN(\"F\")\n}"
       },
       {
-        "question": "Practice Test 3, Question 62: A student notices that image files for a yearbook includes missing values. What should the student consider before drawing conclusions?",
+        "question": "Practice Test 3, Question 62: A grayscale image is 100 pixels wide and 100 pixels tall, and each pixel uses 8 bits. Ignoring metadata and compression, how many bits are needed to store the image?",
         "choices": [
-          "Missing values prove the dataset is always useless",
-          "Missing values can bias analysis or make conclusions less reliable",
-          "Missing values automatically improve accuracy",
-          "Missing values are the same as binary overflow"
+          "10,000",
+          "800",
+          "1,600",
+          "80,000"
         ],
-        "correctAnswer": 1,
-        "explanation": "Incomplete data can distort results, so analysts should consider how missing values affect conclusions.",
+        "correctAnswer": 3,
+        "explanation": "The image has 100 × 100 = 10,000 pixels, and at 8 bits each that is 80,000 bits.",
         "unit": 2,
         "id": "T3-Q62"
       },
@@ -2732,15 +2736,15 @@ export const practiceTests = [
         "id": "T3-Q63"
       },
       {
-        "question": "Practice Test 3, Question 64: For a cloud document, DNS is used before a connection is made. What does DNS mainly do?",
+        "question": "Practice Test 3, Question 64: For which kind of problem would running it on several processors in parallel help the least?",
         "choices": [
-          "It prevents every cyberattack automatically",
-          "It compresses images with lossy compression",
-          "It writes the program's source code",
-          "It translates a domain name into an IP address"
+          "Applying the same filter to thousands of separate photos",
+          "Counting the words in many separate documents",
+          "Checking millions of independent records for errors",
+          "A calculation in which each step needs the result of the step before it"
         ],
         "correctAnswer": 3,
-        "explanation": "DNS maps human-readable domain names to IP addresses used by computers on networks.",
+        "explanation": "When every step depends on the previous result, the steps must run one after another, so additional processors cannot share the work.",
         "unit": 4,
         "id": "T3-Q64"
       },
@@ -2758,28 +2762,28 @@ export const practiceTests = [
         "id": "T3-Q65"
       },
       {
-        "question": "Practice Test 3, Question 66: A prototype of a community tutoring sign-up form is shown to a few users before the final version is built. What is the best reason to do this?",
+        "question": "Practice Test 3, Question 66: In pair programming, one student types the code while the other reviews each line and thinks about the overall plan, and they switch roles often. What is a main benefit of this practice?",
         "choices": [
-          "To make the source code impossible to copy",
-          "To collect feedback while changes are still easier to make",
-          "To avoid documenting the project",
-          "To prove the app has no privacy concerns"
+          "The finished program will run faster because two people wrote it",
+          "Each student can build a different feature at the same time",
+          "The finished program no longer needs to be tested by anyone else",
+          "Errors are more likely to be caught as code is written, and both students understand the code"
         ],
-        "correctAnswer": 1,
-        "explanation": "Early prototypes help developers learn from users before investing too much time in the wrong design.",
+        "correctAnswer": 3,
+        "explanation": "Having a second person review code in real time catches mistakes early and spreads knowledge of the code across both partners.",
         "unit": 1,
         "id": "T3-Q66"
       },
       {
-        "question": "Practice Test 3, Question 67: In traffic counter data, the decimal value 12 must be stored in binary. Which statement is true about binary representation?",
+        "question": "Practice Test 3, Question 67: Which binary number represents the greatest value?",
         "choices": [
-          "Binary prevents all data from being copied",
-          "Binary uses only 0s and 1s to represent information",
-          "Binary stores every number using exactly two bits",
-          "Binary can represent text but not numbers"
+          "10010",
+          "01111",
+          "10001",
+          "01101"
         ],
-        "correctAnswer": 1,
-        "explanation": "Computers represent all digital information using patterns of bits, which are 0s and 1s.",
+        "correctAnswer": 0,
+        "explanation": "10010 is 18, which is larger than 01111 (15), 10001 (17), and 01101 (13).",
         "unit": 2,
         "id": "T3-Q67"
       },
@@ -2797,15 +2801,15 @@ export const practiceTests = [
         "id": "T3-Q68"
       },
       {
-        "question": "Practice Test 3, Question 69: In a streaming music service, fault tolerance is important. Which design best supports fault tolerance?",
+        "question": "Practice Test 3, Question 69: When a web browser asks a server to send it a web page, which protocol is used for that request?",
         "choices": [
-          "Deleting all network protocols",
-          "Having multiple possible paths or backup systems if one component fails",
-          "Using exactly one server with no backup",
-          "Making every password the same"
+          "DNS",
+          "HTTP",
+          "UDP",
+          "IPv6"
         ],
         "correctAnswer": 1,
-        "explanation": "Fault tolerance keeps systems working by using redundancy and alternate paths when failures occur.",
+        "explanation": "HTTP is the protocol of the World Wide Web that browsers use to request pages and servers use to send them back.",
         "unit": 4,
         "id": "T3-Q69"
       },

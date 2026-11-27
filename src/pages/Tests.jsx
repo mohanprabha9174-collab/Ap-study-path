@@ -43,7 +43,7 @@ function shuffle(list) {
 
 // Bump when question order or answer positions change, so old saved answers aren't
 // matched against different choices.
-const DATA_VERSION = 2;
+const DATA_VERSION = 3;
 // Old or damaged saves (wrong version, answers not a list) start fresh instead of crashing.
 const isStale = (saved) => Boolean(saved) && ((saved.v || 0) < DATA_VERSION || !Array.isArray(saved.answers));
 const staleNotice = () => window.dispatchEvent(new CustomEvent("ap-notice", {
