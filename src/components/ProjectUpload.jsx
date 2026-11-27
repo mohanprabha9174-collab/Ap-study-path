@@ -78,6 +78,8 @@ const ACCEPT = ".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt,.md,.js,.jsx,.ts,.py,.java,
 export default function ProjectUpload({ project, onChange, checklist }) {
   const [errors, setErrors] = useState([]);
   const [dragging, setDragging] = useState(false);
+  // Once a project is uploaded the panel folds to one line so the question comes first.
+  const [expanded, setExpanded] = useState(false);
   const inputRef = useRef(null);
   // Always read the newest project, and handle one batch of files at a time,
   // so two quick uploads can't overwrite each other.
@@ -137,7 +139,7 @@ export default function ProjectUpload({ project, onChange, checklist }) {
   }
 
   return (
-    <div className={`card ppr-panel ${ready ? "ready" : "missing"}`}>
+    <div className={`card ppr-panel ${ready ? "ready" : "missing"} ${ready && !expanded ? "collapsed" : ""}`}>
       <div className="ppr-head">
         <div>
           <h2>Step 1: Upload your Create Task project</h2>
@@ -145,10 +147,21 @@ export default function ProjectUpload({ project, onChange, checklist }) {
             The written response questions ask about <strong>your own program</strong>. Upload your Personalized Project Reference (PPR) so the AI can check every answer against your actual code, just like an AP reader would.
           </p>
         </div>
-        <span className={`ppr-status ${ready ? "ok" : "todo"}`}>
-          {ready ? "Project ready" : "Not uploaded yet"}
-        </span>
+        <div className="ppr-head__side">
+          <span className={`ppr-status ${ready ? "ok" : "todo"}`}>
+            {ready ? "Project ready" : "Not uploaded yet"}
+          </span>
+          {ready && (
+            <button className="link-btn" onClick={() => setExpanded(!expanded)} aria-expanded={expanded}>
+              {expanded ? "Hide upload" : "View or change files"}
+            </button>
+          )}
+        </div>
       </div>
+
+      <p className="privacy-warning" role="note">
+        <strong>Before you upload:</strong> remove your name and any personal info from screenshots. Your project stays in this browser and is only sent when you grade or ask the AI helper.
+      </p>
 
       <label
         className={`file-drop big ${dragging ? "dragging" : ""}`}
@@ -190,7 +203,7 @@ export default function ProjectUpload({ project, onChange, checklist }) {
           {errors.length === 1 ? errors[0] : <ul>{errors.map((m) => <li key={m}>{m}</li>)}</ul>}
         </div>
       )}
-      <p className="muted small">Remove your name and any personal info from screenshots first. Your project stays saved in this browser and is only sent when you grade or ask the AI helper.</p>
+
 
       <details className="ppr-checklist-details">
         <summary>What your PPR must include</summary>

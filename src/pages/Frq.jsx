@@ -127,13 +127,10 @@ export function FrqTab({ course, frqParam }) {
 
   return (
     <div className="frq-page">
-      <GradingBanner aiAvailable={aiAvailable} canUseServer={canUseServer} backendAvailable={backend.available} usage={usage} />
+      <GradingBanner aiAvailable={aiAvailable} canUseServer={canUseServer} backendAvailable={backend.available} usage={usage} csp={course.id === "csp"} />
 
       {course.id === "csp" && (
         <>
-          {!(aiAvailable && canUseServer) && (
-            <p className="info-box">Your uploaded project is used when AI grading is on{aiAvailable ? ". Sign in to turn it on" : ""}. Until then it's saved on this device and the keyword estimate doesn't read it.</p>
-          )}
           <ProjectUpload project={{ ...project, code: ppr }} onChange={(next) => { setProject(next); saveDraft("ppr:csp", next.code); }} checklist={course.pprChecklist} />
         </>
       )}
@@ -412,7 +409,7 @@ function FrqPrompt({ frq }) {
   );
 }
 
-function GradingBanner({ aiAvailable, canUseServer, backendAvailable, usage }) {
+function GradingBanner({ aiAvailable, canUseServer, backendAvailable, usage, csp }) {
   const grades = usage?.grades;
   if (aiAvailable && canUseServer && grades?.remaining === 0) {
     return (
@@ -432,7 +429,7 @@ function GradingBanner({ aiAvailable, canUseServer, backendAvailable, usage }) {
   if (aiAvailable && !canUseServer) {
     return (
       <div className="card grading-banner">
-        <span><strong>Sign in to unlock AI grading.</strong> As a guest you get a quick keyword-based rubric estimate.</span>
+        <span><strong>Sign in to unlock AI grading.</strong> As a guest you get a quick keyword-based rubric estimate, your work saves only in this browser{csp ? ", and your uploaded project isn't read" : ""}.</span>
         <button className="primary-btn small-btn" onClick={() => navigate("/login")}>Sign in</button>
       </div>
     );

@@ -169,13 +169,17 @@ export function TestsTab({ course }) {
   return (
     <>
     <ProgressStatus progress={progress} failed={failed} onRetry={reload} />
+    <p className="tools-note">Every exam has the test-day tools: highlighter, cross-out, mark for review, reference sheet and a timer you can hide.</p>
     <div className="test-grid">
       {course.tests.map((test) => {
         const saved = progress?.[`${course.id}:${test.id}`];
         const answered = saved?.answers?.filter((a) => a !== null && a !== undefined).length || 0;
         const total = test.questions.length;
         return (
-          <article className="card test-card" key={test.id}>
+          <article className={`card test-card ${saved ? (saved.status === "done" ? "is-done" : "is-started") : ""}`} key={test.id}>
+            <span className={`test-status ${saved ? (saved.status === "done" ? "done" : "started") : "new"}`}>
+              {saved ? (saved.status === "done" ? "Finished" : "In progress") : "Not started"}
+            </span>
             <p className="eyebrow">{total} questions, {test.minutes || 90} minutes</p>
             <h2>{test.title}</h2>
             <p>{test.description}</p>
@@ -198,10 +202,6 @@ export function TestsTab({ course }) {
           </article>
         );
       })}
-      <article className="card test-card mode-help">
-        <h2>Same tools as test day</h2>
-        <p>Highlight text, cross out choices, hide the timer, mark questions for review, and open the reference sheet, just like in Bluebook. You choose exam or practice mode and your time limit before you start.</p>
-      </article>
     </div>
     </>
   );

@@ -23,7 +23,7 @@ export default function Dashboard() {
         <p className="eyebrow">{user ? `Signed in as ${user.email}` : "Guest — progress is saved in this browser only"}</p>
         <h1>{user?.name ? `${user.name}'s progress` : "My progress"}</h1>
         {!user && backend.available && (
-          <p><button className="link-btn inline" onClick={() => navigate("/login")}>Create a free account</button> to save progress across devices and unlock AI grading.</p>
+          <p><button className="link-btn inline" onClick={() => navigate("/login/register")}>Create a free account</button> to save progress across devices and unlock AI grading.</p>
         )}
       </div>
 
@@ -37,7 +37,7 @@ export default function Dashboard() {
           <div className="empty-state">
             <p>Nothing here yet. Start with a practice exam: when you finish, this page shows your score for each unit and tells you what to study next.</p>
             <div className="button-row">
-              <button className="primary-btn" onClick={() => navigate("/csp/tests")}>AP CSP exam</button>
+              <button className="secondary-btn" onClick={() => navigate("/csp/tests")}>AP CSP exam</button>
               <button className="secondary-btn" onClick={() => navigate("/csa/tests")}>AP CSA exam</button>
               <button className="secondary-btn" onClick={() => navigate("/cyber/tests")}>AP Cyber exam</button>
             </div>
@@ -67,6 +67,16 @@ export default function Dashboard() {
 }
 
 function CourseSummary({ course, attempts, frqs }) {
+  // Nothing done yet in this course: one clear next step instead of empty stat tiles.
+  if (!attempts.length && !frqs.length) {
+    return (
+      <div className={`card dash-card dash-card--empty accent-${course.accent}`}>
+        <h2>{course.name}</h2>
+        <p className="muted">No exams or FRQs yet. A practice exam shows your score for each unit and what to study next.</p>
+        <button className="primary-btn" onClick={() => navigate(`/${course.id}/tests`)}>Take your first {course.short} exam</button>
+      </div>
+    );
+  }
   // Full practice exams and short custom quizzes are counted separately.
   const exams = attempts.filter((a) => a.testId !== "custom");
   const quizzes = attempts.length - exams.length;

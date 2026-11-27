@@ -367,7 +367,7 @@ textarea { width: 100%; min-height: 240px; resize: vertical; padding: 0.9rem 1re
 .history-box ul { padding-left: 1.1rem; margin: 0; }
 
 /* ---------- notes & tips ---------- */
-.unit-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+.unit-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 1rem; }
 .unit-card { text-align: left; padding: 1.4rem; border-top: 5px solid var(--unit-color); display: flex; flex-direction: column; gap: 0.4rem; }
 .unit-card:hover { border-color: var(--unit-color); }
 .unit-card h2 { margin: 0.3rem 0 0; }
@@ -882,3 +882,41 @@ main:focus { outline: none; }
 .ai-msg .md th, .ai-msg .md td { border: 1px solid var(--line); padding: 0.35rem 0.55rem; text-align: left; vertical-align: top; }
 .ai-msg .md th { background: var(--grid); }
 .ai-msg .md .code-view code { background: none; padding: 0 0 0 0; }
+
+/* ---------- final QA: layout, touch targets, emphasis ---------- */
+html { scroll-padding-top: 84px; }
+.exam-format ul { color: var(--ink); font-size: 1rem; }
+.exam-format li::marker { color: var(--pen); }
+/* Tips: each one is a callout, its first sentence is the takeaway. */
+.tip { border-bottom: 0; border-left: 4px solid var(--pen); background: var(--paper); border-radius: 0 var(--r-sm) var(--r-sm) 0; padding: 0.8rem 1rem; margin: 0.6rem 0; }
+.tip p strong { color: var(--ink); }
+.exam-tip { margin: 0.6rem 0; }
+.unit-next { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+.unit-next p { margin: 0; }
+.home-account-cta { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1.4rem; padding: 1rem 1.2rem; border: 2px solid var(--pen); border-radius: var(--r-md); background: var(--sheet); }
+.home-account-cta p { margin: 0; }
+.not-found .button-row { margin-top: 1rem; }
+.guest-note__close { margin-left: 0.5rem; }
+/* Leave room so the floating "Ask the tutor" button never covers the last lines or the footer. */
+.course-hub, .page { padding-bottom: 6rem; }
+@media (max-width: 760px) {
+  /* Course tabs stay on one row that scrolls sideways. */
+  .tab-bar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-bar button { white-space: nowrap; flex: 0 0 auto; min-height: 44px; }
+  /* Touch targets at least 44px tall. */
+  .topbar .small-btn, .brand, .link-btn:not(.inline), .bar-btn, .tool-btn, .ghost-btn, .secondary-btn, .primary-btn { min-height: 44px; }
+  .unit-toggle input, .quiz-builder input[type="checkbox"] { width: 22px; height: 22px; }
+  .site-footer { padding-bottom: 5rem; }
+}
+.ppr-head__side { display: grid; justify-items: end; gap: 0.3rem; }
+.ppr-panel.collapsed > :not(.ppr-head) { display: none; }
+.ppr-panel.collapsed .ppr-head p { display: none; }
+.privacy-warning { margin: 0.8rem 0; padding: 0.7rem 0.9rem; border: 1px solid #e8c46a; border-left: 4px solid #c9730a; border-radius: var(--r-sm); background: #fff7e0; color: #5c4300; }
+.tools-note { margin: 0 0 1rem; color: var(--pencil); }
+.test-status { justify-self: start; display: inline-block; margin-bottom: 0.4rem; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; background: var(--grid); color: var(--pencil); }
+.test-status.started { background: var(--highlight-soft); color: #5c4300; }
+.test-status.done { background: var(--ok-soft); color: var(--ok); }
+.test-card.is-started { border-color: #e8c46a; }
+.dash-card--empty { display: grid; gap: 0.6rem; align-content: start; }
+.dash-card--empty .primary-btn { justify-self: start; }
