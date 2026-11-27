@@ -870,3 +870,15 @@ main:focus { outline: none; }
 .code-view.no-ln .cl { padding-left: 1rem; }
 .code-view.no-ln .cl::before { content: none; }
 .inline-code { font-family: var(--mono); font-size: 0.9em; background: var(--grid); padding: 0.05em 0.35em; border-radius: 4px; }
+/* Helper answers: clear headings, lists and tables so key points stand out. */
+.ai-msg .md h4 { margin: 0.7rem 0 0.3rem; font-family: var(--display); font-size: 1rem; color: var(--ink); }
+.ai-msg .md h4:first-child { margin-top: 0; }
+.ai-msg .md ol { margin: 0.2rem 0 0.5rem; padding-left: 1.4rem; }
+.ai-msg .md li { margin: 0.15rem 0; }
+.ai-msg .md strong { color: var(--ink); font-weight: 700; background: linear-gradient(transparent 62%, var(--highlight-soft) 62%); }
+.ai-msg .md em { color: var(--pencil); }
+.ai-msg .md-table { overflow-x: auto; margin: 0.4rem 0 0.6rem; }
+.ai-msg .md table { border-collapse: collapse; font-size: 0.9rem; min-width: 100%; }
+.ai-msg .md th, .ai-msg .md td { border: 1px solid var(--line); padding: 0.35rem 0.55rem; text-align: left; vertical-align: top; }
+.ai-msg .md th { background: var(--grid); }
+.ai-msg .md .code-view code { background: none; padding: 0 0 0 0; }

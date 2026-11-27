@@ -82,6 +82,6 @@ export async function tutorReply({ course, kind, questionId, frqId, studentChoic
   const messages = history
     .slice(-8)
     .map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.role === "user" ? `<student>\n${m.content}\n</student>` : m.content }));
-  const reply = await chat({ system, messages, attachments, maxTokens: 700, purpose: "help" });
+  const reply = await chat({ system, messages, attachments, maxTokens: 1600, purpose: "help" });
   return reply.trim() || "Sorry, I couldn't come up with an answer. Try asking in a different way.";
 }
