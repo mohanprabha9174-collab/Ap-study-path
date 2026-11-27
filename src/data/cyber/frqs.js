@@ -97,5 +97,96 @@ export const cyberFrqs = [
     checklist: ["I cited a source for every claim.", "I described the attack in time order.", "Part D covers both the attacker and staff."],
     tip: "For attack-sequence questions, list events in timestamp order: initial access → what the attacker did inside → impact.",
     solution: "A: (1) Source 2 shows the admin login is still the default admin/admin, violating item 1. (2) Source 3 shows the thermostat (192.168.1.35) on the Office network, violating item 2. (Firmware 1.0.2 vs 1.4.0 also violates item 3.)\nB: The thermostat used UPnP to forward external port 2323 to its Telnet port (Source 5). At 02:14 an attacker at 198.51.100.77 logged in over Telnet (Source 4), likely with the default password. At 02:16 the thermostat made 340 SMB attempts against the x-ray server, then at 02:30 it sent a 40 Mbps UDP flood, which the ISP reported as participation in a DoS attack (Source 6).\nC: Because it shared the Office network with the x-ray server (Source 3), the compromised thermostat could directly attempt connections to the server holding patient data. On a separate IoT network, those connections would have been blocked.\nD: The attacker could no longer reach the thermostat from the internet, since there would be no forwarded port or Telnet service. Staff would see no change, because they control the thermostat through its normal app or panel, not Telnet."
+  }  ,
+  {
+    id: "cyber-frq-4",
+    category: "Device Security Analysis",
+    title: "Student Phone and a Hijacked School Account",
+    prompt: "A student's school account sent messages to the whole class asking for gift cards. The student says they never sent them. The district security team collected the sources below about the student's phone and account. Use the sources to answer every part, citing evidence (for example, 'Source 3, line 2').",
+    sources: [
+      { title: "Source 1: District account policy (excerpt)", content: "1. All student accounts must use multi-factor authentication (MFA).\n2. Passwords must be at least 12 characters and not reused on other sites.\n3. Apps may only be installed from the official app store." },
+      { title: "Source 2: Email the student received (Oct 3, 7:52 PM)", content: "From: IT-Help <support@schooI-helpdesk.net>\nSubject: URGENT: your account will be deleted tonight\nClick here to keep your account: http://schooI-helpdesk.net/login\n(The link's 'l' in 'school' is a capital I.)" },
+      { title: "Source 3: Account sign-in log", content: "Oct 3 7:54 PM  sign-in success  device: student phone   location: home\nOct 3 7:58 PM  sign-in success  device: Windows PC     location: overseas\nOct 3 7:59 PM  MFA: not enabled for this account\nOct 3 8:05 PM  mail rule created: forward all mail to x9mail@proton.example" },
+      { title: "Source 4: Password check", content: "Password length: 9 characters\nSame password found in a 2025 breach of a gaming website" },
+      { title: "Source 5: Phone settings", content: "Screen lock: 4-digit PIN\nOS version: 2 versions behind\nInstalled from outside the app store: 'FreeSkins.apk'" },
+      { title: "Source 6: Messages sent from the account", content: "Oct 3 8:10 PM to 31 classmates: 'Can you buy me a $50 gift card? I'll pay you back tomorrow.'" }
+    ],
+    parts: [
+      { label: "A", text: "Name the attack shown in Source 2 and give two clues from Source 2 that the email is not real." },
+      { label: "B", text: "Using Sources 3 and 4, explain how the attacker most likely got into the account and why they did not need the student's phone." },
+      { label: "C", text: "Explain what the mail rule in Source 3 lets the attacker do, even after the password is changed." },
+      { label: "D", text: "Identify two ways the account or phone breaks the district policy in Source 1, citing a source for each." },
+      { label: "E", text: "Recommend two actions, in priority order, and justify the order." }
+    ],
+    rubric: [
+      { point: "A: Names phishing with two clues", points: 2, lookFor: "Names phishing and gives two clues from Source 2: look-alike domain (capital I instead of l, not the school's real domain), urgent threat, request to log in through a link, unofficial sender.", keywords: ["phishing", "domain", "urgent", "link", "look-alike", "capital i"] },
+      { point: "B: How the attacker got in", points: 1, lookFor: "Explains the student entered their password on the fake page (sign-in at 7:54 right after the 7:52 email), and/or the password was reused from a breach (Source 4).", keywords: ["7:54", "entered", "fake", "breach", "reused"] },
+      { point: "B: Why the phone wasn't needed", points: 1, lookFor: "Cites Source 3: MFA was not enabled, so the password alone let the overseas PC sign in at 7:58.", keywords: ["mfa", "not enabled", "7:58", "overseas", "password alone"] },
+      { point: "C: Effect of the mail rule", points: 1, lookFor: "Explains the forwarding rule keeps sending the student's mail (including password reset emails) to the attacker even after a password change, until the rule is removed.", keywords: ["forward", "rule", "reset", "still", "copy"] },
+      { point: "D: Two policy violations with sources", points: 2, lookFor: "Two of: no MFA (Source 3, item 1); 9-character password reused from a breach (Source 4, item 2); app installed from outside the store (Source 5, item 3).", keywords: ["mfa", "9 characters", "reused", "apk", "outside the app store", "source 5"] },
+      { point: "E: Prioritized actions with justification", points: 1, lookFor: "Two sensible actions in order with a reason (e.g., first reset the password, sign out all sessions and delete the forwarding rule to stop active access; then turn on MFA, remove the APK and update the phone).", keywords: ["first", "because", "reset", "rule", "mfa", "sign out"] }
+    ],
+    checklist: ["I named the attack in part A.", "Part B uses both Source 3 and Source 4.", "Part E says why the first action comes first."],
+    tip: "Timestamps tell the story. Put the email, the first sign-in and the attacker's sign-in in order, and the cause usually becomes clear.",
+    solution: "A: Phishing. Clues: the sender's domain schooI-helpdesk.net uses a capital I in place of an l and isn't the school's domain; the message uses urgency ('deleted tonight') to rush the student into clicking a login link.\nB: Two minutes after the email, the student signed in from their phone (7:54, Source 3), most likely on the fake page, giving the attacker the password. Source 4 shows the same password was also leaked in a gaming-site breach. Because MFA was not enabled (Source 3, 7:59), the attacker's overseas PC could sign in at 7:58 with just the password, no phone needed.\nC: The rule forwards every email to x9mail@proton.example. Even after a password change, the attacker would keep receiving the student's mail, including password-reset messages, and could use them to take the account back.\nD: (1) MFA is not enabled (Source 3), breaking item 1. (2) The password is 9 characters and reused from a breach (Source 4), breaking item 2. (Also: FreeSkins.apk was installed from outside the app store, Source 5, breaking item 3.)\nE: First, reset the password, sign out all sessions and delete the forwarding rule, because the attacker still has access and is using it. Second, turn on MFA and remove the unofficial app, so a stolen password alone can't be used again."
+  },
+  {
+    id: "cyber-frq-5",
+    category: "Device Security Analysis",
+    title: "Clinic Appointment Web Server",
+    prompt: "A small clinic runs a web server where patients book appointments. A patient reported seeing someone else's appointment details on the site. Use the sources to answer every part, citing evidence.",
+    sources: [
+      { title: "Source 1: Clinic security requirements (excerpt)", content: "1. Patient records may only be viewed by the patient and clinic staff.\n2. All website traffic must use HTTPS.\n3. The admin panel must only be reachable from the clinic office network (172.16.5.0/24).\n4. Software must be patched within 30 days of a security update." },
+      { title: "Source 2: Web server access log (Nov 20)", content: "09:14:02  203.0.113.45  GET /appointment?id=1041   200  (user: pat_lee)\n09:14:09  203.0.113.45  GET /appointment?id=1042   200  (user: pat_lee)\n09:14:11  203.0.113.45  GET /appointment?id=1043   200  (user: pat_lee)\n... 600 more requests with increasing id ...\n09:31:40  203.0.113.45  GET /admin/login           200" },
+      { title: "Source 3: Code that shows an appointment", content: "appt = database.find(request.id)\nshow(appt)\n// no check that appt.patient == current_user" },
+      { title: "Source 4: Server configuration", content: "HTTP (port 80): enabled, does not redirect to HTTPS\nHTTPS (port 443): enabled\nAdmin panel (/admin): reachable from any address" },
+      { title: "Source 5: Installed software", content: "Booking plugin version 2.3.1\nVendor notice (Sep 1): version 2.3.4 fixes a login bypass in /admin" }
+    ],
+    parts: [
+      { label: "A", text: "Using Sources 2 and 3, explain how the user at 203.0.113.45 was able to see other patients' appointments." },
+      { label: "B", text: "Identify which goal of the CIA triad was violated, and cite Source 1 to show why it matters." },
+      { label: "C", text: "Identify two other ways the server breaks the clinic's requirements, citing a source for each." },
+      { label: "D", text: "Explain why the request at 09:31:40 is a concern, using Sources 4 and 5." },
+      { label: "E", text: "Describe one change to the code in Source 3 that would stop the problem in Part A, and explain how it would affect patients and staff." }
+    ],
+    rubric: [
+      { point: "A: Explains the access problem", points: 2, lookFor: "Explains the user changed the id number in the URL to request other appointments (Source 2: increasing ids, all 200 OK) and the server returned them because the code never checks the appointment belongs to the signed-in user (Source 3).", keywords: ["id", "increasing", "url", "no check", "current_user", "200"] },
+      { point: "B: Confidentiality with source", points: 1, lookFor: "Names confidentiality and cites Source 1 item 1 (only the patient and staff may view records).", keywords: ["confidentiality", "source 1", "item 1", "only the patient"] },
+      { point: "C: Two other requirement violations", points: 2, lookFor: "Two of: HTTP not redirected to HTTPS (Source 4, item 2); admin panel reachable from any address (Source 4, item 3); plugin 2.3.1 not patched though a fix came out Sep 1 (Source 5, item 4).", keywords: ["http", "https", "admin", "any address", "2.3.1", "patch", "30 days"] },
+      { point: "D: Why the admin request matters", points: 1, lookFor: "Explains the same outside user reached /admin, which is open to any address (Source 4) and runs a plugin with a known login bypass (Source 5), so they may be able to get admin access.", keywords: ["admin", "login bypass", "2.3.4", "any address", "same"] },
+      { point: "E: Code fix and effects", points: 2, lookFor: "Adds a check that the appointment's patient matches the signed-in user (or that the user is staff) before showing it; patients see only their own, staff still see all.", keywords: ["check", "patient ==", "current_user", "staff", "only their own"] }
+    ],
+    checklist: ["Part A uses both Source 2 and Source 3.", "I named the CIA goal.", "Part E covers patients and staff."],
+    tip: "When a log shows the same request with a number going up by one, think about what the server should have checked before answering.",
+    solution: "A: Source 2 shows pat_lee requesting /appointment?id=1041, 1042, 1043 and 600 more, each returning 200 OK. Source 3 shows the server finds the appointment by id and shows it without checking that it belongs to the signed-in user, so changing the number in the URL showed other patients' appointments.\nB: Confidentiality. Source 1 item 1 says patient records may only be viewed by the patient and clinic staff, and pat_lee saw hundreds of other patients' records.\nC: (1) Source 4 shows HTTP is enabled and does not redirect to HTTPS, breaking item 2. (2) Source 4 shows /admin is reachable from any address, breaking item 3. (Also: Source 5 shows plugin 2.3.1 is still installed more than 30 days after the Sep 1 fix, breaking item 4.)\nD: The same outside address then loaded /admin/login. The admin panel is open to anyone (Source 4) and the old plugin has a known login bypass in /admin (Source 5), so the attacker may be able to get full admin control.\nE: After finding the appointment, check that appt.patient equals the current user, or that the user is clinic staff, and refuse the request otherwise. Patients could still see their own appointments; staff could still see every appointment; changing the id would no longer show anyone else's."
+  },
+  {
+    id: "cyber-frq-6",
+    category: "Device Security Analysis",
+    title: "Ransomware on a Small Office File Server",
+    prompt: "An accounting office arrived on Monday to find every file on its shared file server renamed with a .locked extension and a note demanding payment. Use the sources to answer every part, citing evidence.",
+    sources: [
+      { title: "Source 1: Office backup and access plan (excerpt)", content: "1. Back up the file server every night to a drive that is disconnected afterward.\n2. Keep one backup copy off site.\n3. Staff accounts must not have administrator rights on the file server." },
+      { title: "Source 2: Email gateway log (Friday)", content: "16:41  From: invoices@paymnts.example  To: j.park  Attachment: Invoice_4471.xlsm (macros)\n16:41  Scan result: no known virus  Delivered" },
+      { title: "Source 3: j.park workstation events (Friday)", content: "16:47  Excel opened Invoice_4471.xlsm, macros enabled\n16:47  PowerShell started by Excel\n16:48  Connection to 192.0.2.88:443 (unknown server)\n17:30  j.park logs off; PC left powered on" },
+      { title: "Source 4: File server events (Saturday)", content: "02:05  Sign-in: j.park (member of Administrators)\n02:06  Backup drive B: still connected; files deleted\n02:10 - 03:40  41,220 files renamed to *.locked" },
+      { title: "Source 5: Backup status", content: "Nightly backup to drive B: last success Friday 23:00\nDrive B: connected at all times\nOff-site copy: none" }
+    ],
+    parts: [
+      { label: "A", text: "Using Sources 2 and 3, describe how the attacker first got code running in the office." },
+      { label: "B", text: "Explain how the attacker was able to encrypt files on the server, citing Source 4 and Source 1." },
+      { label: "C", text: "Explain why the office can't simply restore its files from backup, using Sources 4 and 5." },
+      { label: "D", text: "Recommend two changes, in priority order, that would have limited the damage, and justify the order." }
+    ],
+    rubric: [
+      { point: "A: Initial access", points: 2, lookFor: "Explains a phishing email delivered a macro-enabled attachment (Source 2) that j.park opened with macros enabled, which started PowerShell and contacted an unknown server (Source 3).", keywords: ["macro", "xlsm", "enabled", "powershell", "192.0.2.88", "phishing", "attachment"] },
+      { point: "B: Privileges let it reach the server", points: 2, lookFor: "Cites Source 4: the attacker signed in as j.park, who is in Administrators, and notes this breaks Source 1 item 3, so they could change every file on the server.", keywords: ["administrators", "j.park", "item 3", "admin rights", "02:05"] },
+      { point: "C: Why the backup failed", points: 2, lookFor: "Explains the backup drive stayed connected (Sources 4 and 5) so the attacker deleted it at 02:06, and there is no off-site copy (Source 5), breaking items 1 and 2.", keywords: ["connected", "deleted", "off-site", "none", "item 1", "item 2"] },
+      { point: "D: Prioritized changes with justification", points: 2, lookFor: "Two reasonable changes (disconnected or off-site backups, remove admin rights from staff, block macros from email, endpoint monitoring) with a reason for the order, such as backups first because they make recovery possible whatever the entry point.", keywords: ["first", "because", "backup", "off-site", "disconnect", "admin", "macro"] }
+    ],
+    checklist: ["I put the events in time order.", "I linked each problem to a numbered item in Source 1.", "Part D says why the first change comes first."],
+    tip: "In ransomware questions, the graders look for three stages: how it got in, how it spread or gained rights, and why recovery failed.",
+    solution: "A: On Friday at 16:41, j.park received an email with a macro-enabled spreadsheet, Invoice_4471.xlsm, which the scanner didn't flag (Source 2). At 16:47 j.park opened it with macros enabled; Excel started PowerShell, which connected to an unknown server at 192.0.2.88 (Source 3), giving the attacker code running on the PC.\nB: At 02:05 Saturday the attacker signed in to the server as j.park, who is a member of Administrators (Source 4). Source 1 item 3 says staff must not have admin rights; because j.park did, the attacker could rename and encrypt all 41,220 files.\nC: Source 5 shows backup drive B is connected at all times, so at 02:06 the attacker deleted the backup files (Source 4). There is no off-site copy (Source 5), so no clean copy is left. This breaks items 1 and 2 of Source 1.\nD: First, keep backups disconnected and off site, because that guarantees recovery no matter how an attacker gets in. Second, remove administrator rights from staff accounts, so a single compromised user can't reach every file on the server."
   }
+
 ];

@@ -409,5 +409,214 @@ public int countImproved() {
   }
   return count;
 }`
+  }  ,
+  {
+    id: "csa-frq-9",
+    category: "FRQ 1: Methods and Control Structures",
+    title: "StepTracker: bestStreak and weeklyGoalMet",
+    prompt: "A StepTracker records the number of steps a person walked each day in an int array, days, where days[0] is the first day.\n\n(a) Write bestStreak(int goal), which returns the length of the longest run of consecutive days on which the steps were greater than or equal to goal. If no day meets the goal, return 0.\n\n(b) Write weeklyGoalMet(int goal, int week), which returns true if at least 5 of the 7 days in the given week meet the goal. Week 0 is days[0] through days[6], week 1 is days[7] through days[13], and so on. Assume days contains at least 7 * (week + 1) values.",
+    code: `public class StepTracker {
+  private int[] days;
+
+  public int bestStreak(int goal) {
+    /* to be implemented in part (a) */
   }
+
+  public boolean weeklyGoalMet(int goal, int week) {
+    /* to be implemented in part (b) */
+  }
+}`,
+    rubric: [
+      { point: "(a) Traverses every day", points: 1, lookFor: "Loops over every element of days without going out of bounds.", keywords: ["for", "days.length", ": days"] },
+      { point: "(a) Tracks the current streak", points: 1, lookFor: "Adds 1 to a running count when days[i] >= goal and resets it to 0 when a day misses the goal.", keywords: [">= goal", "++", "= 0"] },
+      { point: "(a) Keeps and returns the longest", points: 2, lookFor: "Updates a separate best value whenever the current streak is larger and returns it; returns 0 when no day meets the goal.", keywords: ["best", "max", "Math.max", "return"] },
+      { point: "(b) Correct week indexes", points: 2, lookFor: "Checks exactly days[7 * week] through days[7 * week + 6].", keywords: ["7 * week", "week * 7", "+ 7", "+ 6"] },
+      { point: "(b) Counts days and returns", points: 2, lookFor: "Counts days with steps >= goal in that week and returns whether the count is at least 5.", keywords: [">= 5", "count", "return"] }
+    ],
+    checklist: ["My streak resets to 0 on a missed day.", "I keep the best streak separate from the current one.", "Part (b) only looks at the 7 days of that week."],
+    tip: "When a problem says 'longest run', you almost always need two variables: the current run and the best run so far.",
+    solution: `public int bestStreak(int goal) {
+  int current = 0;
+  int best = 0;
+  for (int steps : days) {
+    if (steps >= goal) {
+      current++;
+      if (current > best) {
+        best = current;
+      }
+    } else {
+      current = 0;
+    }
+  }
+  return best;
+}
+
+public boolean weeklyGoalMet(int goal, int week) {
+  int count = 0;
+  for (int i = 7 * week; i < 7 * week + 7; i++) {
+    if (days[i] >= goal) {
+      count++;
+    }
+  }
+  return count >= 5;
+}`
+  },
+  {
+    id: "csa-frq-10",
+    category: "FRQ 2: Class Design",
+    title: "ParkingMeter class",
+    prompt: "Write the complete ParkingMeter class. A ParkingMeter is created with the cost in cents for one minute of parking and the maximum number of minutes allowed.\n\n• addCoins(int cents) adds time: each full rate amount buys one minute. Leftover cents that do not buy a full minute are kept as credit for the next addCoins call. Minutes never go above the maximum; any time above it is lost.\n• tick() uses one minute if any time is left.\n• getMinutes() returns the minutes left.\n• isExpired() returns true when no minutes are left.\n\nExample:\nParkingMeter m = new ParkingMeter(25, 10);\nm.addCoins(60); // 2 minutes, 10 cents credit\nm.getMinutes(); // 2\nm.addCoins(15); // 10 + 15 = 25: 1 more minute, credit 0\nm.getMinutes(); // 3\nm.tick(); m.tick(); m.tick();\nm.isExpired(); // true\nm.addCoins(500); // 20 minutes bought, but the maximum is 10\nm.getMinutes(); // 10",
+    rubric: [
+      { point: "Private instance variables", points: 1, lookFor: "Private variables for rate, maximum, minutes left and leftover credit.", keywords: ["private", "credit", "minutes"] },
+      { point: "Constructor", points: 1, lookFor: "public ParkingMeter(int rate, int maxMinutes) stores the arguments and starts with 0 minutes and 0 credit.", keywords: ["public ParkingMeter(", "= 0"] },
+      { point: "addCoins buys whole minutes", points: 2, lookFor: "Adds the new cents to the credit, buys (credit / rate) minutes and keeps credit % rate as the new credit.", keywords: ["/ rate", "% rate", "credit +="] },
+      { point: "addCoins caps at the maximum", points: 1, lookFor: "Minutes never exceed the maximum after adding.", keywords: ["Math.min", "> max", "maxMinutes"] },
+      { point: "tick", points: 1, lookFor: "Subtracts one minute only when minutes are above 0.", keywords: ["tick()", "> 0", "--"] },
+      { point: "getMinutes and isExpired", points: 2, lookFor: "getMinutes returns the minutes left; isExpired returns minutes == 0.", keywords: ["getMinutes()", "isExpired()", "== 0"] }
+    ],
+    checklist: ["Leftover cents carry over to the next call.", "Minutes are capped at the maximum.", "tick never makes minutes negative."],
+    tip: "Integer division (/) gives whole units and the remainder (%) gives what's left over. Many class design FRQs use both.",
+    solution: `public class ParkingMeter {
+  private int rate;
+  private int maxMinutes;
+  private int minutes;
+  private int credit;
+
+  public ParkingMeter(int rate, int maxMinutes) {
+    this.rate = rate;
+    this.maxMinutes = maxMinutes;
+    minutes = 0;
+    credit = 0;
+  }
+
+  public void addCoins(int cents) {
+    credit += cents;
+    minutes += credit / rate;
+    credit = credit % rate;
+    if (minutes > maxMinutes) {
+      minutes = maxMinutes;
+    }
+  }
+
+  public void tick() {
+    if (minutes > 0) {
+      minutes--;
+    }
+  }
+
+  public int getMinutes() {
+    return minutes;
+  }
+
+  public boolean isExpired() {
+    return minutes == 0;
+  }
+}`
+  },
+  {
+    id: "csa-frq-11",
+    category: "FRQ 3: Data Analysis with ArrayList",
+    title: "Inventory: restockList and mergeDuplicates",
+    prompt: "An Item has getName(), getQuantity() and setQuantity(int q). An Inventory stores an ArrayList<Item> named items.\n\n(a) Write restockList(int threshold), which returns a new ArrayList<String> with the names of items whose quantity is below threshold, in the order they appear. items must not change.\n\n(b) Write mergeDuplicates(). When two or more items have the same name, the first one keeps the total quantity of all of them and the later ones are removed. The order of the items that remain must not change.\n\nExample: [pens 4, tape 2, pens 3, glue 1, tape 5] becomes [pens 7, tape 7, glue 1].",
+    code: `public class Item {
+  public String getName() { /* not shown */ }
+  public int getQuantity() { /* not shown */ }
+  public void setQuantity(int q) { /* not shown */ }
+}
+
+public class Inventory {
+  private ArrayList<Item> items;
+
+  public ArrayList<String> restockList(int threshold) {
+    /* to be implemented in part (a) */
+  }
+
+  public void mergeDuplicates() {
+    /* to be implemented in part (b) */
+  }
+}`,
+    rubric: [
+      { point: "(a) Builds a new list", points: 1, lookFor: "Creates a new ArrayList<String> and returns it.", keywords: ["new ArrayList", "return"] },
+      { point: "(a) Adds the right names", points: 2, lookFor: "Adds getName() for every item with getQuantity() < threshold, in order, without changing items.", keywords: ["getQuantity() < threshold", "add(", "getName()"] },
+      { point: "(b) Compares names with equals", points: 1, lookFor: "Finds later items with the same name using equals, not ==.", keywords: [".equals(", "getName()"] },
+      { point: "(b) Adds quantities to the first item", points: 2, lookFor: "Uses setQuantity on the first matching item to add each later item's quantity.", keywords: ["setQuantity(", "getQuantity() +"] },
+      { point: "(b) Removes later duplicates without skipping", points: 2, lookFor: "Removes each later duplicate without skipping the element after a removal (backward inner loop, or not incrementing after remove).", keywords: ["remove(", "j--", "size() - 1"] }
+    ],
+    checklist: ["Part (a) returns a new list and leaves items alone.", "I used equals to compare names.", "My removal loop can't skip an element."],
+    tip: "For nested-loop removal, let the outer loop pick an item and an inner loop scan everything after it, going backward so removals are safe.",
+    solution: `public ArrayList<String> restockList(int threshold) {
+  ArrayList<String> result = new ArrayList<String>();
+  for (Item it : items) {
+    if (it.getQuantity() < threshold) {
+      result.add(it.getName());
+    }
+  }
+  return result;
+}
+
+public void mergeDuplicates() {
+  for (int i = 0; i < items.size(); i++) {
+    Item first = items.get(i);
+    for (int j = items.size() - 1; j > i; j--) {
+      Item later = items.get(j);
+      if (later.getName().equals(first.getName())) {
+        first.setQuantity(first.getQuantity() + later.getQuantity());
+        items.remove(j);
+      }
+    }
+  }
+}`
+  },
+  {
+    id: "csa-frq-12",
+    category: "FRQ 4: 2D Array",
+    title: "SeatingChart: emptyRow and firstOpenPair",
+    prompt: "A SeatingChart stores student names in a 2D array of String, seats, where an empty seat holds null.\n\n(a) Write emptyRow(), which returns the index of the first row in which every seat is empty, or -1 if there is no such row.\n\n(b) Write firstOpenPair(), which returns a String in the form \"row,col\" for the first pair of side-by-side empty seats, searching row by row from the top and left to right. The pair is the seat at col and the seat at col + 1. Return \"none\" if there is no such pair.",
+    code: `public class SeatingChart {
+  private String[][] seats;
+
+  public int emptyRow() {
+    /* to be implemented in part (a) */
+  }
+
+  public String firstOpenPair() {
+    /* to be implemented in part (b) */
+  }
+}`,
+    rubric: [
+      { point: "(a) Checks every seat in a row", points: 2, lookFor: "For each row, checks every column for null and decides whether the whole row is empty.", keywords: ["seats.length", "seats[r].length", "== null", "!= null"] },
+      { point: "(a) Returns the first empty row or -1", points: 1, lookFor: "Returns the index of the first fully empty row, and -1 after checking all rows.", keywords: ["return r", "return -1"] },
+      { point: "(b) Row-major search without going out of bounds", points: 2, lookFor: "Searches row by row, left to right, with the column loop stopping at length - 1 so col + 1 is valid.", keywords: ["length - 1", "c + 1", "col + 1"] },
+      { point: "(b) Detects a pair", points: 1, lookFor: "Checks that both seats[r][c] and seats[r][c + 1] are null.", keywords: ["== null &&", "null"] },
+      { point: "(b) Correct return value", points: 2, lookFor: "Returns r + \",\" + c for the first pair found, and \"none\" if no pair exists.", keywords: ["+ \",\" +", "\"none\""] }
+    ],
+    checklist: ["My column loop stops one early in part (b).", "I compare with null using ==.", "I return as soon as I find the first match."],
+    tip: "When a 2D array problem looks at a neighbor (c + 1 or r + 1), shrink that loop's bound by one to stay in bounds.",
+    solution: `public int emptyRow() {
+  for (int r = 0; r < seats.length; r++) {
+    boolean allEmpty = true;
+    for (int c = 0; c < seats[r].length; c++) {
+      if (seats[r][c] != null) {
+        allEmpty = false;
+      }
+    }
+    if (allEmpty) {
+      return r;
+    }
+  }
+  return -1;
+}
+
+public String firstOpenPair() {
+  for (int r = 0; r < seats.length; r++) {
+    for (int c = 0; c < seats[r].length - 1; c++) {
+      if (seats[r][c] == null && seats[r][c + 1] == null) {
+        return r + "," + c;
+      }
+    }
+  }
+  return "none";
+}`
+  }
+
 ];

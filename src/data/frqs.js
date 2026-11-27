@@ -209,5 +209,61 @@ export const frqs = [
     ],
     checklist: ["I described a realistic feature.", "I named my list or procedure.", "I explained how I would use it.", "I explained how this reduces work or complexity."],
     tip: "This is a good way to show you understand why abstractions are useful beyond the first version of a program."
+  }  ,
+  {
+    id: "frq-ppr-13",
+    category: "Written Response 1: Program Design, Function, and Purpose",
+    title: "Who Your Program Helps and One Design Choice",
+    prompt: "Describe one specific group of users your program was made for. Then identify one design choice you made in your program, such as how input is collected or how output is shown, and explain how that choice makes the program work better for that group.",
+    rubric: [
+      { point: "Specific users", lookFor: "Names a specific group, such as 'students studying for a vocabulary quiz,' not just 'people.'", keywords: ["users", "students", "people who", "for", "players"] },
+      { point: "Design choice", lookFor: "Names a concrete choice from the program, such as a dropdown instead of typing, a color warning, or a large button.", keywords: ["choice", "button", "dropdown", "display", "input", "chose", "design"] },
+      { point: "Connection to users", lookFor: "Explains how that choice helps those users accomplish something, using cause and effect.", keywords: ["because", "so", "helps", "easier", "allows"] }
+    ],
+    checklist: ["I named a specific group of users.", "I named one real design choice from my program.", "I explained why it helps that group."],
+    tip: "Be concrete. 'A dropdown of the 12 months so users can't mistype a date' beats 'it is user friendly.'"
+  },
+  {
+    id: "frq-ppr-14",
+    category: "Written Response 2(a): Algorithm Development",
+    title: "What If the Loop Ran One Time Fewer?",
+    prompt: "Look at the iteration in your selected procedure. Describe what would happen to the procedure's result if the loop ran one time fewer than it does now. Use a specific input to show the difference, and explain why the result changes or stays the same.",
+    rubric: [
+      { point: "Identifies the loop", lookFor: "Names the loop in the procedure and what it repeats over, such as each item in a list or a count.", keywords: ["loop", "for each", "repeat", "each item", "iteration"] },
+      { point: "Specific input", lookFor: "Gives a specific input or list that would be used.", keywords: ["input", "list", "for example", "if the", "value"] },
+      { point: "Effect on the result", lookFor: "States what the result would be with one fewer iteration compared to now, such as a missed last item or a lower total.", keywords: ["last", "miss", "skip", "would be", "instead of", "result"] },
+      { point: "Explanation", lookFor: "Explains the cause: which step would not happen and why that changes or doesn't change the result.", keywords: ["because", "since", "never", "so"] }
+    ],
+    checklist: ["I named my loop.", "I used a specific input.", "I gave the result before and after.", "I explained why."],
+    tip: "Off-by-one questions are about the last (or first) item. Say exactly which item would be skipped."
+  },
+  {
+    id: "frq-ppr-15",
+    category: "Written Response 2(b): Errors and Testing",
+    title: "Two Calls That Run Different Code",
+    prompt: "Write two different calls to your selected procedure, with different arguments, that cause different parts of the procedure's code to run. For each call, describe which part runs and what result the procedure produces.",
+    rubric: [
+      { point: "First call", lookFor: "Gives a specific call with real arguments, such as checkScore(85).", keywords: ["call", "(", "argument", "first"] },
+      { point: "Second call", lookFor: "Gives a second call with different arguments.", keywords: ["second", "another", "call", "("] },
+      { point: "Different code runs", lookFor: "Explains which branch or path of the code runs for each call, such as the IF part for one and the ELSE part for the other.", keywords: ["if", "else", "branch", "condition", "true", "false"] },
+      { point: "Results", lookFor: "States the result or output for each call.", keywords: ["result", "returns", "displays", "output"] }
+    ],
+    checklist: ["I wrote two calls with real arguments.", "Each call runs a different part of the code.", "I gave the result of each call."],
+    tip: "Pick one argument that makes your condition true and one that makes it false. That's the easiest way to get two different paths."
+  },
+  {
+    id: "frq-ppr-16",
+    category: "Written Response 2(c): Data Abstraction",
+    title: "Rewriting Without Your List",
+    prompt: "Explain how your program would need to be written differently if you could not use the list in your PPR. Describe at least one specific part of your code that would become longer or harder to change, and explain why.",
+    rubric: [
+      { point: "Names the list and its data", lookFor: "Identifies the list by name and what it stores.", keywords: ["list", "stores", "named", "contains"] },
+      { point: "Alternative without a list", lookFor: "Describes the alternative, such as a separate variable for every item.", keywords: ["separate variables", "variable for each", "without", "instead"] },
+      { point: "Specific code affected", lookFor: "Points to a specific part of the code, such as a loop, that would have to be repeated for each variable.", keywords: ["loop", "for each", "repeat", "each variable", "code"] },
+      { point: "Why it's harder", lookFor: "Explains the cost: more code, can't use a loop, adding an item would mean changing code in many places.", keywords: ["because", "harder", "longer", "change", "add", "complex"] }
+    ],
+    checklist: ["I named my list and its data.", "I described the version without a list.", "I pointed to a specific part of my code.", "I explained why it would be worse."],
+    tip: "The key idea is that a list lets one loop handle any number of items. Without it, every new item means new code."
   }
+
 ];

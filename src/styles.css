@@ -835,3 +835,38 @@ main:focus { outline: none; }
 /* Choices that are code keep their spacing. */
 .choice-btn.mono span, .choice-review.mono span { white-space: pre-wrap; }
 @media (max-width: 600px) { .code-view { --gutter: 2.4ch; font-size: 0.8rem; } }
+
+/* ---------- FRQ prompt layout ---------- */
+.frq-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+.frq-nav { display: flex; align-items: center; gap: 0.5rem; }
+.frq-nav__count { color: var(--pencil); font-size: 0.9rem; white-space: nowrap; }
+.frq-prompt { display: grid; gap: 1rem; margin: 0.6rem 0 1.2rem; }
+.prompt-intro { margin: 0; font-size: 1.05rem; line-height: 1.65; max-width: 72ch; white-space: pre-line; }
+.frq-prompt .sources { margin: 0; gap: 0.75rem; }
+.sources__hint { margin: 0; color: var(--pencil); font-size: 0.9rem; }
+.frq-prompt .source-card { padding: 0; background: var(--sheet); overflow: hidden; }
+.frq-prompt .source-card summary { display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 1rem; background: var(--paper); border-bottom: 1px solid var(--line); list-style: none; }
+.frq-prompt .source-card summary::-webkit-details-marker { display: none; }
+.frq-prompt .source-card summary::after { content: "Hide"; margin-left: auto; color: var(--pencil); font-weight: 600; font-size: 0.85rem; }
+.frq-prompt .source-card:not([open]) summary { border-bottom: 0; }
+.frq-prompt .source-card:not([open]) summary::after { content: "Show"; }
+.frq-prompt .source-card summary:focus-visible { outline: 3px solid var(--pen); outline-offset: -3px; }
+.source-tag, .part-tag { display: inline-flex; align-items: center; padding: 0.15rem 0.55rem; border-radius: 999px; background: var(--ink); color: #fff; font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
+.source-view { margin: 0; padding: 0.75rem 1rem 0.85rem 0; background: var(--sheet); color: var(--ink); font-family: var(--mono); font-size: 0.86rem; overflow-x: auto; }
+.source-view.code-view { --guide: rgba(23, 35, 59, 0.12); }
+.source-view .cl::before { color: #8a93a6; }
+.source-view .cl:hover { background: var(--highlight-soft); }
+.part-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.part-card { display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: 0.4rem 0.8rem; padding: 0.9rem 1rem; border: 1px solid var(--line); border-left: 4px solid var(--pen); border-radius: var(--r-md); background: var(--sheet); }
+.part-card .part-tag { background: var(--pen); grid-column: 1; }
+.part-card .part-points { grid-column: 3; color: var(--pencil); font-weight: 600; font-size: 0.85rem; white-space: nowrap; }
+.part-card p { grid-column: 1 / -1; margin: 0; line-height: 1.6; white-space: pre-line; }
+.next-frq { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+.next-frq p { margin: 0; }
+@media (max-width: 600px) {
+  .frq-nav { width: 100%; }
+  .frq-nav .secondary-btn { margin-left: auto; }
+}
+.code-view.no-ln .cl { padding-left: 1rem; }
+.code-view.no-ln .cl::before { content: none; }
+.inline-code { font-family: var(--mono); font-size: 0.9em; background: var(--grid); padding: 0.05em 0.35em; border-radius: 4px; }
