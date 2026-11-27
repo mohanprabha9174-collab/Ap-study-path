@@ -57,11 +57,11 @@ const fmt = (b) => (b > 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${
 
 /** Hook: the saved project { code, files } plus setters. */
 export function useProject() {
-  const [project, setProject] = useState({ code: "", files: [] });
+  const [project, setProject] = useState({ code: "", files: [], codeFiles: [] });
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     idbGet("csp").then((saved) => {
-      if (saved) setProject({ code: saved.code || "", files: saved.files || [] });
+      if (saved) setProject({ code: saved.code || "", files: saved.files || [], codeFiles: saved.codeFiles || [] });
       setLoaded(true);
     });
   }, []);
@@ -72,36 +72,68 @@ export function useProject() {
   return [project, update, loaded];
 }
 
+const MAX_CODE = 15000;
+const ACCEPT = ".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt,.md,.js,.jsx,.ts,.py,.java,.html,.css,.json,.c,.cpp,.cs,.swift,.kt,.rb,.lua,.scratch,.csv";
+
 export default function ProjectUpload({ project, onChange, checklist }) {
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState([]);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef(null);
+  // Always read the newest project, and handle one batch of files at a time,
+  // so two quick uploads can't overwrite each other.
+  const latest = useRef(project);
+  latest.current = project;
+  const queue = useRef(Promise.resolve());
   const ready = project.code.trim().length > 20 || project.files.length > 0;
+  const codeFiles = project.codeFiles || [];
 
-  async function addFiles(fileList) {
-    setError("");
-    let code = project.code;
-    const files = [...project.files];
-    let total = files.reduce((s, f) => s + sizeOf(f), 0);
-    for (const file of Array.from(fileList)) {
+  function addFiles(fileList) {
+    const list = Array.from(fileList || []);
+    queue.current = queue.current.then(() => addBatch(list)).catch(() => {});
+  }
+
+  async function addBatch(list) {
+    const problems = [];
+    const base = latest.current;
+    let code = base.code;
+    const files = [...base.files];
+    const names = [...(base.codeFiles || [])];
+    let total = files.reduce((sum, f) => sum + sizeOf(f), 0);
+    for (const file of list) {
       try {
         if (BINARY_TYPES.includes(file.type)) {
-          if (file.size > MAX_FILE) { setError(`${file.name} is over 8 MB. Export a smaller PDF or crop the screenshots.`); continue; }
-          if (total + file.size > MAX_TOTAL) { setError("Your files add up to more than 10 MB. Remove one or use smaller screenshots."); continue; }
-          if (files.length >= 6) { setError("You can attach up to 6 files."); continue; }
+          if (files.some((f) => f.name === file.name && Math.abs(sizeOf(f) - file.size) < 4)) { problems.push(`${file.name} is already attached.`); continue; }
+          if (file.size > MAX_FILE) { problems.push(`${file.name} is over 8 MB. Export a smaller PDF or crop the screenshots.`); continue; }
+          if (total + file.size > MAX_TOTAL) { problems.push(`${file.name} would take your files past 10 MB. Remove one or use smaller screenshots.`); continue; }
+          if (files.length >= 6) { problems.push(`${file.name} wasn't added: you can attach up to 6 files.`); continue; }
           files.push({ name: file.name, type: file.type, data: await readAsBase64(file) });
           total += file.size;
         } else if (TEXT_EXT.test(file.name) || file.type.startsWith("text/")) {
+          if (names.includes(file.name)) { problems.push(`${file.name} is already in your pasted code.`); continue; }
           const text = await readAsText(file);
-          code = `${code ? `${code}\n\n` : ""}// ===== ${file.name} =====\n${text}`.slice(0, 15000);
+          const next = `${code ? `${code}\n\n` : ""}// ===== ${file.name} =====\n${text}`;
+          if (next.length > MAX_CODE) problems.push(`${file.name} was cut off: code is limited to 15,000 characters. Upload screenshots of the rest instead.`);
+          code = next.slice(0, MAX_CODE);
+          names.push(file.name);
         } else {
-          setError(`${file.name} isn't a supported type. Use a PDF, screenshots (PNG/JPG), or code files.`);
+          problems.push(`${file.name} isn't a supported type. Use a PDF, screenshots (PNG/JPG), or code files.`);
         }
       } catch {
-        setError(`Couldn't read ${file.name}. Try saving it again and re-uploading.`);
+        problems.push(`Couldn't read ${file.name}. Try saving it again and re-uploading.`);
       }
     }
-    onChange({ code, files });
+    setErrors(problems);
+    const next = { code, files, codeFiles: names };
+    latest.current = next;
+    onChange(next);
+  }
+
+  function removeCodeFile(name) {
+    // Drop that file's section from the pasted code.
+    const parts = project.code.split(/(?=\/\/ ===== .+ =====\n)/);
+    const code = parts.filter((part) => !part.startsWith(`// ===== ${name} =====`)).join("").trim();
+    onChange({ ...project, code, codeFiles: codeFiles.filter((n) => n !== name) });
+    setErrors([]);
   }
 
   return (
@@ -120,22 +152,29 @@ export default function ProjectUpload({ project, onChange, checklist }) {
 
       <label
         className={`file-drop big ${dragging ? "dragging" : ""}`}
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
+        onDragOver={(e) => { e.preventDefault(); if (!dragging) setDragging(true); }}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragging(false); }}
         onDrop={(e) => { e.preventDefault(); setDragging(false); addFiles(e.dataTransfer.files); }}
       >
         <strong>Drop files here or click to choose</strong>
         <span>Your PPR as a PDF, screenshots of your code (PNG or JPG), or code files (.js, .py, .java, .txt…). Up to 6 files, 10 MB total.</span>
-        <input ref={inputRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt,.md,.js,.jsx,.ts,.py,.java,.html,.css,.json,.c,.cpp,.cs" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+        <input ref={inputRef} type="file" multiple accept={ACCEPT} onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
       </label>
 
-      {project.files.length > 0 && (
+      {(project.files.length > 0 || codeFiles.length > 0) && (
         <ul className="file-chips">
+          {codeFiles.map((name) => (
+            <li key={`code-${name}`}>
+              <span className="file-kind">CODE</span>
+              {name} <small>in pasted code</small>
+              <button aria-label={`Remove ${name}`} onClick={() => removeCodeFile(name)}>Remove</button>
+            </li>
+          ))}
           {project.files.map((f, i) => (
             <li key={`${f.name}-${i}`}>
               <span className="file-kind">{f.type === "application/pdf" ? "PDF" : "IMG"}</span>
               {f.name} <small>{fmt(sizeOf(f))}</small>
-              <button aria-label={`Remove ${f.name}`} onClick={() => onChange({ ...project, files: project.files.filter((_, j) => j !== i) })}>Remove</button>
+              <button aria-label={`Remove ${f.name}`} onClick={() => { onChange({ ...project, files: project.files.filter((_, j) => j !== i) }); setErrors([]); }}>Remove</button>
             </li>
           ))}
         </ul>
@@ -143,10 +182,14 @@ export default function ProjectUpload({ project, onChange, checklist }) {
 
       <details className="ppr-paste" open={project.code.length > 0}>
         <summary>Or paste your code as text {project.code ? `(${project.code.split("\n").length} lines)` : ""}</summary>
-        <textarea className="ppr-textarea mono" value={project.code} onChange={(e) => onChange({ ...project, code: e.target.value.slice(0, 15000) })} placeholder="Paste your PPR code here…" />
+        <textarea className="ppr-textarea mono" aria-label="Your project code" value={project.code} onChange={(e) => onChange({ ...project, code: e.target.value.slice(0, 15000) })} placeholder="Paste your PPR code here…" />
       </details>
 
-      {error && <div className="error-box">{error}</div>}
+      {errors.length > 0 && (
+        <div className="error-box" role="alert">
+          {errors.length === 1 ? errors[0] : <ul>{errors.map((m) => <li key={m}>{m}</li>)}</ul>}
+        </div>
+      )}
       <p className="muted small">Remove your name and any personal info from screenshots first. Your project stays saved in this browser and is only sent when you grade or ask the AI helper.</p>
 
       <details className="ppr-checklist-details">

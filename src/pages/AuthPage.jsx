@@ -47,7 +47,7 @@ export default function AuthPage() {
     try {
       const path = mode === "register" ? "/auth/register" : "/auth/login";
       const data = await api(path, { method: "POST", auth: false, body: { email, password, name } });
-      signIn(data.token, data.user);
+      await signIn(data.token, data.user);
       navigate("/dashboard");
     } catch (err) {
       setError(err.message);

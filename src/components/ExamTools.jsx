@@ -12,6 +12,8 @@ export const HIGHLIGHT_COLORS = {
 // Clicking an existing highlight removes it.
 export function HighlightText({ text, ranges = [], active, color = "yellow", onChange, as: Tag = "p", className = "" }) {
   const ref = useRef(null);
+  // Set when a drag just made a highlight, so the click that follows the drag doesn't remove it.
+  const justSelected = useRef(false);
 
   function onMouseUp() {
     if (!active) return;
@@ -27,8 +29,17 @@ export function HighlightText({ text, ranges = [], active, color = "yellow", onC
     const e = s + range.toString().length;
     sel.removeAllRanges();
     if (e <= s) return;
-    const kept = ranges.filter((r) => r.e <= s || r.s >= e);
-    onChange([...kept, { s, e, c: color }].sort((a, b) => a.s - b.s));
+    justSelected.current = true;
+    setTimeout(() => { justSelected.current = false; }, 0);
+    // Merge with any highlights the new one touches, so nothing already marked is lost.
+    let ns = s;
+    let ne = e;
+    const kept = [];
+    ranges.forEach((r) => {
+      if (r.e < s || r.s > e) kept.push(r);
+      else { ns = Math.min(ns, r.s); ne = Math.max(ne, r.e); }
+    });
+    onChange([...kept, { s: ns, e: ne, c: color }].sort((a, b) => a.s - b.s));
   }
 
   const parts = useMemo(() => {
@@ -51,8 +62,14 @@ export function HighlightText({ text, ranges = [], active, color = "yellow", onC
             key={i}
             className="hl"
             style={{ background: HIGHLIGHT_COLORS[p.range.c] || HIGHLIGHT_COLORS.yellow }}
-            title="Click to remove highlight"
-            onClick={() => onChange(ranges.filter((r) => r !== p.range))}
+            title={active ? "Click to remove highlight" : undefined}
+            onClick={() => {
+              // Only a plain click with the highlighter on removes a highlight.
+              if (!active || justSelected.current) return;
+              const sel = window.getSelection();
+              if (sel && !sel.isCollapsed) return;
+              onChange(ranges.filter((r) => r !== p.range));
+            }}
           >
             {p.text}
           </mark>
