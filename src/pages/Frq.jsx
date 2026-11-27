@@ -389,7 +389,7 @@ function GradeCard({ result, onAsk }) {
       )}
       {result.examTip && <div className="info-box"><strong>Exam tip:</strong> {result.examTip}</div>}
       {result.grader === "ai" && onAsk && (
-        <button className="ai-inline-btn" onClick={onAsk}><span className="ai-badge">AI</span> Ask the AI about this feedback</button>
+        <button className="ai-inline-btn" onClick={onAsk}>Ask why this was marked wrong</button>
       )}
       <p className="muted small">Practice score only — not an official AP score.</p>
     </div>
