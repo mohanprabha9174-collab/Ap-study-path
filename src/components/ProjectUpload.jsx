@@ -195,7 +195,11 @@ export default function ProjectUpload({ project, onChange, checklist }) {
 
       <details className="ppr-paste" open={project.code.length > 0}>
         <summary>Or paste your code as text {project.code ? `(${project.code.split("\n").length} lines)` : ""}</summary>
-        <textarea className="ppr-textarea mono" aria-label="Your project code" value={project.code} onChange={(e) => onChange({ ...project, code: e.target.value.slice(0, 15000) })} placeholder="Paste your PPR code here…" />
+        <textarea className="ppr-textarea mono" aria-label="Your project code" value={project.code} onChange={(e) => {
+          const code = e.target.value.slice(0, 15000);
+          // Keep the code-file chips in step with the text: a file whose section was deleted disappears.
+          onChange({ ...project, code, codeFiles: codeFiles.filter((n) => code.includes(`// ===== ${n} =====`)) });
+        }} placeholder="Paste your PPR code here…" />
       </details>
 
       {errors.length > 0 && (

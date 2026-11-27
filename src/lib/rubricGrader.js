@@ -10,16 +10,22 @@ export function rubricTotal(frq) {
 }
 
 // Free fallback: estimates rubric coverage from keywords. Clearly labeled as an estimate in the UI.
+// Tiny words ("so", "for", "if") match almost any answer, so they don't count as evidence.
+const meaningful = (k) => k.length >= 4 || /[^a-z\s]/i.test(k);
+
 export function gradeWithRubric({ frq, response }) {
   const text = response.trim();
   const lower = text.toLowerCase();
   const words = text.split(/\s+/).filter(Boolean).length;
+  const isCode = Boolean(frq.code) || /[{};]/.test(text);
   const rows = frq.rubric.map((row) => {
     const max = rowPoints(row);
-    const keywords = row.keywords || [];
+    const keywords = (row.keywords || []).filter(meaningful);
     const matched = keywords.filter((k) => lower.includes(k.toLowerCase()));
-    const ratio = keywords.length ? matched.length / Math.min(keywords.length, 3) : 0;
-    const earned = words < 15 ? 0 : Math.min(max, Math.round(ratio * 1.5 * max * 2) / 2);
+    // Two distinct matching terms (or all of them, if fewer) earn the row.
+    const needed = Math.min(keywords.length, 2) || 1;
+    const ratio = Math.min(1, matched.length / needed);
+    const earned = words < 15 ? 0 : Math.round(ratio * max * 2) / 2;
     return {
       point: row.point,
       earned,
@@ -29,6 +35,17 @@ export function gradeWithRubric({ frq, response }) {
         : `Not detected. ${row.lookFor}`
     };
   });
+  // Written answers need enough explanation to earn points: about 20 words per point.
+  // This stops a list of keywords from scoring full marks.
+  if (!isCode) {
+    let budget = Math.floor(words / 20);
+    rows.forEach((r) => {
+      const take = Math.min(r.earned, budget);
+      if (take < r.earned) r.reason = `Too short to earn this point yet. ${r.reason}`;
+      r.earned = take;
+      budget -= take;
+    });
+  }
 
   const improvements = [];
   if (words < 60 && !frq.code) improvements.push("Add more detail: explain cause and effect, not just vocabulary.");

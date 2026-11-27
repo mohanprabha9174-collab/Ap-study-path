@@ -350,19 +350,27 @@ app.post("/api/frq/grade", requireAuth, gradeLimiter, wrap(async (req, res) => {
 
   let result;
   // Grading the exact same answer again returns the earlier AI grade for free.
+  // For CSP the uploaded project is part of what was graded, so it has to match too.
+  const files = frq.usesPpr ? cleanFiles(req.body.pprFiles) : [];
+  const projectHash = frq.usesPpr
+    ? crypto.createHash("sha256").update(ppr).update(files.map((f) => `${f.name}:${f.data.length}:${f.data.slice(0, 64)}`).join("|")).digest("hex").slice(0, 16)
+    : "";
   const previous = aiEnabled() ? await db.get(
-    "SELECT feedback FROM frq_submissions WHERE user_id = ? AND frq_id = ? AND response = ? AND grader = 'ai' ORDER BY created_at DESC LIMIT 1",
+    "SELECT id, feedback FROM frq_submissions WHERE user_id = ? AND frq_id = ? AND response = ? AND grader = 'ai' ORDER BY created_at DESC LIMIT 1",
     [req.userId, frqId, response]
   ) : null;
-  const reusable = previous && !(frq.usesPpr && (ppr || (Array.isArray(req.body.pprFiles) && req.body.pprFiles.length)));
+  let previousResult = null;
+  try { previousResult = previous ? JSON.parse(previous.feedback) : null; } catch { previousResult = null; }
+  const reusable = previousResult && (!frq.usesPpr || previousResult.projectHash === projectHash);
   const reservation = !reusable && aiEnabled() ? await reserveAiCall(req.userId, "grade") : { ok: false };
   if (reusable) {
-    result = { ...JSON.parse(previous.feedback), notice: "Same answer as last time, so this is your earlier AI grade (it didn't use one of today's grades)." };
+    // Same answer as before: return that grade without saving another copy to the history.
+    return res.json({ ...previousResult, id: previous.id, solution: frq.solution || null, notice: "Same answer as last time, so this is your earlier AI grade (it didn't use one of today's grades)." });
   } else if (aiEnabled() && !reservation.ok) {
     result = { ...gradeWithRubric({ frq, response }), notice: reservation.reason };
   } else if (aiEnabled()) {
     try {
-      result = await gradeWithAI({ frq, courseName: courses[course].name, response, ppr: frq.usesPpr ? ppr : "", pprFiles: frq.usesPpr ? cleanFiles(req.body.pprFiles) : [] });
+      result = { ...(await gradeWithAI({ frq, courseName: courses[course].name, response, ppr: frq.usesPpr ? ppr : "", pprFiles: files })), projectHash };
     } catch (err) {
       console.error(err.message);
       await releaseAiCall(req.userId, "grade");

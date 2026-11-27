@@ -93,7 +93,7 @@ export function Markdown({ text }) {
  * context: { key, label, kind: "mcq"|"frq"|"general", questionId?, studentChoice?, answered?, frqId?, draft?, graded?, ppr? }
  * starters: quick prompts shown as buttons.
  */
-export default function AiHelper({ open, onClose, course, context, starters = [] }) {
+export default function AiHelper({ open, onClose, course, context, starters = [], autoAsk = "", onAutoAsked }) {
   const { user, backend } = useApp();
   const [threads, setThreads] = useState({});
   const [input, setInput] = useState("");
@@ -159,6 +159,14 @@ export default function AiHelper({ open, onClose, course, context, starters = []
   }, [messages.length, busy]);
 
   useEffect(() => { setError(""); }, [context.key]);
+
+  // Opened from "Ask why this was marked wrong": send that question right away.
+  useEffect(() => {
+    if (open && autoAsk && canUse && !busy) {
+      send(autoAsk);
+      onAutoAsked?.();
+    }
+  }, [open, autoAsk]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function send(text, base = messages) {
     const content = text.trim();

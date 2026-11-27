@@ -920,3 +920,9 @@ html { scroll-padding-top: 84px; }
 .test-card.is-started { border-color: #e8c46a; }
 .dash-card--empty { display: grid; gap: 0.6rem; align-content: start; }
 .dash-card--empty .primary-btn { justify-self: start; }
+/* Sources wrap long lines instead of hiding the end; wrapped text lines up after the line number. */
+.source-view .cl { white-space: pre-wrap; overflow-wrap: anywhere; }
+.source-view code { min-width: 0; }
+.times-up { font-size: 0.95rem; padding: 0.3rem 0.6rem; border-radius: var(--r-sm); background: var(--bad-soft); }
+.prompt-example { margin: 0; }
+.prompt-bullets { margin: 0; padding-left: 1.2rem; line-height: 1.6; max-width: 72ch; }
